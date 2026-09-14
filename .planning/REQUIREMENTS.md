@@ -38,7 +38,8 @@ Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirement
 
 - [ ] **OPS-01**: App is deployed to a cloud host and reachable via a public URL for TAs/instructor
 - [ ] **OPS-02**: Automated tests (PyTest) cover core backend routes (login, create/join project, checkout, check-in)
-- [ ] **OPS-03**: Project plan documents team members, sprint velocity, collaboration tools, and methodology (R1-1)
+
+> Note: R1-1 (Project Plan — team members, sprint cadence, collaboration tools, methodology, toolchain) is a separate deliverable owned by another team member and is intentionally out of scope here.
 
 ## v2 Requirements
 

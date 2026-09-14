@@ -48,17 +48,14 @@ A user can securely log in, join or create a project, and check hardware resourc
 ## Context
 
 - This is a graded academic team project (MIS385N Advanced Programming & App Development), delivered in phases with a shared grading rubric (`Team Project_Fa26.pdf`).
-- Phase 1 (5 pts, due first) requires: a Project Plan (team, sprint velocity, tools, methodology), all features + initial work items on a board, a high-level sketch of the app, and a stated tool/approach choice. No code delivery required yet.
+- Phase 1 (5 pts, due first) requires: all features + initial work items on a board, a high-level sketch of the app, and a stated tool/approach choice — plus a separate Project Plan (team members, sprint cadence, collaboration tools, methodology, toolchain), which is **owned by another team member and out of scope for this document**.
 - Phase 2 (10 pts) requires all General Requirements satisfied: hardware resources stored in DB with an API, user/project info accessible from the app with no hard-coded data, and the app hosted on the cloud and reachable via URL.
-- General requirements apply across all phases: single shared repo (instructor + TAs added as collaborators), issue tracker kept separate from the user-story board, all user stories defined by end of Phase 1 (refined later), each user story describable in ≤3 sentences.
-- Recommended/expected stack per assignment: Python (Flask), React.js, MongoDB, PyTest, Heroku Cloud Deploy — matches the existing scaffold, so no stack discussion needed with the TA.
+- General requirements apply across all phases: issue tracker kept separate from the user-story board, all user stories defined by end of Phase 1 (refined later), each user story describable in ≤3 sentences.
 - Existing scaffold is a bare-bones starter template (routes stubbed, DB helper modules stubbed) — not yet wired to a real MongoDB instance, no encryption implemented, no tests, no deployment config.
 
 ## Constraints
 
-- **Tech stack**: Flask + MongoDB + React (+ PyTest, Heroku) — per course-recommended stack; the existing scaffold already assumes this, and deviating requires a TA discussion
-- **Timeline**: Phase 1 and Phase 2 have hard course-calendar due dates (exact dates not yet provided by user — confirm against syllabus/Canvas)
-- **Team size**: 5–6 students max, single shared GitHub repo for all phases, instructor + TAs must have repo access
+- **Tech stack**: Flask + MongoDB + React — matches the existing scaffold (stack choice/toolchain is documented in the separate Project Plan)
 - **Process**: User stories must be ≤3 sentences (Mountain Goat Software style); issues (bugs/improvements) tracked separately from user-story board, not combined
 - **Security**: Userid and password must be encrypted at rest/in transit (SR3) — non-negotiable rubric item
 

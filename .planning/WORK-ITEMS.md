@@ -14,7 +14,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 
 ---
 
-## 1. Account & Authentication — Phase 1 / Track A
+## 1. Account & Authentication — Track A
 
 **Goal:** A user can create a secure account and stay signed in while using the app.
 
@@ -25,7 +25,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | TD-01 | Technical debt | Encrypt credentials | Add password hashing (e.g. bcrypt) in `usersDatabase.py` — currently a stub with no security logic. | ACCT-03 |
 | TD-02 | Technical debt | Persist session | Implement session/token handling so login state survives page navigation — not implemented in the scaffold. | ACCT-04 |
 
-## 2. Household Management — Phase 1 / Track A
+## 2. Household Management — Track A
 
 **Goal:** A user can create or join the shared household space their food inventory lives in.
 
@@ -36,7 +36,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | US-05 | User story | View my households | As a user, I want to see every household I belong to so I can switch between them if I'm part of more than one. | HH-03 |
 | TD-03 | Technical debt | Household item-stock schema | Agree on and define the household document's item-stock shape (capacity/availability per item, keyed by location) before Inventory work starts writing to it. **Coordination point between Track A and Track B.** | HH-01 |
 
-## 3. Inventory Management — Phase 2 / Track B
+## 3. Inventory Management — Track B
 
 **Goal:** A household member can see what food is on hand and move it through reserve → consume, or add new stock.
 
@@ -49,7 +49,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | US-10 | User story | See freshness at a glance | As a household member, I want to see whether an item is fresh, expiring soon, or expired so I know what to use first. | INV-05 |
 | TD-04 | Technical debt | Overbooking guard | Reject checkout/reserve requests that exceed current availability — no validation logic exists yet in the scaffold. | INV-04 |
 
-## 4. Data Integration & API — Phase 3 / Track C
+## 4. Data Integration & API — Track C
 
 **Goal:** Everything on screen comes from a live database through a real API — nothing is hard-coded.
 
@@ -60,7 +60,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | TD-06 | Technical debt | Remove hard-coded frontend data | Replace placeholder/sample values in React components (`Project.js`, `Checkout.js`, `MyUserPortal.js`) with live API calls. | DATA-01 |
 | TD-07 | Technical debt | Provision MongoDB Atlas | Stand up a MongoDB Atlas cluster and connection config via environment variables — no secrets committed to the repo. | DATA-01 |
 
-## 5. Deployment & Quality — Phase 3 / Track C
+## 5. Deployment & Quality — Track C
 
 **Goal:** The PoC is reachable by the instructor/TAs and its core flows are covered by automated tests.
 

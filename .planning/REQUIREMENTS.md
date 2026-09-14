@@ -88,33 +88,33 @@ Deferred — acknowledged as valuable but out of committed scope for this PoC. T
 
 ## Traceability
 
-Which phases cover which requirements. Populated during roadmap creation.
+Which tracks cover which requirements. Populated during roadmap creation.
 
-| Requirement | Phase | Status |
+| Requirement | Track | Status |
 |-------------|-------|--------|
-| ACCT-01 | Phase 1 | Pending |
-| ACCT-02 | Phase 1 | Pending |
-| ACCT-03 | Phase 1 | Pending |
-| ACCT-04 | Phase 1 | Pending |
-| HH-01 | Phase 1 | Pending |
-| HH-02 | Phase 1 | Pending |
-| HH-03 | Phase 1 | Pending |
-| INV-01 | Phase 2 | Pending |
-| INV-02 | Phase 2 | Pending |
-| INV-03 | Phase 2 | Pending |
-| INV-04 | Phase 2 | Pending |
-| INV-05 | Phase 2 | Pending |
-| DATA-01 | Phase 3 | Pending |
-| DATA-02 | Phase 3 | Pending |
-| DATA-03 | Phase 3 | Pending |
-| OPS-01 | Phase 3 | Pending |
-| OPS-02 | Phase 3 | Pending |
+| ACCT-01 | Track A | Pending |
+| ACCT-02 | Track A | Pending |
+| ACCT-03 | Track A | Pending |
+| ACCT-04 | Track A | Pending |
+| HH-01 | Track A | Pending |
+| HH-02 | Track A | Pending |
+| HH-03 | Track A | Pending |
+| INV-01 | Track B | Pending |
+| INV-02 | Track B | Pending |
+| INV-03 | Track B | Pending |
+| INV-04 | Track B | Pending |
+| INV-05 | Track B | Pending |
+| DATA-01 | Track C | Pending |
+| DATA-02 | Track C | Pending |
+| DATA-03 | Track C | Pending |
+| OPS-01 | Track C | Pending |
+| OPS-02 | Track C | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 17 (Phase 1: 7, Phase 2: 5, Phase 3: 5)
+- Mapped to tracks: 17 (Track A: 7, Track B: 5, Track C: 5)
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-14*
-*Last updated: 2026-09-14 after roadmap creation (3-phase parallel-track structure)*
+*Last updated: 2026-09-14 after roadmap creation (3-track parallel structure)*

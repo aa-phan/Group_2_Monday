@@ -21,6 +21,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
 | TD-DOC-A | Technical debt | Define Track A scope, schema, and initial stories | Define the account/household data model (userid/password fields, household document shape with name/description/householdID) and write Track A's initial user stories (US-01..US-05) for the feature board. | ACCT/HH | 1 |
+| US-R1-A | User story | Document the project plan | As the instructor, I want a documented project plan covering team members, sprint velocity, collaboration tools, and implementation methodology so I can assess how the team is organized and working together. | R1-1 | 1 |
 | US-01 | User story | Sign up | As a new household member, I want to create an account with a userid and password so I can access my household's inventory. | ACCT-02 | 2 |
 | US-02 | User story | Sign in | As a returning user, I want to sign in with my credentials so I can resume managing my household's food inventory. | ACCT-01 | 2 |
 | TD-01 | Technical debt | Encrypt credentials | Add password hashing (e.g. bcrypt) in `usersDatabase.py` — currently a stub with no security logic. | ACCT-03 | 2 |
@@ -44,6 +45,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
 | TD-DOC-B | Technical debt | Define Track B scope, schema, and initial stories | Define the household item-stock schema (capacity/availability per item, keyed by Pantry/Fridge/Freezer location) and write Track B's initial user stories (US-06..US-10) for the feature board. | INV | 1 |
+| US-R1-B | User story | Publish the feature board | As the instructor, I want to see every planned feature captured as user stories, technical debt, or research items on a shared board so I can verify the team has scoped its work before implementation begins. | R1-2 | 1 |
 | US-06 | User story | View inventory by location | As a household member, I want to see items grouped by Pantry, Fridge, and Freezer with capacity and availability so I know what's on hand at a glance. | INV-01 | 2 |
 | US-07 | User story | Restock an item | As a household member, I want to log a new purchase with quantity, purchase date, and best-by date so the inventory reflects what I bought. | INV-02 | 2 |
 | US-08 | User story | Reserve an item | As a household member, I want to reserve a quantity of an item for myself so others know not to use it before I do. | INV-03 | 2 |
@@ -58,17 +60,22 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
 | TD-DOC-C | Technical debt | Define Track C scope, schema, and initial stories | Define the REST API surface and deployment/test plan covering DATA-01..03 and OPS-01..02, and write Track C's initial user stories (US-11..US-12) for the feature board. | DATA/OPS | 1 |
+| US-R1-C | User story | Document tool choice & approach | As the instructor, I want a written explanation of the team's chosen tech stack and technical approach so I can evaluate whether the decisions fit the project's needs. | R1-4 | 1 |
 | US-11 | User story | Always-live data | As a household member, I want everything I see to reflect the real shared database, never sample data, so I can trust the app for real grocery use. | DATA-03 | 2 |
 | TD-05 | Technical debt | Wire REST endpoints | Implement the stubbed Flask routes in `app.py` against real DB module logic — routes currently exist but do nothing. | DATA-02 | 2 |
 | TD-06 | Technical debt | Remove hard-coded frontend data | Replace placeholder/sample values in React components (`Project.js`, `Checkout.js`, `MyUserPortal.js`) with live API calls. | DATA-01 | 2 |
 | TD-07 | Technical debt | Provision MongoDB Atlas | Stand up a MongoDB Atlas cluster and connection config via environment variables — no secrets committed to the repo. | DATA-01 | 2 |
+| US-13 | User story | Reset a forgotten password | As a user who forgot their password, I want to reset it via the existing Forgot Password flow so I can regain access to my household's inventory without contacting an admin. | STRETCH-01 | 2 |
+| US-14 | User story | Manage custom storage locations | As a household member, I want to define storage locations beyond the default Pantry/Fridge/Freezer (e.g. a garage freezer or wine fridge) so my household's inventory reflects how we actually store food. | STRETCH-02 | 2 |
 
-## 5. Deployment & Quality — Track C
+## 5. Deployment & Quality — Track D
 
 **Goal:** The PoC is reachable by the instructor/TAs and its core flows are covered by automated tests.
 
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
+| TD-DOC-D | Technical debt | Define Track D scope, schema, and initial stories | Define the deployment pipeline and test-coverage plan covering OPS-01/OPS-02, and write Track D's initial user stories (US-12) for the feature board. | OPS | 1 |
+| US-R1-D | User story | Sketch the application architecture | As the instructor, I want a high-level sketch of the application's architecture and user flow so I can quickly understand the system's design before reviewing the code. | R1-3 | 1 |
 | US-12 | User story | Reachable, gradeable app | As an instructor or TA, I want to open a public URL and walk through the full account → household → inventory flow so I can grade the working PoC. | OPS-01 | 2 |
 | TD-08 | Technical debt | Deployment pipeline | Set up cloud hosting and deploy config so the app is reachable via a stable public URL. | OPS-01 | 2 |
 | TD-09 | Technical debt | Backend test harness | Set up PyTest and write coverage for login, create/join household, reserve, consume, and restock routes. | OPS-02 | 2 |
@@ -93,9 +100,11 @@ The household's full product vision, beyond this PoC's committed scope — each 
 
 ---
 
-**Totals:** 5 committed features · 12 user stories · 13 technical debt items (10 Phase 2 + 3 Phase 1 scope/schema/stories items) · 10 research items · 17/17 v1 requirements covered.
+**Totals:** 5 committed features · 18 user stories · 14 technical debt items (10 Phase 2 + 4 Phase 1 scope/schema/stories items) · 10 research items · 19/19 v1 requirements covered.
 
-**Out of scope reminder:** The Project Plan (team members, sprint cadence, collaboration tools, methodology, toolchain — R1-1) is a separate deliverable owned by another team member and is not represented on this board.
+**4 tracks, 4 developers:** Track A, Track B, Track C, and Track D each own exactly one Phase 1 rubric item (US-R1-A/B/C/D → R1-1/R1-2/R1-4/R1-3 respectively) plus either one Phase 2 rubric item or, for Track C, a promoted stretch-feature scope (US-13, US-14) in place of a numbered R2 item.
+
+**Out of scope reminder:** The Project Plan (team members, sprint cadence, collaboration tools, methodology, toolchain — R1-1) is now represented on this board via US-R1-A, owned by Track A.
 
 ---
 *Board created: 2026-09-14*

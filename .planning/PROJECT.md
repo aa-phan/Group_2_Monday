@@ -14,6 +14,7 @@ A household member can see what food the household has across pantry/fridge/free
 - **Revenue model**: N/A — academic PoC, not monetized
 - **Success metric**: Phase 1 (5 pts) and Phase 2 (10 pts) rubric criteria fully met; app hosted and reachable via URL by end of Phase 2
 - **Strategy notes**: See `Team Project_Fa26.pdf` in repo root for the full assignment spec. POWDER (cited in the PDF) is inspiration for the general HaaS shape only — nothing wireless/RF-specific applies here.
+- **Team structure**: The team now has 4 developers on 4 tracks (Track A: Account & Household Management, Track B: Inventory Management, Track C: Data Integration & API, Track D: Deployment & Quality). Each track owns exactly one Phase 1 rubric item and one Phase 2 rubric item, except Track C, whose Phase 2 scope is a promoted stretch-feature set (STRETCH-01, STRETCH-02) instead of a numbered R2 item.
 
 ## Requirements
 
@@ -40,6 +41,8 @@ A household member can see what food the household has across pantry/fridge/free
 - [ ] Cloud hosting reachable via URL for TAs/instructor (R2-3)
 - [ ] Project board with all features + initial work items (user stories, tech debt, research items) (R1-2)
 - [ ] High-level architecture sketch (R1-3)
+- [ ] Password reset via the existing Forgot Password flow (STRETCH-01)
+- [ ] Custom storage locations beyond Pantry/Fridge/Freezer (STRETCH-02)
 
 ### Backlog / Research Items (explicitly NOT in this PoC's committed scope)
 
@@ -106,4 +109,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-14 after re-scoping to household food inventory domain*
+*Last updated: 2026-09-14 after restructuring to 4-track parallel structure (4 developers)*

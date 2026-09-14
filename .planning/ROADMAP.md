@@ -5,8 +5,8 @@
 This roadmap delivers the PantryTrack PoC by completing the existing Flask/MongoDB/React scaffold
 (routes and DB modules are stubbed but not implemented; client pages/components are still named
 generically after the assignment's "project"/"hardware set" template). Work is organized into
-**three parallel tracks**, one per developer, following the codebase's existing module seams
-rather than a sequential build order:
+**four parallel tracks**, one per developer (the team confirmed 4 developers), following the
+codebase's existing module seams rather than a sequential build order:
 
 - **Track A — Account & Household Management**: everything in `usersDatabase.py` plus
   the household-CRUD/membership half of `projectsDatabase.py` (households replace "projects"),
@@ -14,12 +14,18 @@ rather than a sequential build order:
 - **Track B — Inventory Management**: everything in `hardwareDatabase.py` (food item
   stock replaces "hardware sets") plus the reserve/consume/restock half of `projectsDatabase.py`,
   and the `Checkout` / capacity-availability-by-location parts of the frontend.
-- **Track C — Data Integration, API & Cloud Deployment**: cross-cutting work that only
-  fully resolves once Tracks A and B have landed — eliminating hard-coded data everywhere,
-  hardening the REST API layer, writing PyTest coverage, and deploying to a public URL. Track C's
-  *infrastructure* sub-tasks (Mongo Atlas provisioning, deployment pipeline skeleton, PyTest
-  harness scaffolding) can start on day one in parallel with Tracks A and B; only the final
-  integration/verification/deploy sub-tasks are gated on A and B substantially landing.
+- **Track C — Data Integration & API**: eliminating hard-coded data everywhere and
+  hardening the REST API layer so it only fully resolves once Tracks A and B have landed. Track
+  C's *infrastructure* sub-tasks (Mongo Atlas provisioning, API response conventions) can start on
+  day one in parallel with Tracks A and B; only the final integration/verification sub-tasks are
+  gated on A and B substantially landing. Track C also owns two promoted stretch features
+  (password reset, custom storage locations) as its own committed Phase 2 scope, since only 3 of
+  the 4 tracks can own one of the 3 real Phase 2 rubric items.
+- **Track D — Deployment & Quality**: writing PyTest coverage for the core backend routes and
+  deploying the app to a public cloud URL. Track D's *infrastructure* sub-tasks (deployment
+  pipeline skeleton, PyTest harness scaffolding) can start on day one in parallel with the other
+  tracks; only the final integration/verification/deploy sub-tasks are gated on Tracks A, B, and C
+  substantially landing.
 
 **Explicit coordination point:** Track A and Track B both edit `server/projectsDatabase.py` (the
 household document). Track A owns household CRUD and membership (create household, join
@@ -30,13 +36,14 @@ to it, to avoid merge conflicts and schema drift.
 
 ## Phases
 
-**Track Ordering:** Tracks A, B, and C run in parallel (one per developer, split along existing
+**Track Ordering:** Tracks A, B, C, and D run in parallel (one per developer, split along existing
 module seams) rather than a strict numeric sequence — see the coordination point above and each
 track's "Depends on" line for the one place they touch.
 
 - [ ] **Track A: Account & Household Management** - Users can securely register, log in, stay signed in, and create or join a household
 - [ ] **Track B: Inventory Management** - Users can view pantry/fridge/freezer inventory by location, reserve items, consume/checkout items, restock/check-in items, and see freshness flags
-- [ ] **Track C: Data Integration, API & Cloud Deployment** - The app runs entirely on live MongoDB/REST data, is test-covered, and is reachable via a public URL
+- [ ] **Track C: Data Integration & API** - The app runs entirely on live MongoDB/REST data, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered
+- [ ] **Track D: Deployment & Quality** - The app is test-covered and reachable via a public URL
 
 ## Phase Details
 
@@ -72,32 +79,47 @@ Plans:
 Plans:
 - [ ] 02-01: TBD
 
-### Track C: Data Integration, API & Cloud Deployment
-**Goal**: The full application runs against a live MongoDB-backed REST API with zero hard-coded data anywhere, is covered by automated tests, and is deployed to a cloud host reachable by the instructor/TAs.
-**Depends on**: Track A and Track B for final integration, verification, and deploy (needs both feature sets substantially implemented to confirm no hard-coded data remains, exercise the full REST surface, and write meaningful route tests). Infra sub-tasks (MongoDB Atlas provisioning, deployment config skeleton, PyTest harness scaffolding, API response conventions) can start on day one in parallel with Track A and Track B.
-**Requirements**: DATA-01, DATA-02, DATA-03, OPS-01, OPS-02
+### Track C: Data Integration & API
+**Goal**: The full application runs against a live MongoDB-backed REST API with zero hard-coded data anywhere, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered as its Phase 2 scope.
+**Depends on**: Track A and Track B for final integration and verification (needs both feature sets substantially implemented to confirm no hard-coded data remains and exercise the full REST surface). Infra sub-tasks (MongoDB Atlas provisioning, API response conventions) can start on day one in parallel with Track A and Track B.
+**Requirements**: DATA-01, DATA-02, DATA-03, STRETCH-01, STRETCH-02
 **Success Criteria** (what must be TRUE):
   1. All user, household, and food-item data lives in MongoDB collections, and every CRUD operation for each goes through a REST endpoint (no other data path exists).
   2. Every page in the app (login, household portal/list, inventory view, reserve/consume/restock) renders its data — capacity, availability, household list, item details, freshness flags — from a live REST API call, with no hard-coded or mock values remaining in any component.
-  3. Automated PyTest tests exist and pass for the core backend routes: login, create household, join household, reserve, consume, restock.
-  4. The deployed app is reachable at a public URL, and the instructor/TAs can complete the full account → household → reserve/consume/restock flow against the hosted instance.
+  3. A user who forgot their password can reset it via the existing Forgot Password flow and regain access to their household's inventory.
+  4. A household member can define storage locations beyond the default Pantry/Fridge/Freezer (e.g. a garage freezer or wine fridge).
 **Plans**: TBD
 **UI hint**: yes
 
 Plans:
 - [ ] 03-01: TBD
 
+### Track D: Deployment & Quality
+**Goal**: The PoC is reachable by the instructor/TAs via a public URL and its core flows are covered by automated tests.
+**Depends on**: Track A, Track B, and Track C for final integration, verification, and deploy (needs the feature sets substantially implemented to write meaningful route tests and confirm the deployed app is fully functional). Infra sub-tasks (deployment config skeleton, PyTest harness scaffolding) can start on day one in parallel with the other tracks.
+**Requirements**: OPS-01, OPS-02
+**Success Criteria** (what must be TRUE):
+  1. Automated PyTest tests exist and pass for the core backend routes: login, create household, join household, reserve, consume, restock.
+  2. The deployed app is reachable at a public URL, and the instructor/TAs can complete the full account → household → reserve/consume/restock flow against the hosted instance.
+**Plans**: TBD
+**UI hint**: no
+
+Plans:
+- [ ] 04-01: TBD
+
 ## Progress
 
 **Execution Order:**
-Track A and Track B execute in parallel (independent tracks, one coordination point on `projectsDatabase.py`'s household document). Track C's infra sub-tasks start alongside them; Track C's integration/verification/deploy sub-tasks complete last, after Track A and Track B land.
+Track A and Track B execute in parallel (independent tracks, one coordination point on `projectsDatabase.py`'s household document). Track C's and Track D's infra sub-tasks start alongside them; Track C's integration/verification sub-tasks and Track D's integration/verification/deploy sub-tasks complete last, after Track A, Track B, and (for Track D) Track C substantially land.
 
 | Track | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | A. Account & Household Management | 0/TBD | Not started | - |
 | B. Inventory Management | 0/TBD | Not started | - |
-| C. Data Integration, API & Cloud Deployment | 0/TBD | Not started | - |
+| C. Data Integration & API | 0/TBD | Not started | - |
+| D. Deployment & Quality | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-09-14*
+*Last updated: 2026-09-14 after restructuring to 4-track parallel structure (4 developers)*
 *Granularity: standard | Phase ID convention: sequential*

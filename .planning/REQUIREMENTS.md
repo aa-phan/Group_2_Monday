@@ -39,7 +39,26 @@ Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirement
 - [ ] **OPS-01**: App is deployed to a cloud host and reachable via a public URL for TAs/instructor
 - [ ] **OPS-02**: Automated tests (PyTest) cover core backend routes (login, create/join household, reserve, consume, restock)
 
-> Note: R1-1 (Project Plan — team members, sprint cadence, collaboration tools, methodology, toolchain) is a separate deliverable owned by another team member and is intentionally out of scope here.
+### Track C Stretch Features (not from PDF rubric — promoted backlog, Track C's Phase 2 scope)
+
+- [ ] **STRETCH-01**: User can reset a forgotten password via the existing Forgot Password flow
+- [ ] **STRETCH-02**: User can define custom storage locations beyond Pantry/Fridge/Freezer
+
+> Note: R1-1 (Project Plan — team members, sprint cadence, collaboration tools, methodology, toolchain) is now owned by Track A.
+
+## Rubric Item Ownership
+
+| Rubric Item | Description | Owning Track |
+|-------------|--------------|--------------|
+| R1-1 | Project Plan (team members, sprint cadence, collaboration tools, methodology, toolchain) | Track A |
+| R1-2 | Feature board (all features + initial work items) | Track B |
+| R1-4 | Tool choice & approach | Track C |
+| R1-3 | High-level sketch of application architecture | Track D |
+| R2-1 | Hardware/food-item resources stored in DB with an API | Track B |
+| R2-2 | User/household info live in the app, no hard-coded data | Track A |
+| R2-3 | Cloud deployment reachable via public URL | Track D |
+
+> Track C has no numbered R2 rubric item (only 3 exist for 4 tracks). Its Phase 2 contribution is instead the Stretch Features group above (STRETCH-01, STRETCH-02), promoted from the v2 backlog.
 
 ## v2 Requirements
 
@@ -73,8 +92,8 @@ Deferred — acknowledged as valuable but out of committed scope for this PoC. T
 
 ### Enhancements (from prior scoping pass, still applicable)
 
-- **ENH-01**: Password reset / "Forgot Password" flow (scaffold page `ForgotMyPassword.js` exists but not required by stakeholder needs)
-- **ENH-02**: Admin view to define new food item categories/locations beyond Pantry/Fridge/Freezer
+- **ENH-01**: Password reset / "Forgot Password" flow (scaffold page `ForgotMyPassword.js` exists but not required by stakeholder needs) — **promoted to v1 committed scope as STRETCH-01 under Track C**
+- **ENH-02**: Admin view to define new food item categories/locations beyond Pantry/Fridge/Freezer — **promoted to v1 committed scope as STRETCH-02 under Track C**
 
 ## Out of Scope
 
@@ -107,14 +126,16 @@ Which tracks cover which requirements. Populated during roadmap creation.
 | DATA-01 | Track C | Pending |
 | DATA-02 | Track C | Pending |
 | DATA-03 | Track C | Pending |
-| OPS-01 | Track C | Pending |
-| OPS-02 | Track C | Pending |
+| OPS-01 | Track D | Pending |
+| OPS-02 | Track D | Pending |
+| STRETCH-01 | Track C | Pending |
+| STRETCH-02 | Track C | Pending |
 
 **Coverage:**
-- v1 requirements: 17 total
-- Mapped to tracks: 17 (Track A: 7, Track B: 5, Track C: 5)
+- v1 requirements: 19 total
+- Mapped to tracks: 19 (Track A: 7, Track B: 5, Track C: 5, Track D: 2)
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-14*
-*Last updated: 2026-09-14 after roadmap creation (3-track parallel structure)*
+*Last updated: 2026-09-14 after restructuring to 4-track parallel structure (4 developers)*

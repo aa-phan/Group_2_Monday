@@ -80,6 +80,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 | Quick ID | Date | Description | Summary |
 |----------|------|--------------|---------|
 | 260914-g9c | 2026-09-14 | Rename internal Phase 1/2/3 work-breakdown to Track A/B/C to avoid clashing with assignment's grading phases | `.planning/quick/260914-g9c-rename-internal-phase1-2-3-work-breakdow/SUMMARY.md` |
+| 260914-glw | 2026-09-14 | Add Phase column (assignment grading Phase 1/2) to all WORK-ITEMS.md tables and insert one new Phase-1 scope/schema/stories technical-debt item per track | `.planning/quick/260914-glw-add-phase-column-to-work-items-md-and-3-/SUMMARY.md` |
 
 ## Session Continuity
 

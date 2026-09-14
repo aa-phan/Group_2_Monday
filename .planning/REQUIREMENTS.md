@@ -92,17 +92,29 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ACCT-01..04 | TBD (roadmap) | Pending |
-| HH-01..03 | TBD (roadmap) | Pending |
-| INV-01..05 | TBD (roadmap) | Pending |
-| DATA-01..03 | TBD (roadmap) | Pending |
-| OPS-01..02 | TBD (roadmap) | Pending |
+| ACCT-01 | Phase 1 | Pending |
+| ACCT-02 | Phase 1 | Pending |
+| ACCT-03 | Phase 1 | Pending |
+| ACCT-04 | Phase 1 | Pending |
+| HH-01 | Phase 1 | Pending |
+| HH-02 | Phase 1 | Pending |
+| HH-03 | Phase 1 | Pending |
+| INV-01 | Phase 2 | Pending |
+| INV-02 | Phase 2 | Pending |
+| INV-03 | Phase 2 | Pending |
+| INV-04 | Phase 2 | Pending |
+| INV-05 | Phase 2 | Pending |
+| DATA-01 | Phase 3 | Pending |
+| DATA-02 | Phase 3 | Pending |
+| DATA-03 | Phase 3 | Pending |
+| OPS-01 | Phase 3 | Pending |
+| OPS-02 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 17 ⚠ (resolved by roadmap step)
+- Mapped to phases: 17 (Phase 1: 7, Phase 2: 5, Phase 3: 5)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-14*
-*Last updated: 2026-09-14 after re-scoping to household food inventory domain*
+*Last updated: 2026-09-14 after roadmap creation (3-phase parallel-track structure)*

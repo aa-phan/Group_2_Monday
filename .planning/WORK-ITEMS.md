@@ -9,7 +9,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 ## Legend
 
 - **User story** — an observable thing a household member can do
-- **Tech task** — engineering work with no direct user-facing story (implementation, infra, security)
+- **Technical debt** — engineering work with no direct user-facing story (implementation, infra, security)
 - **Research item** — a spike/backlog item from the household's full product vision, explicitly **not committed** for this PoC
 
 ---
@@ -22,8 +22,8 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 |----|------|-------|----------------------|-----|
 | US-01 | User story | Sign up | As a new household member, I want to create an account with a userid and password so I can access my household's inventory. | ACCT-02 |
 | US-02 | User story | Sign in | As a returning user, I want to sign in with my credentials so I can resume managing my household's food inventory. | ACCT-01 |
-| TD-01 | Tech task | Encrypt credentials | Add password hashing (e.g. bcrypt) in `usersDatabase.py` — currently a stub with no security logic. | ACCT-03 |
-| TD-02 | Tech task | Persist session | Implement session/token handling so login state survives page navigation — not implemented in the scaffold. | ACCT-04 |
+| TD-01 | Technical debt | Encrypt credentials | Add password hashing (e.g. bcrypt) in `usersDatabase.py` — currently a stub with no security logic. | ACCT-03 |
+| TD-02 | Technical debt | Persist session | Implement session/token handling so login state survives page navigation — not implemented in the scaffold. | ACCT-04 |
 
 ## 2. Household Management — Phase 1 / Track A
 
@@ -34,7 +34,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | US-03 | User story | Create a household | As a user, I want to create a new household with a name, description, and ID so my family or roommates share one inventory. | HH-01 |
 | US-04 | User story | Join a household | As a user, I want to join an existing household using its ID so I see the same inventory as my housemates. | HH-02 |
 | US-05 | User story | View my households | As a user, I want to see every household I belong to so I can switch between them if I'm part of more than one. | HH-03 |
-| TD-03 | Tech task | Household item-stock schema | Agree on and define the household document's item-stock shape (capacity/availability per item, keyed by location) before Inventory work starts writing to it. **Coordination point between Track A and Track B.** | HH-01 |
+| TD-03 | Technical debt | Household item-stock schema | Agree on and define the household document's item-stock shape (capacity/availability per item, keyed by location) before Inventory work starts writing to it. **Coordination point between Track A and Track B.** | HH-01 |
 
 ## 3. Inventory Management — Phase 2 / Track B
 
@@ -47,7 +47,7 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | US-08 | User story | Reserve an item | As a household member, I want to reserve a quantity of an item for myself so others know not to use it before I do. | INV-03 |
 | US-09 | User story | Consume an item | As a household member, I want to mark a quantity as consumed so the inventory count stays accurate. | INV-04 |
 | US-10 | User story | See freshness at a glance | As a household member, I want to see whether an item is fresh, expiring soon, or expired so I know what to use first. | INV-05 |
-| TD-04 | Tech task | Overbooking guard | Reject checkout/reserve requests that exceed current availability — no validation logic exists yet in the scaffold. | INV-04 |
+| TD-04 | Technical debt | Overbooking guard | Reject checkout/reserve requests that exceed current availability — no validation logic exists yet in the scaffold. | INV-04 |
 
 ## 4. Data Integration & API — Phase 3 / Track C
 
@@ -56,9 +56,9 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | ID | Type | Title | Story / Description | Req |
 |----|------|-------|----------------------|-----|
 | US-11 | User story | Always-live data | As a household member, I want everything I see to reflect the real shared database, never sample data, so I can trust the app for real grocery use. | DATA-03 |
-| TD-05 | Tech task | Wire REST endpoints | Implement the stubbed Flask routes in `app.py` against real DB module logic — routes currently exist but do nothing. | DATA-02 |
-| TD-06 | Tech task | Remove hard-coded frontend data | Replace placeholder/sample values in React components (`Project.js`, `Checkout.js`, `MyUserPortal.js`) with live API calls. | DATA-01 |
-| TD-07 | Tech task | Provision MongoDB Atlas | Stand up a MongoDB Atlas cluster and connection config via environment variables — no secrets committed to the repo. | DATA-01 |
+| TD-05 | Technical debt | Wire REST endpoints | Implement the stubbed Flask routes in `app.py` against real DB module logic — routes currently exist but do nothing. | DATA-02 |
+| TD-06 | Technical debt | Remove hard-coded frontend data | Replace placeholder/sample values in React components (`Project.js`, `Checkout.js`, `MyUserPortal.js`) with live API calls. | DATA-01 |
+| TD-07 | Technical debt | Provision MongoDB Atlas | Stand up a MongoDB Atlas cluster and connection config via environment variables — no secrets committed to the repo. | DATA-01 |
 
 ## 5. Deployment & Quality — Phase 3 / Track C
 
@@ -67,9 +67,9 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | ID | Type | Title | Story / Description | Req |
 |----|------|-------|----------------------|-----|
 | US-12 | User story | Reachable, gradeable app | As an instructor or TA, I want to open a public URL and walk through the full account → household → inventory flow so I can grade the working PoC. | OPS-01 |
-| TD-08 | Tech task | Deployment pipeline | Set up cloud hosting and deploy config so the app is reachable via a stable public URL. | OPS-01 |
-| TD-09 | Tech task | Backend test harness | Set up PyTest and write coverage for login, create/join household, reserve, consume, and restock routes. | OPS-02 |
-| TD-10 | Tech task | Retire generic naming | As implementation lands, rename the scaffold's generic "project"/"hardware set" language to household/food-item domain terms so code and UI stay legible. | — |
+| TD-08 | Technical debt | Deployment pipeline | Set up cloud hosting and deploy config so the app is reachable via a stable public URL. | OPS-01 |
+| TD-09 | Technical debt | Backend test harness | Set up PyTest and write coverage for login, create/join household, reserve, consume, and restock routes. | OPS-02 |
+| TD-10 | Technical debt | Retire generic naming | As implementation lands, rename the scaffold's generic "project"/"hardware set" language to household/food-item domain terms so code and UI stay legible. | — |
 
 ## Future Vision — Research Backlog (not scheduled, v2)
 
@@ -90,7 +90,7 @@ The household's full product vision, beyond this PoC's committed scope — each 
 
 ---
 
-**Totals:** 5 committed features · 12 user stories · 14 technical tasks · 10 research items · 17/17 v1 requirements covered.
+**Totals:** 5 committed features · 12 user stories · 10 technical debt items · 10 research items · 17/17 v1 requirements covered.
 
 **Out of scope reminder:** The Project Plan (team members, sprint cadence, collaboration tools, methodology, toolchain — R1-1) is a separate deliverable owned by another team member and is not represented on this board.
 

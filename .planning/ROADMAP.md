@@ -40,14 +40,23 @@ to it, to avoid merge conflicts and schema drift.
 module seams) rather than a strict numeric sequence — see the coordination point above and each
 track's "Depends on" line for the one place they touch.
 
-- [ ] **Track A: Account & Household Management** - Users can securely register, log in, stay signed in, and create or join a household
-- [ ] **Track B: Inventory Management** - Users can view pantry/fridge/freezer inventory by location, reserve items, consume/checkout items, restock/check-in items, and see freshness flags
-- [ ] **Track C: Data Integration & API** - The app runs entirely on live MongoDB/REST data, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered
-- [ ] **Track D: Deployment & Quality** - The app is test-covered and reachable via a public URL
+> **Note on "Phase N" below:** The `Phase N` numbers in this section's headings are GSD's own
+> internal phase-tracking IDs (required by the planning tooling to parse this file) — they are
+> **not** the assignment's Phase 1/Phase 2 grading milestones, and they don't align with them
+> 1:1 (e.g. GSD's "Phase 2" is Track B, whose own rubric ownership spans both the assignment's
+> Phase 1 *and* Phase 2 — see each track's Rubric ownership line in `WORK-ITEMS.md`). Treat
+> **Track A/B/C/D** as the real work-breakdown label everywhere in this project; the `Phase N`
+> prefix here exists solely so `/gsd-discuss-phase`, `/gsd-plan-phase`, etc. can locate each
+> track's section.
+
+- [ ] **Phase 1 (Track A): Account & Household Management** - Users can securely register, log in, stay signed in, and create or join a household
+- [ ] **Phase 2 (Track B): Inventory Management** - Users can view pantry/fridge/freezer inventory by location, reserve items, consume/checkout items, restock/check-in items, and see freshness flags
+- [ ] **Phase 3 (Track C): Data Integration & API** - The app runs entirely on live MongoDB/REST data, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered
+- [ ] **Phase 4 (Track D): Deployment & Quality** - The app is test-covered and reachable via a public URL
 
 ## Phase Details
 
-### Track A: Account & Household Management
+### Phase 1 (Track A): Account & Household Management
 **Goal**: A household member can securely create an account, log in, stay logged in, and create or join a household to track shared food inventory within.
 **Depends on**: Nothing (first track — can start immediately in parallel with Track B and Track C's infra sub-tasks)
 **Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04, HH-01, HH-02, HH-03
@@ -63,7 +72,7 @@ track's "Depends on" line for the one place they touch.
 Plans:
 - [ ] 01-01: TBD
 
-### Track B: Inventory Management
+### Phase 2 (Track B): Inventory Management
 **Goal**: Within a household, a member can see what food is on hand across pantry/fridge/freezer and reserve, consume, or restock items without ever over-committing what's available.
 **Depends on**: Track A (shares the household document / `projectsDatabase.py` — coordinate on the item-stock schema early). Development can proceed in parallel using seeded/test household data; the hard dependency is only at cross-track integration testing.
 **Requirements**: INV-01, INV-02, INV-03, INV-04, INV-05
@@ -79,7 +88,7 @@ Plans:
 Plans:
 - [ ] 02-01: TBD
 
-### Track C: Data Integration & API
+### Phase 3 (Track C): Data Integration & API
 **Goal**: The full application runs against a live MongoDB-backed REST API with zero hard-coded data anywhere, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered as its Phase 2 scope.
 **Depends on**: Track A and Track B for final integration and verification (needs both feature sets substantially implemented to confirm no hard-coded data remains and exercise the full REST surface). Infra sub-tasks (MongoDB Atlas provisioning, API response conventions) can start on day one in parallel with Track A and Track B.
 **Requirements**: DATA-01, DATA-02, DATA-03, STRETCH-01, STRETCH-02
@@ -94,7 +103,7 @@ Plans:
 Plans:
 - [ ] 03-01: TBD
 
-### Track D: Deployment & Quality
+### Phase 4 (Track D): Deployment & Quality
 **Goal**: The PoC is reachable by the instructor/TAs via a public URL and its core flows are covered by automated tests.
 **Depends on**: Track A, Track B, and Track C for final integration, verification, and deploy (needs the feature sets substantially implemented to write meaningful route tests and confirm the deployed app is fully functional). Infra sub-tasks (deployment config skeleton, PyTest harness scaffolding) can start on day one in parallel with the other tracks.
 **Requirements**: OPS-01, OPS-02

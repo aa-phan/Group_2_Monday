@@ -18,6 +18,8 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 
 **Goal:** A user can create a secure account and stay signed in while using the app.
 
+**Rubric ownership:** R1-1 (Project Plan) · R2-2 (live user/household data, no hard-coding)
+
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
 | TD-DOC-A | Technical debt | Define Track A scope, schema, and initial stories | Define the account/household data model (userid/password fields, household document shape with name/description/householdID) and write Track A's initial user stories (US-01..US-05) for the feature board. | ACCT/HH | 1 |
@@ -31,6 +33,8 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 
 **Goal:** A user can create or join the shared household space their food inventory lives in.
 
+**Part of:** Track A — see Rubric ownership in section 1.
+
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
 | US-03 | User story | Create a household | As a user, I want to create a new household with a name, description, and ID so my family or roommates share one inventory. | HH-01 | 2 |
@@ -41,6 +45,8 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 ## 3. Inventory Management — Track B
 
 **Goal:** A household member can see what food is on hand and move it through reserve → consume, or add new stock.
+
+**Rubric ownership:** R1-2 (Feature board) · R2-1 (food-item resources in DB + API)
 
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
@@ -57,6 +63,8 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 
 **Goal:** Everything on screen comes from a live database through a real API — nothing is hard-coded.
 
+**Rubric ownership:** R1-4 (Tool choice & approach) · Stretch Features (US-13, US-14) in place of a numbered R2 item
+
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
 | TD-DOC-C | Technical debt | Define Track C scope, schema, and initial stories | Define the REST API surface and deployment/test plan covering DATA-01..03 and OPS-01..02, and write Track C's initial user stories (US-11..US-12) for the feature board. | DATA/OPS | 1 |
@@ -71,6 +79,8 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 ## 5. Deployment & Quality — Track D
 
 **Goal:** The PoC is reachable by the instructor/TAs and its core flows are covered by automated tests.
+
+**Rubric ownership:** R1-3 (High-level sketch) · R2-3 (Cloud deployment)
 
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|

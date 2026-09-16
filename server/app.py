@@ -1,18 +1,37 @@
 # Import necessary libraries and modules
+import os
+
 from bson.objectid import ObjectId
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 
 # Import custom modules for database interactions
-import usersDB
-import projectsDB
-import hardwareDB
+import usersDatabase as usersDB
+import projectsDatabase as projectsDB
+import hardwareDatabase as hardwareDB
 
-# Define the MongoDB connection string
-MONGODB_SERVER = "your_mongodb_connection_string_here"
+load_dotenv()
 
 # Initialize a new Flask web application
 app = Flask(__name__)
+
+
+def getMongoClient():
+    """Build a MongoClient from the MONGODB_URI environment variable.
+
+    Raises RuntimeError with an actionable message when MONGODB_URI is
+    unset -- there is no default connection string anywhere in this file.
+    """
+    uri = os.environ.get("MONGODB_URI")
+    if not uri:
+        raise RuntimeError(
+            "MONGODB_URI is not set. Create a server/.env file (see "
+            "server/requirements.txt for python-dotenv) with "
+            "MONGODB_URI=<your connection string>, or export it in your shell."
+        )
+    return MongoClient(uri)
+
 
 # Route for user login
 @app.route('/login', methods=['POST'])
@@ -112,32 +131,6 @@ def get_project_info():
     # Return a JSON response
     return jsonify({})
 
-# Route for getting all hardware names
-@app.route('/get_all_hw_names', methods=['POST'])
-def get_all_hw_names():
-    # Connect to MongoDB
-
-    # Fetch all hardware names using the hardwareDB module
-
-    # Close the MongoDB connection
-
-    # Return a JSON response
-    return jsonify({})
-
-# Route for getting hardware information
-@app.route('/get_hw_info', methods=['POST'])
-def get_hw_info():
-    # Extract data from request
-
-    # Connect to MongoDB
-
-    # Fetch hardware set information using the hardwareDB module
-
-    # Close the MongoDB connection
-
-    # Return a JSON response
-    return jsonify({})
-
 # Route for checking out hardware
 @app.route('/check_out', methods=['POST'])
 def check_out():
@@ -152,47 +145,76 @@ def check_out():
     # Return a JSON response
     return jsonify({})
 
-# Route for checking in hardware
-@app.route('/check_in', methods=['POST'])
-def check_in():
-    # Extract data from request
-
-    # Connect to MongoDB
-
-    # Attempt to check in the hardware using the projectsDB module
-
-    # Close the MongoDB connection
-
-    # Return a JSON response
-    return jsonify({})
-
-# Route for creating a new hardware set
-@app.route('/create_hardware_set', methods=['POST'])
-def create_hardware_set():
-    # Extract data from request
-
-    # Connect to MongoDB
-
-    # Attempt to create the hardware set using the hardwareDB module
-
-    # Close the MongoDB connection
-
-    # Return a JSON response
-    return jsonify({})
-
-# Route for checking the inventory of projects
+# Route for viewing household inventory grouped by location
 @app.route('/api/inventory', methods=['GET'])
-def check_inventory():
+def get_inventory():
+    # Extract data from request
+    householdId = request.args.get('householdId')
+    userId = request.args.get('userId')
+
+    if not householdId:
+        return jsonify({"error": "missing_parameter", "field": "householdId"}), 400
+    if not userId:
+        return jsonify({"error": "missing_parameter", "field": "userId"}), 400
+
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Fetch all projects from the HardwareCheckout.Projects collection
-
-    # Close the MongoDB connection
+    try:
+        # Fetch household inventory using the projectsDB module
+        locations = projectsDB.getHouseholdInventory(client, householdId, userId)
+    except projectsDB.NotAHouseholdMemberError:
+        return jsonify({"error": "not_a_household_member"}), 403
+    except hardwareDB.ItemNotFoundError:
+        return jsonify({"error": "item_not_found"}), 404
+    except hardwareDB.InvalidInventoryInput as error:
+        return jsonify({"error": "invalid_input", "field": str(error)}), 400
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
     # Return a JSON response
-    return jsonify({})
+    return jsonify({"householdId": householdId, "locations": locations})
+
+# Route for restocking a food item into a location
+@app.route('/api/inventory/restock', methods=['POST'])
+def restock_inventory():
+    # Extract data from request
+    body = request.get_json(silent=True) or {}
+    householdId = body.get('householdId')
+    userId = body.get('userId')
+    location = body.get('location')
+    itemName = body.get('itemName')
+    quantity = body.get('quantity')
+    purchaseDate = body.get('purchaseDate')
+    bestByDate = body.get('bestByDate')
+
+    if not householdId:
+        return jsonify({"error": "invalid_input", "field": "householdId"}), 400
+    if not userId:
+        return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    # Connect to MongoDB
+    client = getMongoClient()
+
+    try:
+        # Attempt to restock the item using the projectsDB module
+        item = projectsDB.restockItem(
+            client, householdId, userId, location, itemName, quantity, purchaseDate, bestByDate
+        )
+    except projectsDB.NotAHouseholdMemberError:
+        return jsonify({"error": "not_a_household_member"}), 403
+    except hardwareDB.InvalidInventoryInput as error:
+        return jsonify({"error": "invalid_input", "field": str(error)}), 400
+    except hardwareDB.ItemNotFoundError:
+        return jsonify({"error": "item_not_found"}), 404
+    finally:
+        # Close the MongoDB connection
+        client.close()
+
+    # Return a JSON response
+    return jsonify({"item": item}), 201
 
 # Main entry point for the application
 if __name__ == '__main__':
-    app.run()
-
+    app.run(port=int(os.environ.get("PORT", 5050)))

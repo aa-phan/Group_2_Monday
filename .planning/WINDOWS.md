@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 4
+open_count: 5
 waived_count: 0
 fixed_count: 0
-total_count: 4
-last_updated: 2026-09-16T06:27:16.165Z
+total_count: 5
+last_updated: 2026-09-16T06:37:42.061Z
 ---
 
 # Broken Windows Ledger
@@ -19,6 +19,7 @@ last_updated: 2026-09-16T06:27:16.165Z
 | 2 | 02 | stub | client/src/App.js | 11 | HOUSEHOLD_ID/USER_ID are hardcoded placeholders (not fetched via a login/session flow) because Track A's auth/session layer (ACCT-04) has not landed yet; Track A wires real session values in once it lands. | open |  | 2026-09-16T06:10:22.438Z |  |
 | 3 | 02 | unrun-verify | client/src/components/FreshnessBadge.js |  | Task 3 human-check (browser click-through confirming badge wording for Pantry/Fridge/Freezer at each freshness value) deferred per HUMAN_VERIFY_MODE=end-of-phase; automated checks (build, grep wording checks) passed. | open |  | 2026-09-16T06:19:14.794Z |  |
 | 4 | 02 | unrun-verify | client/src/components/BatchList.js |  | Task 3 human-check (5-step browser click-through: merge Milk/milk batches with distinct best-by dates and confirm consumption order, loose-match merge (Whole Milk), ambiguous restock notice (Skim Milk then Milk), Freezer/Fridge location separation, no-best-by-date dash rendering) deferred per HUMAN_VERIFY_MODE=end-of-phase; automated checks (npm run build, no-sort grep, BatchList-wired grep, full pytest suite) all passed. | open |  | 2026-09-16T06:27:16.165Z |  |
+| 5 | 02 | unrun-verify | client/src/components/Checkout.js |  | Task 3 human-check (6-step browser click-through: consume drains soonest-expiring batch, insufficient-stock message retains typed quantity, reserve shows claimant name and drops availability, another member's consume still succeeds on a fully-reserved item, release button hidden for non-owners and works for owner, two reservations by same member each independently releasable) deferred per HUMAN_VERIFY_MODE=end-of-phase; automated checks (npm run build, ItemActions-wired grep, releaseReservation grep, no-disabled-on-reservation grep, full pytest suite) all passed. | open |  | 2026-09-16T06:37:42.061Z |  |
 
 ````json
 [
@@ -68,6 +69,18 @@ last_updated: 2026-09-16T06:27:16.165Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-09-16T06:27:16.165Z",
+    "resolved_at": null
+  },
+  {
+    "id": 5,
+    "kind": "unrun-verify",
+    "phase": "02",
+    "file": "client/src/components/Checkout.js",
+    "line": null,
+    "description": "Task 3 human-check (6-step browser click-through: consume drains soonest-expiring batch, insufficient-stock message retains typed quantity, reserve shows claimant name and drops availability, another member's consume still succeeds on a fully-reserved item, release button hidden for non-owners and works for owner, two reservations by same member each independently releasable) deferred per HUMAN_VERIFY_MODE=end-of-phase; automated checks (npm run build, ItemActions-wired grep, releaseReservation grep, no-disabled-on-reservation grep, full pytest suite) all passed.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-09-16T06:37:42.061Z",
     "resolved_at": null
   }
 ]

@@ -24,8 +24,8 @@ Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirement
 
 - [ ] **INV-01**: User can view all food items in a household's inventory, grouped by location (Pantry / Fridge / Freezer), each showing capacity (total units stocked) and availability (units not yet reserved or consumed)
 - [ ] **INV-02**: User can restock an item — add a quantity with a purchase date and a best-by/expiration date ("check-in")
-- [ ] **INV-03**: User can reserve/claim a quantity of an item for themselves without removing it from inventory ("request")
-- [ ] **INV-04**: User can consume/remove a quantity of an item from inventory ("checkout"), and the action is rejected if it would exceed what's currently available
+- [x] **INV-03**: User can reserve/claim a quantity of an item for themselves without removing it from inventory ("request")
+- [x] **INV-04**: User can consume/remove a quantity of an item from inventory ("checkout"), and the action is rejected if it would exceed what's currently available
 - [ ] **INV-05**: Each item displays a simple freshness flag (fresh / expiring soon / expired) computed from its best-by date vs. today — no sensor or ML input required
 
 ### Data & API (SR2, SR5, R2-1, R2-2)
@@ -121,8 +121,8 @@ Which tracks cover which requirements. Populated during roadmap creation.
 | HH-03 | Track A | Pending |
 | INV-01 | Track B | Pending |
 | INV-02 | Track B | Pending |
-| INV-03 | Track B | Pending |
-| INV-04 | Track B | Pending |
+| INV-03 | Track B | Complete |
+| INV-04 | Track B | Complete |
 | INV-05 | Track B | Pending |
 | DATA-01 | Track C | Pending |
 | DATA-02 | Track C | Pending |
@@ -133,6 +133,7 @@ Which tracks cover which requirements. Populated during roadmap creation.
 | STRETCH-02 | Track C | Pending |
 
 **Coverage:**
+
 - v1 requirements: 19 total
 - Mapped to tracks: 19 (Track A: 7, Track B: 5, Track C: 5, Track D: 2)
 - Unmapped: 0 ✓

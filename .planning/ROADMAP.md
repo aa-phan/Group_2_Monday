@@ -82,11 +82,14 @@ Plans:
   3. A user can reserve/claim a quantity of an item for themselves without removing it from the shared inventory ("request").
   4. A user can consume/remove a quantity of an item from inventory ("checkout"), and the action is rejected if it would exceed what's currently available.
   5. Every item displays a freshness flag (fresh / expiring soon / expired) computed from its best-by date compared to today — no sensor or ML input required.
-**Plans**: TBD
+**Plans**: 4 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — Tracer: restock one item into a location and see it in the inventory view (INV-01, INV-02)
+- [ ] 02-02-PLAN.md — Location-specific freshness flags: Pantry, Fridge, and Freezer rule-sets (INV-05)
+- [ ] 02-03-PLAN.md — Item identity matching across restocks and per-item batch detail (INV-01, INV-02)
+- [ ] 02-04-PLAN.md — Reserve, release, and FIFO consume with the overbooking guard (INV-03, INV-04)
 
 ### Phase 3 (Track C): Data Integration & API
 **Goal**: The full application runs against a live MongoDB-backed REST API with zero hard-coded data anywhere, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered as its Phase 2 scope.
@@ -124,7 +127,7 @@ Track A and Track B execute in parallel (independent tracks, one coordination po
 | Track | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | A. Account & Household Management | 0/TBD | Not started | - |
-| B. Inventory Management | 0/TBD | Not started | - |
+| B. Inventory Management | 0/4 | Planned | - |
 | C. Data Integration & API | 0/TBD | Not started | - |
 | D. Deployment & Quality | 0/TBD | Not started | - |
 

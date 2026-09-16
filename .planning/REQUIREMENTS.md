@@ -94,6 +94,7 @@ Deferred — acknowledged as valuable but out of committed scope for this PoC. T
 
 - **ENH-01**: Password reset / "Forgot Password" flow (scaffold page `ForgotMyPassword.js` exists but not required by stakeholder needs) — **promoted to v1 committed scope as STRETCH-01 under Track C**
 - **ENH-02**: Admin view to define new food item categories/locations beyond Pantry/Fridge/Freezer — **promoted to v1 committed scope as STRETCH-02 under Track C**
+- **ENH-03**: Partial/fractional quantity tracking within a unit (e.g. "half the milk carton is left") — raised during Track B's discuss-phase; deferred, v1 uses whole-unit integer quantities only. See `.planning/phases/02-inventory-management/02-CONTEXT.md` Deferred Ideas.
 
 ## Out of Scope
 

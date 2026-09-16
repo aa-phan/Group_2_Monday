@@ -27,12 +27,13 @@ codebase's existing module seams rather than a sequential build order:
   tracks; only the final integration/verification/deploy sub-tasks are gated on Tracks A, B, and C
   substantially landing.
 
-**Explicit coordination point:** Track A and Track B both edit `server/projectsDatabase.py` (the
-household document). Track A owns household CRUD and membership (create household, join
-household, look up a user's households). Track B owns item-quantity updates (reserve, consume/
-checkout, restock/check-in). Agree on the household document's item-stock shape (capacity/
-availability per item, keyed by location — Pantry/Fridge/Freezer) before both tracks start writing
-to it, to avoid merge conflicts and schema drift.
+**Explicit coordination point (resolved):** Track A owns household CRUD and membership
+(`server/projectsDatabase.py` — create household, join household, look up a user's households).
+Track B owns item-quantity updates and lives in a **separate `Items` collection**, not embedded in
+the household document — a one-way architecture decision made during Track B's 02-01 execution
+checkpoint specifically to avoid the write-contention/merge-conflict risk this coordination point
+originally flagged. Items reference their household by ID; Track A and Track B no longer write to
+the same document at all.
 
 ## Phases
 
@@ -79,7 +80,7 @@ Plans:
 ### Phase 2 (Track B): Inventory Management
 
 **Goal**: Within a household, a member can see what food is on hand across pantry/fridge/freezer and reserve, consume, or restock items without ever over-committing what's available.
-**Depends on**: Track A (shares the household document / `projectsDatabase.py` — coordinate on the item-stock schema early). Development can proceed in parallel using seeded/test household data; the hard dependency is only at cross-track integration testing.
+**Depends on**: Track A only for cross-track integration testing (items reference a householdId but live in their own collection, not `projectsDatabase.py`'s document — see the resolved coordination point above). Development can proceed in parallel using seeded/test household data.
 **Requirements**: INV-01, INV-02, INV-03, INV-04, INV-05
 **Success Criteria** (what must be TRUE):
 

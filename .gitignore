@@ -4,3 +4,7 @@ __pycache__/
 client/node_modules/
 client/dist/
 .env
+
+# GSD local session/runtime bookkeeping (process-scoped, not project state)
+.gsd/
+.planning/milestone.lock

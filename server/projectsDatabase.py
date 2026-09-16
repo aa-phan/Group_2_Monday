@@ -77,7 +77,17 @@ def assertHouseholdMember(client, householdId, userId):
     """Trust-boundary guard: raise NotAHouseholdMemberError unless userId is
     a member of the household identified by householdId. Every inventory
     route calls this first, before touching any stock.
+
+    householdId and userId must be plain strings. request.get_json()
+    decodes arbitrary JSON, so without this check a client could pass a
+    dict (e.g. {"$ne": "..."}) that Mongo would interpret as a query
+    operator instead of an equality match, defeating household isolation
+    for this function and every hardwareDatabase filter built from the
+    same unvalidated value downstream (CR-01).
     """
+    if not isinstance(householdId, str) or not isinstance(userId, str):
+        raise NotAHouseholdMemberError(userId)
+
     db = client[hardwareDB.DB_NAME]
     household = db[hardwareDB.HOUSEHOLDS_COLLECTION].find_one({"householdId": householdId})
 

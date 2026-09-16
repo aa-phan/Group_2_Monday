@@ -337,6 +337,13 @@ def addReservation(client, householdId, location, rawName, quantity, userId, use
     if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
         raise InvalidInventoryInput("quantity")
 
+    # userName is stored directly into the reservation entry and echoed
+    # back in API responses; reject anything but a string (or omitted)
+    # rather than persisting a JSON object/array (CR-01, defense-in-depth
+    # alongside the householdId/userId/reservationId checks).
+    if userName is not None and not isinstance(userName, str):
+        raise InvalidInventoryInput("userName")
+
     db = client[DB_NAME]
     collection = db[ITEMS_COLLECTION]
 
@@ -375,6 +382,14 @@ def removeReservation(client, householdId, reservationId, userId):
     ReservationNotOwnedError (403); no such entry at all raises
     ReservationNotFoundError (404).
     """
+    # reservationId is used directly in a Mongo filter below; without this
+    # check a dict/list value (request.get_json() decodes arbitrary JSON)
+    # could be interpreted as a query operator instead of an equality
+    # match (CR-01). Treat a non-string reservationId the same as one
+    # that simply doesn't exist.
+    if not isinstance(reservationId, str):
+        raise ReservationNotFoundError(reservationId)
+
     db = client[DB_NAME]
     collection = db[ITEMS_COLLECTION]
 

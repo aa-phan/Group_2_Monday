@@ -132,6 +132,30 @@ def test_restock_with_missing_purchase_date_is_rejected_and_writes_nothing(api):
     assert getResponse.get_json()["locations"]["Pantry"] == []
 
 
+def test_batches_within_pantry_item_ordered_by_best_by_date_ascending(api):
+    _restock(api, itemName="Oats", location="Pantry", quantity=1, bestByDate="2026-12-01")
+    _restock(api, itemName="Oats", location="Pantry", quantity=2, bestByDate="2026-10-01")
+    _restock(api, itemName="Oats", location="Pantry", quantity=3, bestByDate="2026-11-01")
+
+    getResponse = _get_inventory(api)
+    batches = getResponse.get_json()["locations"]["Pantry"][0]["batches"]
+    bestByDates = [batch["bestByDate"] for batch in batches]
+
+    assert bestByDates == ["2026-10-01", "2026-11-01", "2026-12-01"]
+
+
+def test_batches_within_freezer_item_ordered_by_purchase_date_ascending(api):
+    _restock(api, itemName="Peas", location="Freezer", quantity=1, purchaseDate="2026-03-01", bestByDate=None)
+    _restock(api, itemName="Peas", location="Freezer", quantity=2, purchaseDate="2026-01-01", bestByDate=None)
+    _restock(api, itemName="Peas", location="Freezer", quantity=3, purchaseDate="2026-02-01", bestByDate=None)
+
+    getResponse = _get_inventory(api)
+    batches = getResponse.get_json()["locations"]["Freezer"][0]["batches"]
+    purchaseDates = [batch["purchaseDate"] for batch in batches]
+
+    assert purchaseDates == ["2026-01-01", "2026-02-01", "2026-03-01"]
+
+
 def test_two_consecutive_gets_of_unchanged_data_return_identical_ordering(api):
     _restock(api, itemName="Oats", location="Pantry", quantity=4)
     _restock(api, itemName="Barley", location="Pantry", quantity=2, bestByDate=_today())

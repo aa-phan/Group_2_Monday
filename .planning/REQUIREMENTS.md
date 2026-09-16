@@ -22,11 +22,11 @@ Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirement
 
 ### Inventory (SN2, SN3, SN4, SN5, SR5)
 
-- [ ] **INV-01**: User can view all food items in a household's inventory, grouped by location (Pantry / Fridge / Freezer), each showing capacity (total units stocked) and availability (units not yet reserved or consumed)
-- [ ] **INV-02**: User can restock an item — add a quantity with a purchase date and a best-by/expiration date ("check-in")
+- [x] **INV-01**: User can view all food items in a household's inventory, grouped by location (Pantry / Fridge / Freezer), each showing capacity (total units stocked) and availability (units not yet reserved or consumed)
+- [x] **INV-02**: User can restock an item — add a quantity with a purchase date and a best-by/expiration date ("check-in")
 - [x] **INV-03**: User can reserve/claim a quantity of an item for themselves without removing it from inventory ("request")
 - [x] **INV-04**: User can consume/remove a quantity of an item from inventory ("checkout"), and the action is rejected if it would exceed what's currently available
-- [ ] **INV-05**: Each item displays a simple freshness flag (fresh / expiring soon / expired) computed from its best-by date vs. today — no sensor or ML input required
+- [x] **INV-05**: Each item displays a simple freshness flag (fresh / expiring soon / expired) computed from its best-by date vs. today — no sensor or ML input required
 
 ### Data & API (SR2, SR5, R2-1, R2-2)
 
@@ -119,11 +119,11 @@ Which tracks cover which requirements. Populated during roadmap creation.
 | HH-01 | Track A | Pending |
 | HH-02 | Track A | Pending |
 | HH-03 | Track A | Pending |
-| INV-01 | Track B | Pending |
-| INV-02 | Track B | Pending |
+| INV-01 | Track B | Complete |
+| INV-02 | Track B | Complete |
 | INV-03 | Track B | Complete |
 | INV-04 | Track B | Complete |
-| INV-05 | Track B | Pending |
+| INV-05 | Track B | Complete |
 | DATA-01 | Track C | Pending |
 | DATA-02 | Track C | Pending |
 | DATA-03 | Track C | Pending |

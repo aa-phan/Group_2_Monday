@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchInventory } from '../api/inventory.js';
+import FreshnessBadge from './FreshnessBadge.js';
 import RestockForm from './RestockForm.js';
 
 const LOCATION_ORDER = ['Pantry', 'Fridge', 'Freezer'];
@@ -17,6 +18,7 @@ function LocationSection({ location, items }) {
               <th>Item</th>
               <th>Capacity</th>
               <th>Availability</th>
+              <th>Freshness</th>
             </tr>
           </thead>
           <tbody>
@@ -25,6 +27,9 @@ function LocationSection({ location, items }) {
                 <td>{item.itemName}</td>
                 <td>{item.capacity}</td>
                 <td>{item.availability}</td>
+                <td>
+                  <FreshnessBadge freshness={item.freshness} location={location} />
+                </td>
               </tr>
             ))}
           </tbody>

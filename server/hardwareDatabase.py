@@ -5,6 +5,7 @@ from datetime import date, datetime, timezone
 
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
+from pymongo.errors import DuplicateKeyError
 
 import freshness
 from itemIdentity import AmbiguousItemMatch, findMatchingItemKey, normalizeItemName
@@ -119,6 +120,25 @@ def _isValidDateString(value):
     return True
 
 
+def _ensureItemUniqueIndex(collection):
+    """Create the unique compound index backing addBatch's upsert (WR-03).
+
+    Without a unique index on (householdId, location, itemKey), Mongo does
+    not serialize two concurrent upserts that both target a
+    never-before-seen itemKey with the same filter -- both can observe "no
+    matching document" and both insert, silently splitting one item's
+    batch history across two documents. create_index is idempotent (a
+    no-op once the index already exists), so calling it here on every
+    addBatch call is safe and keeps this module self-contained without a
+    separate migration step.
+    """
+    collection.create_index(
+        [("householdId", 1), ("location", 1), ("itemKey", 1)],
+        unique=True,
+        name="uniq_household_location_itemKey",
+    )
+
+
 def addBatch(client, householdId, location, rawName, quantity, purchaseDate, bestByDate):
     """Append a new batch to the item identified by householdId+location+itemKey.
 
@@ -160,6 +180,7 @@ def addBatch(client, householdId, location, rawName, quantity, purchaseDate, bes
 
     db = client[DB_NAME]
     collection = db[ITEMS_COLLECTION]
+    _ensureItemUniqueIndex(collection)
 
     # Scoped to exactly this household and this location -- never wider --
     # so matching can never merge, rename, or read another household's or
@@ -188,23 +209,34 @@ def addBatch(client, householdId, location, rawName, quantity, purchaseDate, bes
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
 
-    updated = collection.find_one_and_update(
-        {"householdId": householdId, "location": location, "itemKey": targetKey},
-        {
-            "$push": {"batches": batch},
-            "$inc": {"capacity": quantity},
-            "$setOnInsert": {
-                "householdId": householdId,
-                "location": location,
-                "itemKey": targetKey,
-                "itemName": rawName,
-                "reservations": [],
-                "reservedQuantity": 0,
-            },
+    upsertFilter = {"householdId": householdId, "location": location, "itemKey": targetKey}
+    upsertUpdate = {
+        "$push": {"batches": batch},
+        "$inc": {"capacity": quantity},
+        "$setOnInsert": {
+            "householdId": householdId,
+            "location": location,
+            "itemKey": targetKey,
+            "itemName": rawName,
+            "reservations": [],
+            "reservedQuantity": 0,
         },
-        upsert=True,
-        return_document=ReturnDocument.AFTER,
-    )
+    }
+
+    try:
+        updated = collection.find_one_and_update(
+            upsertFilter, upsertUpdate, upsert=True, return_document=ReturnDocument.AFTER
+        )
+    except DuplicateKeyError:
+        # Another concurrent restock of the same brand-new item name won
+        # the race and inserted first; the unique index caught our upsert
+        # attempting a duplicate insert (WR-03). The document now exists,
+        # so the identical filter/update retried here matches it and
+        # becomes a plain read-merge-write ($push/$inc), no insert
+        # attempted this time.
+        updated = collection.find_one_and_update(
+            upsertFilter, upsertUpdate, upsert=True, return_document=ReturnDocument.AFTER
+        )
 
     item = _serializeItem(updated)
     if matchAmbiguity is not None:

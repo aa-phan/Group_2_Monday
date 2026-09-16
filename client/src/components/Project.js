@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchInventory } from '../api/inventory.js';
 import BatchList from './BatchList.js';
 import FreshnessBadge from './FreshnessBadge.js';
+import ItemActions from './Checkout.js';
 import RestockForm from './RestockForm.js';
 
 const LOCATION_ORDER = ['Pantry', 'Fridge', 'Freezer'];
@@ -15,7 +16,7 @@ function AmbiguityNotice({ notice }) {
   );
 }
 
-function LocationSection({ location, items, ambiguityNotice }) {
+function LocationSection({ location, items, ambiguityNotice, userId, userName, onChanged }) {
   return (
     <section className="location-section">
       <h2>{location}</h2>
@@ -48,6 +49,12 @@ function LocationSection({ location, items, ambiguityNotice }) {
                     {ambiguityNotice && ambiguityNotice.itemKey === item.itemKey && (
                       <AmbiguityNotice notice={ambiguityNotice} />
                     )}
+                    <ItemActions
+                      item={item}
+                      userId={userId}
+                      userName={userName}
+                      onChanged={onChanged}
+                    />
                   </details>
                 </td>
               </tr>
@@ -59,7 +66,7 @@ function LocationSection({ location, items, ambiguityNotice }) {
   );
 }
 
-export default function InventoryView({ householdId, userId }) {
+export default function InventoryView({ householdId, userId, userName }) {
   const [inventory, setInventory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -126,6 +133,9 @@ export default function InventoryView({ householdId, userId }) {
           ambiguityNotice={
             ambiguityNotice && ambiguityNotice.location === location ? ambiguityNotice : null
           }
+          userId={userId}
+          userName={userName}
+          onChanged={loadInventory}
         />
       ))}
       <RestockForm householdId={householdId} userId={userId} onRestocked={handleRestocked} />

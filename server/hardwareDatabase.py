@@ -414,8 +414,17 @@ def removeReservation(client, householdId, reservationId, userId):
     if entry.get("userId") != userId:
         raise ReservationNotOwnedError(reservationId)
 
+    # Pin the write on the reservation still being present in the array,
+    # not just on _id. Without this, a duplicate/concurrent release for
+    # the same reservationId (e.g. a second browser tab, or a client
+    # retry after a dropped response) can pass the ownership check above
+    # twice -- each request reads its own copy of `entry` before either
+    # writes -- and then both execute this update. The $pull is already
+    # idempotent (a second pull matching nothing is a no-op), but without
+    # this filter the $inc is unconditional and fires twice for one
+    # logical release, double-decrementing reservedQuantity (WR-01).
     updated = collection.find_one_and_update(
-        {"_id": doc["_id"]},
+        {"_id": doc["_id"], "reservations.reservationId": reservationId},
         {
             "$pull": {"reservations": {"reservationId": reservationId}},
             "$inc": {"reservedQuantity": -entry.get("quantity", 0)},
@@ -424,6 +433,10 @@ def removeReservation(client, householdId, reservationId, userId):
     )
 
     if updated is None:
+        # A losing duplicate/concurrent call: the reservation was already
+        # pulled by the winning call between our read and this write.
+        # Same outward result as "already released" (404), matching the
+        # existing sequential double-release contract.
         raise ReservationNotFoundError(reservationId)
 
     return _serializeItem(updated)

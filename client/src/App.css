@@ -94,3 +94,65 @@
   color: #374151;
   border-color: #d1d5db;
 }
+
+.item-row-cell {
+  padding: 0;
+  border: 1px solid #d1d5db;
+}
+
+.item-disclosure {
+  padding: 8px;
+}
+
+.item-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  list-style: revert;
+}
+
+.item-summary__name {
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.item-summary__capacity,
+.item-summary__availability {
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.batch-list {
+  margin: 8px 0 4px 24px;
+}
+
+.batch-list__note {
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-bottom: 4px;
+}
+
+.batch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.batch-table th,
+.batch-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.ambiguity-notice {
+  margin: 8px 0 4px 24px;
+  padding: 8px;
+  background-color: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #92400e;
+}

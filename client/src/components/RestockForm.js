@@ -22,7 +22,7 @@ export default function RestockForm({ householdId, userId, onRestocked }) {
     setSubmitting(true);
 
     try {
-      await restockItem({
+      const response = await restockItem({
         householdId,
         userId,
         location,
@@ -31,7 +31,7 @@ export default function RestockForm({ householdId, userId, onRestocked }) {
         purchaseDate,
         bestByDate: bestByDate || null,
       });
-      await onRestocked();
+      await onRestocked(response.item);
     } catch (submitError) {
       setError(submitError.message);
     } finally {

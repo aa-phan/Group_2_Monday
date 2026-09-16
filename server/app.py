@@ -131,20 +131,6 @@ def get_project_info():
     # Return a JSON response
     return jsonify({})
 
-# Route for checking out hardware
-@app.route('/check_out', methods=['POST'])
-def check_out():
-    # Extract data from request
-
-    # Connect to MongoDB
-
-    # Attempt to check out the hardware using the projectsDB module
-
-    # Close the MongoDB connection
-
-    # Return a JSON response
-    return jsonify({})
-
 # Route for viewing household inventory grouped by location
 @app.route('/api/inventory', methods=['GET'])
 def get_inventory():
@@ -214,6 +200,49 @@ def restock_inventory():
 
     # Return a JSON response
     return jsonify({"item": item}), 201
+
+# Route for consuming a quantity of a food item (FIFO, D-02, D-06, D-07)
+@app.route('/api/inventory/consume', methods=['POST'])
+def consume_inventory():
+    # Extract data from request
+    body = request.get_json(silent=True) or {}
+    householdId = body.get('householdId')
+    userId = body.get('userId')
+    location = body.get('location')
+    itemName = body.get('itemName')
+    quantity = body.get('quantity')
+
+    if not householdId:
+        return jsonify({"error": "invalid_input", "field": "householdId"}), 400
+    if not userId:
+        return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    # Connect to MongoDB
+    client = getMongoClient()
+
+    try:
+        # Attempt to consume the item using the projectsDB module
+        item = projectsDB.consumeItem(client, householdId, userId, location, itemName, quantity)
+    except projectsDB.NotAHouseholdMemberError:
+        return jsonify({"error": "not_a_household_member"}), 403
+    except hardwareDB.InvalidInventoryInput as error:
+        return jsonify({"error": "invalid_input", "field": str(error)}), 400
+    except hardwareDB.ItemNotFoundError:
+        return jsonify({"error": "item_not_found"}), 404
+    except hardwareDB.InsufficientStockError as error:
+        return jsonify({
+            "error": "insufficient_stock",
+            "onHand": error.onHand,
+            "requested": error.requested,
+        }), 409
+    except hardwareDB.ConcurrentModificationError:
+        return jsonify({"error": "concurrent_modification"}), 409
+    finally:
+        # Close the MongoDB connection
+        client.close()
+
+    # Return a JSON response
+    return jsonify({"item": item}), 200
 
 # Main entry point for the application
 if __name__ == '__main__':

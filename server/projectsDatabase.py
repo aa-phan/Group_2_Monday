@@ -91,3 +91,13 @@ def getHouseholdInventory(client, householdId, userId):
     assertHouseholdMember(client, householdId, userId)
     return hardwareDB.getItemsByLocation(client, householdId)
 
+
+def consumeItem(client, householdId, userId, location, itemName, quantity):
+    """Draw quantity units out of an item's batches (FIFO, D-02) after
+    verifying household membership. Reservations never gate this call
+    (D-05, D-06, D-07) -- the guard hardwareDB.consumeFromItem applies
+    compares the requested quantity against capacity alone.
+    """
+    assertHouseholdMember(client, householdId, userId)
+    return hardwareDB.consumeFromItem(client, householdId, location, itemName, quantity)
+

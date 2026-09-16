@@ -71,6 +71,27 @@ class ItemNotFoundError(Exception):
     """Raised when an operation references an item that does not exist. Maps to HTTP 404."""
 
 
+class InsufficientStockError(Exception):
+    """Raised when a consume would exceed the item's on-hand capacity.
+    Maps to HTTP 409. Carries onHand (capacity read) and requested
+    (quantity asked for) so the caller can report both.
+    """
+
+    def __init__(self, onHand, requested):
+        self.onHand = onHand
+        self.requested = requested
+        super().__init__(
+            "insufficient stock: onHand={} requested={}".format(onHand, requested)
+        )
+
+
+class ConcurrentModificationError(Exception):
+    """Raised when consumeFromItem loses the optimistic-concurrency race
+    three times in a row -- another writer kept winning the conditional
+    update. Maps to HTTP 409.
+    """
+
+
 def _isValidDateString(value):
     if not isinstance(value, str):
         return False
@@ -173,6 +194,115 @@ def addBatch(client, householdId, location, rawName, quantity, purchaseDate, bes
         item["matchAmbiguity"] = matchAmbiguity
 
     return item
+
+
+_MAX_CONCURRENCY_ATTEMPTS = 3
+
+
+def _resolveExistingItemKey(collection, householdId, location, rawName):
+    """Resolve rawName to an existing item's itemKey within one
+    householdId+location, per the D-03 matcher. Raises ItemNotFoundError
+    when there is no candidate (None) or more than one (ambiguous) --
+    consume and reserve must never guess which item they mean.
+    """
+    try:
+        normalizedName = normalizeItemName(rawName)
+    except ValueError:
+        raise InvalidInventoryInput("itemName")
+
+    existingKeys = [
+        doc["itemKey"]
+        for doc in collection.find(
+            {"householdId": householdId, "location": location}, {"itemKey": 1}
+        )
+    ]
+
+    try:
+        matchedKey = findMatchingItemKey(normalizedName, existingKeys)
+    except AmbiguousItemMatch:
+        raise ItemNotFoundError(rawName)
+
+    if matchedKey is None:
+        raise ItemNotFoundError(rawName)
+
+    return matchedKey
+
+
+def consumeFromItem(client, householdId, location, rawName, quantity):
+    """Draw `quantity` units out of the item's batches, soonest-expiring
+    (or, for Freezer, oldest-purchased) first, per D-02.
+
+    Raises InsufficientStockError (carrying onHand/requested) when
+    quantity exceeds the item's `capacity` -- read, not `availability`,
+    per D-06: consumption draws from total stock regardless of
+    reservations. A rejected or lost consume never writes anything; the
+    full new batch list is computed before any write, and the write
+    itself is a single find_one_and_update pinned to the exact capacity
+    and reservedQuantity that were read, retried up to
+    _MAX_CONCURRENCY_ATTEMPTS times on a lost race before raising
+    ConcurrentModificationError.
+    """
+    if location not in LOCATIONS:
+        raise InvalidInventoryInput("location")
+
+    if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
+        raise InvalidInventoryInput("quantity")
+
+    db = client[DB_NAME]
+    collection = db[ITEMS_COLLECTION]
+
+    targetKey = _resolveExistingItemKey(collection, householdId, location, rawName)
+
+    for _attempt in range(_MAX_CONCURRENCY_ATTEMPTS):
+        doc = collection.find_one(
+            {"householdId": householdId, "location": location, "itemKey": targetKey}
+        )
+        if doc is None:
+            raise ItemNotFoundError(rawName)
+
+        capacity = doc.get("capacity", 0)
+        reservedQuantity = doc.get("reservedQuantity", 0)
+
+        if quantity > capacity:
+            raise InsufficientStockError(onHand=capacity, requested=quantity)
+
+        batches = sorted(
+            doc.get("batches", []), key=lambda batch: _batchSortKey(batch, location)
+        )
+
+        remaining = quantity
+        newBatches = []
+        for batch in batches:
+            if remaining <= 0:
+                newBatches.append(batch)
+                continue
+            batchQuantity = batch.get("quantity", 0)
+            if batchQuantity <= remaining:
+                remaining -= batchQuantity
+                continue
+            drained = dict(batch)
+            drained["quantity"] = batchQuantity - remaining
+            remaining = 0
+            newBatches.append(drained)
+
+        updated = collection.find_one_and_update(
+            {
+                "_id": doc["_id"],
+                "capacity": capacity,
+                "reservedQuantity": reservedQuantity,
+            },
+            {
+                "$set": {"batches": newBatches, "capacity": capacity - quantity},
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+
+        if updated is not None:
+            return _serializeItem(updated)
+
+    raise ConcurrentModificationError(
+        "lost the consume race after {} attempts".format(_MAX_CONCURRENCY_ATTEMPTS)
+    )
 
 
 def getItemsByLocation(client, householdId):

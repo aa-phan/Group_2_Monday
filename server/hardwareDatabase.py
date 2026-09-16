@@ -254,10 +254,12 @@ def consumeFromItem(client, householdId, location, rawName, quantity):
     per D-06: consumption draws from total stock regardless of
     reservations. A rejected or lost consume never writes anything; the
     full new batch list is computed before any write, and the write
-    itself is a single find_one_and_update pinned to the exact capacity
-    and reservedQuantity that were read, retried up to
-    _MAX_CONCURRENCY_ATTEMPTS times on a lost race before raising
-    ConcurrentModificationError.
+    itself is a single find_one_and_update pinned to the exact `capacity`
+    that was read (reservedQuantity is deliberately NOT pinned -- consume
+    never reads or writes it, so pinning on it would spuriously fail this
+    conditional update on any unrelated concurrent reserve/release,
+    WR-02), retried up to _MAX_CONCURRENCY_ATTEMPTS times on a lost race
+    before raising ConcurrentModificationError.
     """
     if location not in LOCATIONS:
         raise InvalidInventoryInput("location")
@@ -278,7 +280,6 @@ def consumeFromItem(client, householdId, location, rawName, quantity):
             raise ItemNotFoundError(rawName)
 
         capacity = doc.get("capacity", 0)
-        reservedQuantity = doc.get("reservedQuantity", 0)
 
         if quantity > capacity:
             raise InsufficientStockError(onHand=capacity, requested=quantity)
@@ -302,11 +303,16 @@ def consumeFromItem(client, householdId, location, rawName, quantity):
             remaining = 0
             newBatches.append(drained)
 
+        # Pin the conditional write on `capacity` only -- consume never
+        # reads or writes `reservedQuantity` (D-06/D-07), so pinning on it
+        # too caused this update to spuriously fail and retry whenever an
+        # unrelated concurrent reserve/release changed reservedQuantity on
+        # the same item, even though nothing about consume's own
+        # precondition (capacity) actually changed (WR-02).
         updated = collection.find_one_and_update(
             {
                 "_id": doc["_id"],
                 "capacity": capacity,
-                "reservedQuantity": reservedQuantity,
             },
             {
                 "$set": {"batches": newBatches, "capacity": capacity - quantity},

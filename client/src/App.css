@@ -1,0 +1,62 @@
+.app-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.app-heading {
+  margin-bottom: 24px;
+}
+
+.location-section {
+  margin-bottom: 32px;
+}
+
+.location-section h2 {
+  border-bottom: 1px solid #d1d5db;
+  padding-bottom: 4px;
+}
+
+.item-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+.item-table th,
+.item-table td {
+  text-align: left;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+}
+
+.muted-text {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.error-text {
+  color: #b91c1c;
+}
+
+.restock-form {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+}
+
+.restock-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.restock-form button {
+  justify-self: start;
+  padding: 8px 16px;
+}

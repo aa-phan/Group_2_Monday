@@ -1,11 +1,12 @@
 # Import necessary libraries and modules
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
 
+import freshness
 from itemIdentity import normalizeItemName
 
 '''
@@ -132,21 +133,43 @@ def addBatch(client, householdId, location, rawName, quantity, purchaseDate, bes
 def getItemsByLocation(client, householdId):
     """Return a dict with exactly the three LOCATIONS keys, each mapping to
     a list of item dicts for that location, sorted for deterministic,
-    repeatable ordering.
+    repeatable ordering, and annotated with `freshness` on every item and
+    every batch.
+
+    `today` is computed once per call from the server's own clock -- never
+    from a request parameter -- so a client cannot influence what freshness
+    values come back. Freshness is added to the returned dicts only; it is
+    never written back to MongoDB, since a stored flag would go stale the
+    moment the calendar advances.
     """
     db = client[DB_NAME]
     collection = db[ITEMS_COLLECTION]
 
+    today = date.today()
     result = {location: [] for location in LOCATIONS}
 
     for doc in collection.find({"householdId": householdId}):
         item = _serializeItem(doc)
+        _annotateFreshness(item, today)
         result[item["location"]].append(item)
 
     for location in LOCATIONS:
         result[location].sort(key=lambda item: _itemSortKey(item, location))
 
     return result
+
+
+def _annotateFreshness(item, today):
+    """Add `freshness` to each batch and to the item itself, in place.
+    Purely computed from the already-serialized dict; nothing here touches
+    MongoDB, so nothing here is ever persisted.
+    """
+    location = item["location"]
+    for batch in item["batches"]:
+        batch["freshness"] = freshness.computeBatchFreshness(
+            location, batch.get("purchaseDate"), batch.get("bestByDate"), today
+        )
+    item["freshness"] = freshness.computeItemFreshness(location, item["batches"], today)
 
 
 def _batchSortKey(batch, location):

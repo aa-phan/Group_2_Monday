@@ -7,7 +7,7 @@ from bson.objectid import ObjectId
 from pymongo import ReturnDocument
 
 import freshness
-from itemIdentity import normalizeItemName
+from itemIdentity import AmbiguousItemMatch, findMatchingItemKey, normalizeItemName
 
 '''
 Structure of Item entry (collection `Items`, one document per
@@ -33,6 +33,14 @@ Item = {
     'capacity': int,                    # maintained sum of batch quantities
     'reservedQuantity': int,            # maintained sum of reservations; 0 here
 }
+
+`matchAmbiguity` (added by plan 02-03) is present ONLY on the item dict
+returned from a single addBatch call, and only when that call's itemName
+loosely matched two or more existing items in the same household+location
+(itemIdentity.AmbiguousItemMatch). It is never stored in Mongo and never
+appears on a GET /api/inventory read -- it is transient response
+metadata for the one restock that triggered it, telling the caller which
+existing items it could have merged into but didn't.
 
 `availability` (capacity - reservedQuantity, floored at 0) and `freshness`
 (added by plan 02-02) are derived on read and never stored.
@@ -77,8 +85,22 @@ def addBatch(client, householdId, location, rawName, quantity, purchaseDate, bes
     """Append a new batch to the item identified by householdId+location+itemKey.
 
     Validates every field and raises InvalidInventoryInput naming the
-    offending field on failure. Upserts the item document and increments
-    its stored `capacity` by `quantity` in the same update.
+    offending field on failure. Resolves its target item through
+    itemIdentity.findMatchingItemKey (D-03) against the existing itemKeys
+    for exactly this householdId and this location -- never a wider query
+    -- then upserts the item document and increments its stored `capacity`
+    by `quantity` in the same update.
+
+    Resolution outcomes, per the itemIdentity contract:
+      - an existing key is returned -> the batch is appended to that item
+        and its stored itemName is left untouched, so the household keeps
+        the display name it first chose.
+      - None -> a new item is created; itemKey is the normalized name and
+        itemName is the raw name as typed.
+      - AmbiguousItemMatch is raised -> a new item is created exactly as
+        in the None case (the deterministic no-guess outcome, not an
+        error), and the returned item dict carries a `matchAmbiguity` key
+        listing the sorted colliding candidate keys.
     """
     if location not in LOCATIONS:
         raise InvalidInventoryInput("location")
@@ -94,12 +116,31 @@ def addBatch(client, householdId, location, rawName, quantity, purchaseDate, bes
         raise InvalidInventoryInput("bestByDate")
 
     try:
-        itemKey = normalizeItemName(rawName)
+        normalizedName = normalizeItemName(rawName)
     except ValueError:
         raise InvalidInventoryInput("itemName")
 
     db = client[DB_NAME]
     collection = db[ITEMS_COLLECTION]
+
+    # Scoped to exactly this household and this location -- never wider --
+    # so matching can never merge, rename, or read another household's or
+    # another location's item (T-02-12).
+    existingKeys = [
+        doc["itemKey"]
+        for doc in collection.find(
+            {"householdId": householdId, "location": location}, {"itemKey": 1}
+        )
+    ]
+
+    matchAmbiguity = None
+    try:
+        matchedKey = findMatchingItemKey(normalizedName, existingKeys)
+    except AmbiguousItemMatch as ambiguous:
+        matchedKey = None
+        matchAmbiguity = ambiguous.candidates
+
+    targetKey = matchedKey if matchedKey is not None else normalizedName
 
     batch = {
         "batchId": uuid.uuid4().hex,
@@ -110,14 +151,14 @@ def addBatch(client, householdId, location, rawName, quantity, purchaseDate, bes
     }
 
     updated = collection.find_one_and_update(
-        {"householdId": householdId, "location": location, "itemKey": itemKey},
+        {"householdId": householdId, "location": location, "itemKey": targetKey},
         {
             "$push": {"batches": batch},
             "$inc": {"capacity": quantity},
             "$setOnInsert": {
                 "householdId": householdId,
                 "location": location,
-                "itemKey": itemKey,
+                "itemKey": targetKey,
                 "itemName": rawName,
                 "reservations": [],
                 "reservedQuantity": 0,
@@ -127,7 +168,11 @@ def addBatch(client, householdId, location, rawName, quantity, purchaseDate, bes
         return_document=ReturnDocument.AFTER,
     )
 
-    return _serializeItem(updated)
+    item = _serializeItem(updated)
+    if matchAmbiguity is not None:
+        item["matchAmbiguity"] = matchAmbiguity
+
+    return item
 
 
 def getItemsByLocation(client, householdId):

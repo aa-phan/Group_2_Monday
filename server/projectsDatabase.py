@@ -66,6 +66,13 @@ class NotAHouseholdMemberError(Exception):
     """Raised when userId is not a member of the household. Maps to HTTP 403."""
 
 
+# Re-exported so the route layer can catch it as projectsDB.ReservationNotOwnedError
+# alongside the other Track B exceptions, without reaching into hardwareDatabase
+# directly for it. The class itself is defined in hardwareDatabase.py because
+# hardwareDatabase.removeReservation is what detects the ownership mismatch.
+ReservationNotOwnedError = hardwareDB.ReservationNotOwnedError
+
+
 def assertHouseholdMember(client, householdId, userId):
     """Trust-boundary guard: raise NotAHouseholdMemberError unless userId is
     a member of the household identified by householdId. Every inventory
@@ -100,4 +107,25 @@ def consumeItem(client, householdId, userId, location, itemName, quantity):
     """
     assertHouseholdMember(client, householdId, userId)
     return hardwareDB.consumeFromItem(client, householdId, location, itemName, quantity)
+
+
+def reserveItem(client, householdId, userId, userName, location, itemName, quantity):
+    """Claim a quantity of an item under userId/userName after verifying
+    household membership. Never compares quantity against what is on
+    hand -- D-07: the overbooking guard applies to consume only.
+    """
+    assertHouseholdMember(client, householdId, userId)
+    return hardwareDB.addReservation(
+        client, householdId, location, itemName, quantity, userId, userName
+    )
+
+
+def releaseReservation(client, householdId, userId, reservationId):
+    """Release a reservation after verifying household membership. Only
+    the member who created the reservation can release it (D-08) --
+    hardwareDB.removeReservation enforces that and raises
+    ReservationNotOwnedError otherwise.
+    """
+    assertHouseholdMember(client, householdId, userId)
+    return hardwareDB.removeReservation(client, householdId, reservationId, userId)
 

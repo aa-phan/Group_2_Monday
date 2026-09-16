@@ -244,6 +244,77 @@ def consume_inventory():
     # Return a JSON response
     return jsonify({"item": item}), 200
 
+# Route for reserving a quantity of a food item (dibs, D-04, D-05, D-07)
+@app.route('/api/inventory/reserve', methods=['POST'])
+def reserve_inventory():
+    # Extract data from request
+    body = request.get_json(silent=True) or {}
+    householdId = body.get('householdId')
+    userId = body.get('userId')
+    userName = body.get('userName')
+    location = body.get('location')
+    itemName = body.get('itemName')
+    quantity = body.get('quantity')
+
+    if not householdId:
+        return jsonify({"error": "invalid_input", "field": "householdId"}), 400
+    if not userId:
+        return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    # Connect to MongoDB
+    client = getMongoClient()
+
+    try:
+        # Attempt to reserve the item using the projectsDB module
+        reservationId, item = projectsDB.reserveItem(
+            client, householdId, userId, userName, location, itemName, quantity
+        )
+    except projectsDB.NotAHouseholdMemberError:
+        return jsonify({"error": "not_a_household_member"}), 403
+    except hardwareDB.InvalidInventoryInput as error:
+        return jsonify({"error": "invalid_input", "field": str(error)}), 400
+    except hardwareDB.ItemNotFoundError:
+        return jsonify({"error": "item_not_found"}), 404
+    finally:
+        # Close the MongoDB connection
+        client.close()
+
+    # Return a JSON response
+    return jsonify({"reservationId": reservationId, "item": item}), 201
+
+# Route for releasing a reservation the caller created (D-08)
+@app.route('/api/inventory/release', methods=['POST'])
+def release_inventory():
+    # Extract data from request
+    body = request.get_json(silent=True) or {}
+    householdId = body.get('householdId')
+    userId = body.get('userId')
+    reservationId = body.get('reservationId')
+
+    if not householdId:
+        return jsonify({"error": "invalid_input", "field": "householdId"}), 400
+    if not userId:
+        return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    # Connect to MongoDB
+    client = getMongoClient()
+
+    try:
+        # Attempt to release the reservation using the projectsDB module
+        item = projectsDB.releaseReservation(client, householdId, userId, reservationId)
+    except projectsDB.NotAHouseholdMemberError:
+        return jsonify({"error": "not_a_household_member"}), 403
+    except projectsDB.ReservationNotOwnedError:
+        return jsonify({"error": "not_your_reservation"}), 403
+    except hardwareDB.ReservationNotFoundError:
+        return jsonify({"error": "reservation_not_found"}), 404
+    finally:
+        # Close the MongoDB connection
+        client.close()
+
+    # Return a JSON response
+    return jsonify({"item": item}), 200
+
 # Main entry point for the application
 if __name__ == '__main__':
     app.run(port=int(os.environ.get("PORT", 5050)))

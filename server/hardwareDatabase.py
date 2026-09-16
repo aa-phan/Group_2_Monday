@@ -92,6 +92,23 @@ class ConcurrentModificationError(Exception):
     """
 
 
+class ReservationNotFoundError(Exception):
+    """Raised when removeReservation cannot find an entry with the given
+    reservationId at all (as opposed to one that exists but is owned by
+    someone else). Maps to HTTP 404.
+    """
+
+
+class ReservationNotOwnedError(Exception):
+    """Raised when removeReservation finds a reservation with the given
+    reservationId but it belongs to a different userId (D-08: only the
+    creating member can release their own claim). Maps to HTTP 403.
+    Defined here (not in projectsDatabase.py) because hardwareDatabase is
+    the module that detects the mismatch; projectsDatabase re-exports it
+    for the route layer's error-mapping convenience.
+    """
+
+
 def _isValidDateString(value):
     if not isinstance(value, str):
         return False
@@ -303,6 +320,98 @@ def consumeFromItem(client, householdId, location, rawName, quantity):
     raise ConcurrentModificationError(
         "lost the consume race after {} attempts".format(_MAX_CONCURRENCY_ATTEMPTS)
     )
+
+
+def addReservation(client, householdId, location, rawName, quantity, userId, userName):
+    """Append a reservation entry to the item and increment reservedQuantity.
+
+    Never compares quantity against capacity anywhere -- D-07 states the
+    overbooking guard applies to consume only; reserving beyond what is
+    on hand is a legitimate thing for a household member to do. Uses a
+    single $push/$inc update so two simultaneous reservations both
+    survive rather than one overwriting the other.
+    """
+    if location not in LOCATIONS:
+        raise InvalidInventoryInput("location")
+
+    if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
+        raise InvalidInventoryInput("quantity")
+
+    db = client[DB_NAME]
+    collection = db[ITEMS_COLLECTION]
+
+    targetKey = _resolveExistingItemKey(collection, householdId, location, rawName)
+
+    reservationId = uuid.uuid4().hex
+    reservation = {
+        "reservationId": reservationId,
+        "userId": userId,
+        "userName": userName,
+        "quantity": quantity,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+
+    updated = collection.find_one_and_update(
+        {"householdId": householdId, "location": location, "itemKey": targetKey},
+        {
+            "$push": {"reservations": reservation},
+            "$inc": {"reservedQuantity": quantity},
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+
+    if updated is None:
+        raise ItemNotFoundError(rawName)
+
+    return reservationId, _serializeItem(updated)
+
+
+def removeReservation(client, householdId, reservationId, userId):
+    """Pull the reservation entry matching BOTH reservationId and userId,
+    decrementing reservedQuantity by that entry's own quantity (D-08).
+
+    When nothing is pulled, re-reads to distinguish the two failure
+    cases: an entry with that reservationId owned by someone else raises
+    ReservationNotOwnedError (403); no such entry at all raises
+    ReservationNotFoundError (404).
+    """
+    db = client[DB_NAME]
+    collection = db[ITEMS_COLLECTION]
+
+    doc = collection.find_one(
+        {"householdId": householdId, "reservations.reservationId": reservationId}
+    )
+
+    if doc is None:
+        raise ReservationNotFoundError(reservationId)
+
+    entry = next(
+        (
+            reservation
+            for reservation in doc.get("reservations", [])
+            if reservation.get("reservationId") == reservationId
+        ),
+        None,
+    )
+    if entry is None:
+        raise ReservationNotFoundError(reservationId)
+
+    if entry.get("userId") != userId:
+        raise ReservationNotOwnedError(reservationId)
+
+    updated = collection.find_one_and_update(
+        {"_id": doc["_id"]},
+        {
+            "$pull": {"reservations": {"reservationId": reservationId}},
+            "$inc": {"reservedQuantity": -entry.get("quantity", 0)},
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+
+    if updated is None:
+        raise ReservationNotFoundError(reservationId)
+
+    return _serializeItem(updated)
 
 
 def getItemsByLocation(client, householdId):

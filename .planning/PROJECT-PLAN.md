@@ -54,8 +54,6 @@ The team follows an Agile approach built around user stories.
 | Configuration | python-dotenv, with the database connection string in a `MONGODB_URI` environment variable |
 | Version control | Git and GitHub |
 
-The reasoning behind these choices is covered in the tech stack and approach write-up (see section 6).
-
 ## 6. Checkpoint 1 Deliverables
 
 | Rubric item | Story | Owner |

@@ -25,11 +25,11 @@ The team follows an Agile approach built around user stories.
 
 | Activity | When | Where |
 |----------|------|-------|
-| Sprint review and planning | Every Monday, at the lab meeting | [location] |
-| Midweek check-in | [day, or "none"] | Discord |
+| Sprint review and planning | Every Monday, at the lab meeting | EER 0.818 |
+| Midweek check-in | Every Thursday | Discord |
 
 - Sprint length: 1 week, Monday to Monday.
-- Sprint 1 starts [date]. Checkpoint 1 is due [date].
+- Sprint 1 starts 2026-09-21. Checkpoint 1 is due 2026-09-21 at 10:00 AM.
 
 **Velocity:** measured as user stories completed per one-week sprint. No sprint has been completed yet, so the baseline will be recorded after Sprint 1 and used to plan later sprints.
 

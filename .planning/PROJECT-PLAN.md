@@ -19,7 +19,7 @@ The team follows an Agile approach built around user stories.
 - Work is written as user stories of three sentences or less, plus technical-debt and research items.
 - Work is split into one-week sprints.
 - Features are built on short-lived branches and merged through pull requests. [Proposed: at least one teammate reviews each PR before it merges to `main`.]
-- Bugs and improvements are tracked as GitHub Issues, separate from the story board.
+- [Proposed: bugs and improvements are tracked as GitHub Issues, separate from the story board.]
 
 ## 3. Sprint Cadence
 
@@ -40,7 +40,7 @@ The team follows an Agile approach built around user stories.
 | Communication and check-ins | Discord |
 | Source code | GitHub repository (Dr. Samant and the TAs have access) |
 | User-story board | GitHub Projects board "PantryTrack" (To do, In progress, Done) |
-| Bug and improvement tracking | GitHub Issues, kept separate from the story board |
+| Bug and improvement tracking | [Proposed: GitHub Issues, kept separate from the story board] |
 | Code review | GitHub pull requests |
 
 ## 5. Toolchain

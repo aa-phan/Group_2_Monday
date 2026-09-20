@@ -49,11 +49,10 @@ The team follows an Agile approach built around user stories.
 |-------|------|
 | Front end | React (built with Vite) |
 | Back end | Python and Flask, exposing a REST API |
-| Database | MongoDB [Atlas] |
-| Testing | PyTest |
+| Database | MongoDB (accessed with PyMongo) |
+| Testing | PyTest, with mongomock for tests that don't need a live database |
+| Configuration | python-dotenv, with the database connection string in a `MONGODB_URI` environment variable |
 | Version control | Git and GitHub |
-| Hosting | [cloud host] |
-| Passwords | Hashed (for example bcrypt), never stored in plaintext |
 
 The reasoning behind these choices is covered in the tech stack and approach write-up (see section 6).
 

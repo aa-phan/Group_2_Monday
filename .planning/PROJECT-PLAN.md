@@ -56,9 +56,9 @@ The team follows an Agile approach built around user stories.
 
 ## 6. Checkpoint 1 Deliverables
 
-| Rubric item | Story | Owner |
-|-------------|-------|-------|
-| R1-1 Project Plan | As the instructor, I want a documented project plan covering team members, sprint cadence, collaboration tools, implementation methodology, and toolchain so I can assess how the team is organized and working together. | Siddharth Kolukuluri (Track A) |
-| R1-2 Feature board | As the instructor, I want to see every planned feature captured as user stories, technical debt, or research items on a shared board so I can verify the team has scoped its work before implementation begins. | Aaron Phan (Track B) |
-| R1-3 High-level sketch | As the instructor, I want a high-level sketch of the application's architecture and user flow so I can quickly understand the system's design before reviewing the code. | Aashrith Attelli (Track D) |
-| Supporting: tech stack and approach | As the instructor, I want a written explanation of the team's chosen tech stack and technical approach so I can evaluate whether the decisions fit the project's needs. | Kody Keo (Track C) |
+| Rubric item | Points | Story | Owner |
+|-------------|--------|-------|-------|
+| R1-1: Project Plan. Should include information such as team members, sprint velocity, collaboration tools used, implementation methodology used and so on | 1 | As the instructor, I want a documented project plan covering team members, sprint velocity, collaboration tools, and implementation methodology so I can assess how the team is organized and working together. | Siddharth Kolukuluri (Track A) |
+| R1-2: All Features on a board. Initial work items (user stories, technical debt, or research items) created for features. | 2 | As the instructor, I want to see every planned feature captured as user stories, technical debt, or research items on a shared board so I can verify the team has scoped its work before implementation begins. | Aaron Phan (Track B) |
+| R1-3: High level sketch (on paper, PowerPoint, draw.io, Visio) of the application | 1 | As the instructor, I want a high-level sketch of the application's architecture and user flow so I can quickly understand the system's design before reviewing the code. | Aashrith Attelli (Track D) |
+| R1-4: Choice of tools and approach | 1 | As the instructor, I want a written explanation of the team's chosen tech stack and technical approach so I can evaluate whether the decisions fit the project's needs. | Kody Keo (Track C) |

@@ -1,6 +1,6 @@
 # PantryTrack — Project Plan (R1-1)
 
-**Team:** Group 2 Monday · MIS385N Team Project, Fall 2026
+**Team:** Group 2 Monday · ECE 461L Team Project, Fall 2026
 **Project:** PantryTrack, a household food inventory web app (Proof of Concept)
 **Last updated:** 2026-09-20
 

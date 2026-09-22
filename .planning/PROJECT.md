@@ -1,4 +1,4 @@
-# PantryTrack — Household Food Inventory PoC (Group 2 Monday — MIS385N Team Project)
+# PantryTrack — Household Food Inventory PoC (Group 2 Monday — ECE 461L Team Project)
 
 ## What This Is
 
@@ -10,7 +10,7 @@ A household member can see what food the household has across pantry/fridge/free
 
 ## Business Context
 
-- **Customer**: Course instructor (Dr. Samant) and TAs, grading against the Team Project rubric (MIS385N, Fa26)
+- **Customer**: Course instructor (Dr. Samant) and TAs, grading against the Team Project rubric (ECE 461L, Fa26)
 - **Revenue model**: N/A — academic PoC, not monetized
 - **Success metric**: Phase 1 (5 pts) and Phase 2 (10 pts) rubric criteria fully met; app hosted and reachable via URL by end of Phase 2
 - **Strategy notes**: See `Team Project_Fa26.pdf` in repo root for the full assignment spec. POWDER (cited in the PDF) is inspiration for the general HaaS shape only — nothing wireless/RF-specific applies here.
@@ -69,7 +69,7 @@ Captured from the household's full product vision — real value, but each requi
 
 ## Context
 
-- This is a graded academic team project (MIS385N Advanced Programming & App Development), delivered in phases with a shared grading rubric (`Team Project_Fa26.pdf`).
+- This is a graded academic team project (ECE 461L), delivered in phases with a shared grading rubric (`Team Project_Fa26.pdf`).
 - Phase 1 (5 pts, due first) requires: all features + initial work items on a board, a high-level sketch of the app, and a stated tool/approach choice — plus a separate Project Plan (team members, sprint cadence, collaboration tools, methodology, toolchain), which is **owned by another team member and out of scope for this document**.
 - Phase 2 (10 pts) requires all General Requirements satisfied: hardware resources (here: food item stock) stored in DB with an API, user/household info accessible from the app with no hard-coded data, and the app hosted on the cloud and reachable via URL.
 - General requirements apply across all phases: issue tracker kept separate from the user-story board, all user stories defined by end of Phase 1 (refined later), each user story describable in ≤3 sentences.

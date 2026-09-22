@@ -22,6 +22,13 @@ A household member can see what food the household has across pantry/fridge/free
 
 - ✓ Starter scaffold exists — Flask backend (`app.py`, `usersDatabase.py`, `projectsDatabase.py`, `hardwareDatabase.py`) and React frontend (`MyLoginPage`, `MyRegistrationPage`, `MyUserPortal`, `ForgotMyPassword`, `Project`, `Checkout` components) — pre-existing, to be repurposed: `projectsDatabase.py` → households, `hardwareDatabase.py` → food item stock
 - ✓ Backend route surface already sketched: `/login`, `/main`, `/join_project`, `/add_user`, `/get_user_projects_list`, `/create_project`, `/get_project_info`, `/get_all_hw_names`, `/get_hw_info`, `/check_out`, `/check_in`, `/create_hardware_set`, `/api/inventory` — pre-existing, semantics reframed (see below)
+- ✓ View food inventory by location with capacity/availability (SN2) — Track B, Phase 2 (Track B), 4/4 plans, UAT passed
+- ✓ Reserve/claim a quantity of an item for oneself (SN3) — Track B, unenforced "dibs" flag, not a hold
+- ✓ Consume/remove a quantity of an item from inventory ("checkout") (SN4) — Track B, FIFO by best-by date, overbooking guard with optimistic concurrency (independently race-tested against a real MongoDB, not mongomock)
+- ✓ Restock / add new item quantity to inventory ("check-in") (SN5) — Track B, batch-per-restock model with substring/prefix item-name matching
+- ✓ Simple date-based freshness flag (SN2 extension) — Track B, three genuinely different rule-sets per location (Pantry: none, Fridge: 3-day window, Freezer: purchase-date-driven quality band, not a safety signal)
+- ✓ Persist food items in MongoDB, no hard-coded data (SR5, R2-2 half) — Track B's half; user/household half remains Track A's responsibility
+- ✓ REST API layer for inventory operations (SR2, R2-1 half) — Track B's half (`/api/inventory`, `/restock`, `/consume`, `/reserve`, `/release`)
 
 ### Active
 
@@ -31,13 +38,8 @@ A household member can see what food the household has across pantry/fridge/free
 - [ ] Userid/password encryption (SN1, SR3)
 - [ ] Create new household (name, description, householdID) (SN1, SR4)
 - [ ] Join / access existing household by householdID (SN1, SR4)
-- [ ] View food inventory by location (Pantry / Fridge / Freezer) showing capacity (total stocked) + availability (remaining unclaimed/unconsumed) per item (SN2)
-- [ ] Reserve/claim a quantity of an item for oneself (SN3)
-- [ ] Consume/remove a quantity of an item from inventory ("checkout") (SN4)
-- [ ] Restock / add new item quantity to inventory ("check-in") (SN5)
-- [ ] Simple date-based freshness flag (expiring soon / expired) using purchase + best-by date — not sensor/ML-based (SN2 extension, deliberately simplified)
-- [ ] Persist users, households, and food items in MongoDB — no hard-coded data on any page (SR5, R2-2)
-- [ ] REST API layer for all DB access (SR2, R2-1)
+- [ ] Persist users and household membership in MongoDB — no hard-coded data on any page (SR5, R2-2 remainder — Track A's half; Track B's food-item half is validated above)
+- [ ] REST API layer for user/household operations (SR2, R2-1 remainder — Track A's half; Track B's inventory half is validated above)
 - [ ] Cloud hosting reachable via URL for TAs/instructor (R2-3)
 - [ ] Project board with all features + initial work items (user stories, tech debt, research items) (R1-2)
 - [ ] High-level architecture sketch (R1-3)
@@ -90,6 +92,11 @@ Captured from the household's full product vision — real value, but each requi
 | Split the household's full product vision into MVP (manual inventory + reserve/consume/restock) vs. Backlog/Research (sensors, ML spoilage/consumption detection, meal planning, purchasing, safety, behavior learning) | Full vision requires hardware sensors, ML models, and third-party integrations not achievable in a semester PoC; MVP still fully satisfies SN1–SN6, backlog items become the board's "research items" (R1-2) | ✓ Good |
 | Skip formal research phase (stack/features/architecture) | Assignment PDF fully specifies stakeholder needs, requirements, and recommended stack — external research adds no value here | ✓ Good |
 | Skip codebase-mapping subagent | Existing scaffold is small (4 backend files, handful of React pages); read directly instead of spawning a mapper | ✓ Good |
+| Inventory items live in a separate `Items` collection, not embedded in the household document (Track B execution checkpoint, one-way door) | Removes the Track A/Track B write-contention risk the roadmap had flagged; makes the overbooking guard a single conditional update instead of a nested-array update | ✓ Good |
+| Each restock is its own batch (not a running-total overwrite); item identity resolved via case/whitespace normalization + substring/prefix matching, ambiguous matches create a new item rather than guessing (CONTEXT.md D-01/D-03) | Preserves per-purchase dates for FIFO consumption and accurate freshness; avoids silently merging distinct items (e.g. "milk" into "milk chocolate") | ✓ Good |
+| Reserve is an unenforced "dibs" flag, never a hold on stock; consume always draws from total available regardless of reservations (CONTEXT.md D-04–D-08) | Matches real household trust dynamics — reservation is a coordination signal between housemates, not an access-control mechanism | ✓ Good |
+| Freezer freshness is a quality-decay signal computed from purchase date (not a food-safety best-by comparison like Pantry/Fridge) (CONTEXT.md D-11) | Frozen food doesn't spoil the way fridge/pantry food does; a flat best-by model would be factually wrong for that location | ✓ Good |
+| Track B's tracer plan (02-01) bootstrapped the React client (`package.json`, Vite) and fixed Flask's broken imports, since neither existed/worked before this phase | The scaffold could not run at all — no track could proceed without this; flagged as a cross-track coordination point so other tracks build into the same shell | ✓ Good |
 
 ## Evolution
 
@@ -109,4 +116,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-14 after restructuring to 4-track parallel structure (4 developers)*
+*Last updated: 2026-09-22 after Track B (Inventory Management) phase completion — 5/5 UAT tests passed, 4/4 plans executed*

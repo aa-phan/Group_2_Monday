@@ -51,7 +51,7 @@ track's "Depends on" line for the one place they touch.
 > track's section.
 
 - [ ] **Phase 1 (Track A): Account & Household Management** - Users can securely register, log in, stay signed in, and create or join a household
-- [ ] **Phase 2 (Track B): Inventory Management** - Users can view pantry/fridge/freezer inventory by location, reserve items, consume/checkout items, restock/check-in items, and see freshness flags
+- [x] **Phase 2 (Track B): Inventory Management** - Users can view pantry/fridge/freezer inventory by location, reserve items, consume/checkout items, restock/check-in items, and see freshness flags (completed 2026-09-22)
 - [ ] **Phase 3 (Track C): Data Integration & API** - The app runs entirely on live MongoDB/REST data, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered
 - [ ] **Phase 4 (Track D): Deployment & Quality** - The app is test-covered and reachable via a public URL
 
@@ -96,19 +96,19 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Tracer: restock one item into a location and see it in the inventory view (INV-01, INV-02)
+- [x] 02-01-PLAN.md — Tracer: restock one item into a location and see it in the inventory view (INV-01, INV-02)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-PLAN.md — Location-specific freshness flags: Pantry, Fridge, and Freezer rule-sets (INV-05)
+- [x] 02-02-PLAN.md — Location-specific freshness flags: Pantry, Fridge, and Freezer rule-sets (INV-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 02-03-PLAN.md — Item identity matching across restocks and per-item batch detail (INV-01, INV-02)
+- [x] 02-03-PLAN.md — Item identity matching across restocks and per-item batch detail (INV-01, INV-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 02-04-PLAN.md — Reserve, release, and FIFO consume with the overbooking guard (INV-03, INV-04)
+- [x] 02-04-PLAN.md — Reserve, release, and FIFO consume with the overbooking guard (INV-03, INV-04)
 
 ### Phase 3 (Track C): Data Integration & API
 

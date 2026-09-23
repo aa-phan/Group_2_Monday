@@ -6,12 +6,12 @@
     {
       "number": "1",
       "name": "(Track A): Account & Household Management",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "number": "2",
       "name": "(Track B): Inventory Management",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "number": "3",
@@ -26,8 +26,8 @@
   ],
   "next": {
     "command": "/gsd:progress --next",
-    "label": "Advance to the next step",
-    "reason": "Phase 2 of 4 · 0% · executing"
+    "label": "Advance to the next step (plan phase 1)",
+    "reason": "Phase 1 of 4 — needs a plan"
   },
-  "updated_at": "2026-09-16T03:01:29.280Z"
+  "updated_at": "2026-09-22T20:26:01.701Z"
 }

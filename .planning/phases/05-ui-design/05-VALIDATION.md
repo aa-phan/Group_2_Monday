@@ -29,7 +29,7 @@ created: "2026-09-24"
 
 ## Sampling Rate
 
-- **After every task commit:** N/A — no automated quick-run command exists for this phase's domain (visual/doc changes); rely on manual visual check per task
+- **After every task commit:** `npm --prefix client run build` (grounded in Phase 02 Task 4; ~5s) plus that task's grep gates. No behavioural test suite exists, so these confirm the artifact shape and that the client still compiles — they do not assert rendered behaviour, which stays manual.
 - **After every plan wave:** Manual visual check at ≤599px and ≥600px viewport widths; manual doc-presence check against the 5 Success Criteria
 - **Before `/gsd-verify-work`:** All 5 Success Criteria manually verified true
 - **Max feedback latency:** N/A (manual verification, no automated suite)
@@ -40,15 +40,15 @@ created: "2026-09-24"
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 05-01-TBD | 01 | 1 | SC-1 | — | N/A (presentation-only, no new attack surface) | manual (visual) | N/A — resize to ≤599px, confirm card layout, no horizontal scroll | ❌ Wave 0 N/A | ⬜ pending |
-| 05-01-TBD | 01 | 1 | SC-2 | — | N/A | manual (visual) | N/A — visual inspection against token palette in `05-DESIGN.md` | ❌ Wave 0 N/A | ⬜ pending |
-| 05-01-TBD | 01 | 1 | SC-3 | — | N/A | manual (doc review) | N/A — confirm `App.js` documents `householdId`/`userId`/`userName` contract | ❌ Wave 0 N/A | ⬜ pending |
-| 05-01-TBD | 01 | 1 | SC-4 | — | N/A | manual (doc review) | N/A — confirm JSDoc block above each of the 6 components' signatures | ❌ Wave 0 N/A | ⬜ pending |
-| 05-01-TBD | 01 | 1 | SC-5 | — | N/A | manual (doc + visual) | N/A — confirm `:root` custom properties in `index.css`, documented in `05-DESIGN.md` | ❌ Wave 0 N/A | ⬜ pending |
+| 05-01-T1 (tracer) | 01 | 1 | SC-1, SC-3, SC-5 | T-05-01, T-05-02 | No raw-HTML sink introduced by the markup restructure; no credential in `05-DESIGN.md` | build + grep gates, then manual (visual) | `npm --prefix client run build`; `test -f client/dist/index.html`; `grep -cE '<table\|</table>\|colSpan' client/src/components/Project.js`; `grep -rc 'dangerouslySetInnerHTML' client/src/ \| grep -v ':0'` | ✅ commands ground out of Phase 02 Task 4 | ⬜ pending |
+| 05-01-T2 | 01 | 1 | SC-2, SC-5 | T-05-04 | Freshness stays colour + label + tooltip, never colour alone (WCAG 1.4.1) | grep gates, then manual (visual) | `grep -oE '#[0-9a-fA-F]{3,8}' client/src/App.css \| wc -l`; `grep -c 'focus-visible' client/src/App.css`; `grep -c 'prefers-reduced-motion' client/src/App.css` | ✅ | ⬜ pending |
+| 05-01-T3 | 01 | 1 | SC-1 | T-05-01 | Batch values render as plain JSX children | grep gates, then manual (visual) | `npm --prefix client run build`; `grep -cE '<table\|<thead\|<tbody' client/src/components/BatchList.js`; `grep -c 'MUST be rendered in the order' client/src/components/BatchList.js` | ✅ | ⬜ pending |
+| 05-02-T1 | 02 | 2 | SC-4 | T-05-05, T-05-06 | JSDoc records no live-environment value; contract matches real destructuring | grep gates, then manual (doc review) | `grep -rc '@component' client/src/components/ \| awk -F: '{s+=$2} END {print s}'`; same for `Data source:` and `No hard-coded fallback:` (each must total 7) | ✅ | ⬜ pending |
+| 05-02-T2 | 02 | 2 | SC-3, SC-4, SC-5 | T-05-02, T-05-06 | No credential or connection string in the committed doc; doc agrees with source | grep gates, then manual (doc review) | `grep -c '^### ' .planning/phases/05-ui-design/05-DESIGN.md`; token-coverage loop over `client/src/index.css`; `grep -rciE 'mongodb\+srv\|MONGO_URI\|SECRET_KEY' .planning/phases/05-ui-design/05-DESIGN.md` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
-*Task IDs are placeholders (TBD) pending the planner's actual task numbering — update this map once PLAN.md exists.*
+*Updated 2026-09-24 against `05-01-PLAN.md` and `05-02-PLAN.md`. The phase still has no unit-test framework — the automated commands above are build and grep gates over the artifacts the plans produce, not behavioural assertions. Each task additionally carries a `<human-check>` block, collected at the end-of-phase verification per `workflow.human_verify_mode: end-of-phase`.*
 
 ---
 

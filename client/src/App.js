@@ -14,6 +14,7 @@ export default function App() {
   return (
     <div className="app-container">
       <h1 className="app-heading">{HOUSEHOLD_ID} Pantry</h1>
+      {/* InventoryView's session-identity prop contract: see .planning/phases/05-ui-design/05-DESIGN.md */}
       <InventoryView householdId={HOUSEHOLD_ID} userId={USER_ID} userName={USER_NAME} />
     </div>
   );

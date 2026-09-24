@@ -17,17 +17,32 @@
   padding-bottom: 4px;
 }
 
-.item-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 8px;
+.item-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 }
 
-.item-table th,
-.item-table td {
-  text-align: left;
-  padding: 8px;
-  border: 1px solid #d1d5db;
+.item-card {
+  background-color: var(--color-surface);
+  border: var(--rule-width) solid var(--color-rule);
+  border-left-width: var(--stripe-width);
+  border-radius: var(--radius-sm);
+}
+
+.item-card--pantry {
+  border-left-color: var(--color-loc-pantry);
+}
+
+.item-card--fridge {
+  border-left-color: var(--color-loc-fridge);
+}
+
+.item-card--freezer {
+  border-left-color: var(--color-loc-freezer);
 }
 
 .muted-text {
@@ -95,11 +110,6 @@
   border-color: #d1d5db;
 }
 
-.item-row-cell {
-  padding: 0;
-  border: 1px solid #d1d5db;
-}
-
 .item-disclosure {
   padding: 8px;
 }
@@ -107,7 +117,8 @@
 .item-summary {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
   cursor: pointer;
   list-style: revert;
 }
@@ -121,6 +132,7 @@
 .item-summary__availability {
   color: #374151;
   font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .batch-list {
@@ -236,4 +248,17 @@
 .reservation-entry__release {
   padding: 2px 8px;
   font-size: 0.8rem;
+}
+
+@media (max-width: 599px) {
+  .item-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2xs);
+  }
+
+  .app-container {
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
 }

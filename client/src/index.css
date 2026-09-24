@@ -1,7 +1,76 @@
 :root {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #1f2933;
-  background-color: #f8f9fa;
+  /* Typography (D-07) */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --text-xs: 0.8rem;
+  --text-sm: 0.85rem;
+  --text-md: 0.9rem;
+  --text-base: 1rem;
+  --weight-regular: 400;
+  --weight-semibold: 600;
+  --leading-body: 1.55;
+
+  /* Spacing (D-03) */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 6px;
+  --space-sm: 8px;
+  --space-md: 10px;
+  --space-lg: 12px;
+  --space-xl: 16px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 64px;
+
+  /* Radius and structure */
+  --radius-sm: 4px;
+  --radius-pill: 999px;
+  --rule-width: 1px;
+  --stripe-width: 4px;
+
+  /* Warm-kitchen base palette (D-05) */
+  --color-page: #F5F1E8;
+  --color-surface: #FCFAF5;
+  --color-ink: #2B2622;
+  --color-ink-muted: #6E655B;
+  --color-rule: #DDD5C7;
+  --color-rule-soft: #E7E0D3;
+  --color-accent: #5C4433;
+  --color-danger: #8C2F22;
+
+  /* Location stripe colours (D-06) */
+  --color-loc-pantry: #8A6A4B;
+  --color-loc-fridge: #5F8A7D;
+  --color-loc-freezer: #5C7796;
+
+  /* Freshness palette (D-03, D-08) */
+  --color-fresh-bg: #DCEFD8;
+  --color-fresh-fg: #2F5D2A;
+  --color-fresh-border: #A8CFA0;
+  --color-expiring-bg: #FAEBC8;
+  --color-expiring-fg: #7A5310;
+  --color-expiring-border: #E4C273;
+  --color-expired-bg: #F7DFD8;
+  --color-expired-fg: #8C2F22;
+  --color-expired-border: #E0A99C;
+  --color-unknown-bg: #EDE7DC;
+  --color-unknown-fg: #4A443C;
+  --color-unknown-border: #D4CBBC;
+
+  /* Reservation-state colours */
+  --color-claim-own-bg: #E4EBDF;
+  --color-claim-own-fg: #3C5233;
+  --color-claim-own-border: #B9C9AC;
+  --color-claim-other-bg: #F2EDE2;
+  --color-claim-other-fg: #6E655B;
+  --color-claim-other-border: #E7E0D3;
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background-color: var(--color-page);
 }
 
 body {

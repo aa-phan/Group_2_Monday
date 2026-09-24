@@ -23,49 +23,55 @@ function LocationSection({ location, items, ambiguityNotice, userId, userName, o
       {items.length === 0 ? (
         <p className="muted-text">Nothing stored here yet.</p>
       ) : (
-        <table className="item-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Capacity</th>
-              <th>Availability</th>
-              <th>Freshness</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.itemKey}>
-                <td colSpan={4} className="item-row-cell">
-                  <details className="item-disclosure">
-                    <summary className="item-summary">
-                      <span className="item-summary__name">{item.itemName}</span>
-                      <span className="item-summary__capacity">Capacity: {item.capacity}</span>
-                      <span className="item-summary__availability">
-                        Available: {item.availability}
-                      </span>
-                      <FreshnessBadge freshness={item.freshness} location={location} />
-                    </summary>
-                    <BatchList batches={item.batches} location={location} />
-                    {ambiguityNotice && ambiguityNotice.itemKey === item.itemKey && (
-                      <AmbiguityNotice notice={ambiguityNotice} />
-                    )}
-                    <ItemActions
-                      item={item}
-                      userId={userId}
-                      userName={userName}
-                      onChanged={onChanged}
-                    />
-                  </details>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul className="item-card-list">
+          {items.map((item) => (
+            <li key={item.itemKey} className={`item-card item-card--${location.toLowerCase()}`}>
+              <details className="item-disclosure">
+                <summary className="item-summary">
+                  <span className="item-summary__name">{item.itemName}</span>
+                  <span className="item-summary__capacity">Capacity: {item.capacity}</span>
+                  <span className="item-summary__availability">
+                    Available: {item.availability}
+                  </span>
+                  <FreshnessBadge freshness={item.freshness} location={location} />
+                </summary>
+                <BatchList batches={item.batches} location={location} />
+                {ambiguityNotice && ambiguityNotice.itemKey === item.itemKey && (
+                  <AmbiguityNotice notice={ambiguityNotice} />
+                )}
+                <ItemActions
+                  item={item}
+                  userId={userId}
+                  userName={userName}
+                  onChanged={onChanged}
+                />
+              </details>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );
 }
 
+/**
+ * InventoryView is the top-level presentational component for a household's
+ * inventory. It fetches its own inventory data through
+ * client/src/api/inventory.js, but accepts session identity as props rather
+ * than reading it from any global auth state -- Track A's session/auth layer
+ * wires real values in here once it lands.
+ *
+ * See .planning/phases/05-ui-design/05-DESIGN.md for the full contract.
+ *
+ * @component
+ * @param {Object} props
+ * @param {string} props.householdId - The household whose inventory to load.
+ *   No fallback/default; a real session must supply this.
+ * @param {string} props.userId - The acting user's id, used for reserve/
+ *   consume/release calls. No fallback/default.
+ * @param {string} props.userName - Display name shown on reservation entries
+ *   this user creates. No fallback/default.
+ */
 export default function InventoryView({ householdId, userId, userName }) {
   const [inventory, setInventory] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -54,6 +54,7 @@ track's "Depends on" line for the one place they touch.
 - [x] **Phase 2 (Track B): Inventory Management** - Users can view pantry/fridge/freezer inventory by location, reserve items, consume/checkout items, restock/check-in items, and see freshness flags (completed 2026-09-22)
 - [ ] **Phase 3 (Track C): Data Integration & API** - The app runs entirely on live MongoDB/REST data, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered
 - [ ] **Phase 4 (Track D): Deployment & Quality** - The app is test-covered and reachable via a public URL
+- [ ] **Phase 5 (Track E): UI Design** - Track B's inventory UI is visually coherent and phone-usable, with a documented component contract for Track A/C to wire into
 
 ## Phase Details
 
@@ -146,19 +147,41 @@ Plans:
 
 - [ ] 04-01: TBD
 
+### Phase 5 (Track E): UI Design
+
+**Goal**: Track B's inventory UI is visually coherent and usable on a phone, and Track A/Track C have a documented component contract to wire their own UI into instead of touching presentation internals.
+**Depends on**: Track B (all design work operates on Track B's already-built components — `InventoryView`, `RestockForm`, `FreshnessBadge`, `BatchList`, `Checkout`/`ItemActions`). Not gated on Track A or Track C landing first — the harness items (TD-13/TD-14/TD-15) are written *for* those tracks to consume later, not blocked on them existing yet.
+**Requirements**: None from REQUIREMENTS.md — Track E is additive quality work, not tied to a stakeholder need or system requirement. Board items use `DESIGN` in place of a requirement ID.
+**Owner**: Aaron Phan, dual duty alongside Track B.
+**Success Criteria** (what must be TRUE):
+
+  1. The inventory view has clear visual grouping and spacing — not bare HTML tables — and is usable on a phone-width screen.
+  2. Freshness badges use consistent color coding a household member can recognize without reading the label text.
+  3. `InventoryView`'s session-identity props (`householdId`, `userId`, `userName`) are documented as a contract at one call site, so Track A can wire in real session data without touching component internals.
+  4. Every presentational component's data-only prop contract (no internal fetch, no hard-coded fallback) is documented, so Track C can audit DATA-01/DATA-03 against it directly.
+  5. A small shared set of style tokens (spacing/color/typography) exists and is documented for Track A and Track C's own UI to adopt.
+
+**Plans**: TBD
+**UI hint**: yes
+
+Plans:
+
+- [ ] 05-01: TBD
+
 ## Progress
 
 **Execution Order:**
-Track A and Track B execute in parallel (independent tracks, one coordination point on `projectsDatabase.py`'s household document). Track C's and Track D's infra sub-tasks start alongside them; Track C's integration/verification sub-tasks and Track D's integration/verification/deploy sub-tasks complete last, after Track A, Track B, and (for Track D) Track C substantially land.
+Track A and Track B execute in parallel (independent tracks, one coordination point on `projectsDatabase.py`'s household document). Track C's and Track D's infra sub-tasks start alongside them; Track C's integration/verification sub-tasks and Track D's integration/verification/deploy sub-tasks complete last, after Track A, Track B, and (for Track D) Track C substantially land. Track E (Aaron's dual duty) starts once Track B's UI exists to design against; its harness items are consumed by Track A/Track C whenever those tracks build their own UI.
 
 | Track | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | A. Account & Household Management | 0/TBD | Not started | - |
-| B. Inventory Management | 0/4 | Planned | - |
+| B. Inventory Management | 4/4 | Complete | 2026-09-22 |
 | C. Data Integration & API | 0/TBD | Not started | - |
 | D. Deployment & Quality | 0/TBD | Not started | - |
+| E. UI Design | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-09-14*
-*Last updated: 2026-09-14 after restructuring to 4-track parallel structure (4 developers)*
+*Last updated: 2026-09-24 after adding Phase 5 (Track E: UI Design), Aaron's dual duty alongside Track B*
 *Granularity: standard | Phase ID convention: sequential*

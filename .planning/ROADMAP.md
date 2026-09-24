@@ -161,17 +161,17 @@ Plans:
   4. Every presentational component's data-only prop contract (no internal fetch, no hard-coded fallback) is documented, so Track C can audit DATA-01/DATA-03 against it directly.
   5. A small shared set of style tokens (spacing/color/typography) exists and is documented for Track A and Track C's own UI to adopt.
 
-**Plans**: 2 plans
+**Plans**: 2/2 plans executed
 **UI hint**: yes
 
 Plans:
 **Wave 1**
 
-- [ ] 05-01-PLAN.md — Warm-kitchen design tokens, shelf-card inventory layout, and the phone-width breakpoint (DESIGN)
+- [x] 05-01-PLAN.md — Warm-kitchen design tokens, shelf-card inventory layout, and the phone-width breakpoint (DESIGN)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 05-02-PLAN.md — JSDoc prop contracts on every component and the canonical 05-DESIGN.md (DESIGN)
+- [x] 05-02-PLAN.md — JSDoc prop contracts on every component and the canonical 05-DESIGN.md (DESIGN)
 
 ## Progress
 

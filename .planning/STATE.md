@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 current_phase: 05
 current_phase_name: ui-design
-status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-09-24T18:41:21.248Z"
-last_activity: 2026-09-22
-last_activity_desc: Phase 02 complete, transitioned to Phase 1
-state_head: 17a60709abeab30d5d43ff6599fc5682e1c78365
+status: awaiting_human_verification
+stopped_at: Phase 5 executed (2/2 plans), verified code/doc-complete, awaiting manual UX/visual UAT
+last_updated: "2026-09-24T22:56:00.000Z"
+last_activity: 2026-09-24
+last_activity_desc: Phase 05 waves 1-2 executed and merged; verifier returned human_needed pending live visual UAT
+state_head: a7dbb63
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 4
-  percent: 20
+  total_plans: 8
+  completed_plans: 6
+  percent: 33
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-09-22)
 
 ## Current Position
 
-Phase: 05 (ui-design) — READY TO EXECUTE
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-09-22 — Phase 02 complete, transitioned to Phase 1
+Phase: 05 (ui-design) — EXECUTED, AWAITING HUMAN UAT
+Plan: 05-01 and 05-02 both complete (2/2)
+Status: Code and docs verified against Success Criteria; 4 manual visual-check items remain (see 05-VERIFICATION.md)
+Last activity: 2026-09-24 — Phase 05 waves executed, merged to main, verifier returned human_needed
 
 Progress: [█████░░░░░] 25% (1/4 tracks complete)
 
@@ -69,6 +69,7 @@ Recent decisions affecting current work:
 - Renamed the internal 3-part work-breakdown from "Phase 1/2/3" to "Track A/B/C" across planning docs (quick task 260914-g9c) to avoid colliding with the assignment PDF's own grading "Phase 1"/"Phase 2" milestones. "Phase" is now reserved exclusively for those two assignment-defined grading milestones.
 - Restructured from 3 tracks to 4 tracks (quick task 260914-pzo) — the team confirmed it has 4 developers. Track C (which combined Data Integration & API with Deployment & Quality) split into Track C (Data Integration & API) and a new Track D (Deployment & Quality); US-12, TD-08, TD-09, TD-10 relabeled from Track C to Track D with no other change. Rubric item ownership locked: Track A owns R1-1 + R2-2, Track B owns R1-2 + R2-1, Track C owns R1-4 + a promoted stretch-feature scope (STRETCH-01/02, from 2 backlog items) instead of a numbered R2 item, Track D owns R1-3 + R2-3.
 - **Track B (Inventory Management) complete** (2026-09-22) — 4/4 plans executed, code review found and fixed a Critical NoSQL-operator-injection vulnerability (CR-01), all 5 UAT tests passed against a real local MongoDB. Key decision: inventory lives in a separate `Items` collection, not embedded in the household document — removes the Track A/Track B write-contention risk the roadmap originally flagged. Track B's tracer plan also bootstrapped the React client and fixed Flask's broken imports, since the scaffold could not run at all before this — Track A and other tracks build into the same client shell rather than creating a new one.
+- **Phase 05 (UI Design) executed, awaiting human UAT** (2026-09-24) — 05-01 (warm-kitchen shelf-card layout + design tokens, replacing Track B's HTML tables) and 05-02 (JSDoc prop contracts for all 7 presentational components + `05-DESIGN.md`) both executed in isolated worktrees and fast-forward merged to `main`. Verifier confirmed all 5 ROADMAP Success Criteria at the code/doc level (zero table markup remains, freshness tokens fully resolve, all components carry prop-contract JSDoc, token system has zero hex literals, `npm run build` passes) — see `.planning/phases/05-ui-design/05-VERIFICATION.md`. Verdict is `human_needed`, not `passed`: 4 items need a live-browser visual pass (card striping/disclosure, phone-width stacking, button focus/hover states, live batch ordering) because both sandboxed executor worktrees had no reachable Flask/MongoDB backend to render against. Logged as `unrun-verify` items #6-8 in `.planning/WINDOWS.md`.
 
 ### Pending Todos
 

@@ -147,17 +147,38 @@
   margin-bottom: var(--space-2xs);
 }
 
-.batch-table {
-  width: 100%;
-  border-collapse: collapse;
+.batch-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.batch-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xl);
+  align-items: baseline;
+  padding: var(--space-sm);
+  border: var(--rule-width) solid var(--color-rule-soft);
+  border-radius: var(--radius-sm);
   font-size: var(--text-sm);
 }
 
-.batch-table th,
-.batch-table td {
-  text-align: left;
-  padding: var(--space-2xs) var(--space-sm);
-  border: var(--rule-width) solid var(--color-rule-soft);
+.batch-card__field {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: baseline;
+}
+
+.batch-card__label {
+  color: var(--color-ink-muted);
+}
+
+.batch-card__value {
+  font-variant-numeric: tabular-nums;
 }
 
 .ambiguity-notice {
@@ -294,6 +315,33 @@
   .app-container {
     padding-left: var(--space-lg);
     padding-right: var(--space-lg);
+  }
+
+  .batch-card {
+    flex-direction: column;
+    gap: var(--space-2xs);
+  }
+
+  .item-actions__row {
+    flex-wrap: wrap;
+  }
+
+  .item-actions__field {
+    flex: 1 1 100%;
+  }
+
+  .item-actions__field input {
+    width: 100%;
+  }
+
+  .restock-form {
+    max-width: 100%;
+  }
+
+  .batch-list,
+  .ambiguity-notice,
+  .item-actions {
+    margin-left: 0;
   }
 }
 

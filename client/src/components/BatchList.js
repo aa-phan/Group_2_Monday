@@ -14,28 +14,30 @@ export default function BatchList({ batches, location }) {
   return (
     <div className="batch-list">
       <p className="batch-list__note">Batches are listed in the order they will be used.</p>
-      <table className="batch-table">
-        <thead>
-          <tr>
-            <th>Quantity</th>
-            <th>Purchased</th>
-            <th>Best-by</th>
-            <th>Freshness</th>
-          </tr>
-        </thead>
-        <tbody>
-          {batches.map((batch) => (
-            <tr key={batch.batchId}>
-              <td>{batch.quantity}</td>
-              <td>{batch.purchaseDate}</td>
-              <td>{batch.bestByDate || '—'}</td>
-              <td>
+      <ul className="batch-card-list">
+        {batches.map((batch) => (
+          <li key={batch.batchId} className="batch-card">
+            <div className="batch-card__field">
+              <span className="batch-card__label">Quantity</span>
+              <span className="batch-card__value">{batch.quantity}</span>
+            </div>
+            <div className="batch-card__field">
+              <span className="batch-card__label">Purchased</span>
+              <span className="batch-card__value">{batch.purchaseDate}</span>
+            </div>
+            <div className="batch-card__field">
+              <span className="batch-card__label">Best-by</span>
+              <span className="batch-card__value">{batch.bestByDate || '—'}</span>
+            </div>
+            <div className="batch-card__field">
+              <span className="batch-card__label">Freshness</span>
+              <span className="batch-card__value">
                 <FreshnessBadge freshness={batch.freshness} location={location} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

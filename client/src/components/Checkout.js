@@ -1,16 +1,32 @@
 import { useState } from 'react';
 import { consumeItem, reserveItem, releaseReservation } from '../api/inventory.js';
 
-// The name "Checkout.js" carries over from the assignment's checkout
-// mockup, which maps onto consuming (see plan 02-04). This component also
-// renders reserve and release -- everything a household member does to an
-// item's own row besides restocking.
-//
-// A reservation is a coordination signal among housemates ("dibs"), never
-// a lock (D-05, D-07). The consume control below is never disabled, hidden,
-// or gated by the presence of any reservation, and the reserved display
-// below only ever names who claimed what -- it never says "unavailable",
-// "locked", or "blocked".
+/**
+ * The name "Checkout.js" carries over from the assignment's checkout
+ * mockup, which maps onto consuming (see plan 02-04). This component also
+ * renders reserve and release -- everything a household member does to an
+ * item's own row besides restocking.
+ *
+ * A reservation is a coordination signal among housemates ("dibs"), never a lock
+ * (D-05, D-07). The consume control below is never disabled, hidden, or gated
+ * by the presence of any reservation, and the reserved display below only
+ * ever names who claimed what -- it never says "unavailable", "locked", or
+ * "blocked".
+ *
+ * Data source: mutates via client/src/api/inventory.js
+ * No hard-coded fallback: this component renders nothing it was not given or told.
+ *
+ * @component
+ * @param {Object} props
+ * @param {Object} props.item - The already-fetched item object. Reads
+ *   `householdId`, `location`, `itemName`, `capacity`, `reservations`, and
+ *   `reservedQuantity`.
+ * @param {string} props.userId - The acting member's identity. No default.
+ * @param {string} props.userName - The acting member's display name. No
+ *   default.
+ * @param {Function} props.onChanged - Async reload callback, awaited after
+ *   every successful mutation.
+ */
 export default function ItemActions({ item, userId, userName, onChanged }) {
   const [consumeQuantity, setConsumeQuantity] = useState('1');
   const [reserveQuantity, setReserveQuantity] = useState('1');

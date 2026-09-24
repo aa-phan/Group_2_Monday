@@ -7,6 +7,19 @@ import RestockForm from './RestockForm.js';
 
 const LOCATION_ORDER = ['Pantry', 'Fridge', 'Freezer'];
 
+/**
+ * AmbiguityNotice renders the message shown when a restock could not be
+ * merged into an existing item because more than one existing item could
+ * match it.
+ *
+ * Data source: props only
+ * No hard-coded fallback: this component renders nothing it was not given or told.
+ *
+ * @component
+ * @param {Object} props
+ * @param {Object} props.notice - Carries `itemName`, `itemKey`, `location`,
+ *   and `candidates` describing the restock that could not be merged.
+ */
 function AmbiguityNotice({ notice }) {
   return (
     <p className="ambiguity-notice">
@@ -16,6 +29,28 @@ function AmbiguityNotice({ notice }) {
   );
 }
 
+/**
+ * LocationSection renders one storage location's (Pantry, Fridge, or
+ * Freezer) list of item cards.
+ *
+ * Data source: props only
+ * No hard-coded fallback: this component renders nothing it was not given or told.
+ *
+ * @component
+ * @param {Object} props
+ * @param {string} props.location - One of Pantry, Fridge, or Freezer. Also
+ *   selects the item card's location-stripe modifier class.
+ * @param {Array} props.items - The already-fetched item array for this
+ *   location, rendered in the order received.
+ * @param {Object} [props.ambiguityNotice] - Nullable; the ambiguity notice
+ *   to show alongside the matching item, if any.
+ * @param {string} props.userId - Pass-through session identity; never read
+ *   or defaulted here, only forwarded to `ItemActions`.
+ * @param {string} props.userName - Pass-through session identity; never
+ *   read or defaulted here, only forwarded to `ItemActions`.
+ * @param {Function} props.onChanged - The reload callback forwarded to
+ *   `ItemActions`.
+ */
 function LocationSection({ location, items, ambiguityNotice, userId, userName, onChanged }) {
   return (
     <section className="location-section">
@@ -62,6 +97,9 @@ function LocationSection({ location, items, ambiguityNotice, userId, userName, o
  * wires real values in here once it lands.
  *
  * See .planning/phases/05-ui-design/05-DESIGN.md for the full contract.
+ *
+ * Data source: fetches via client/src/api/inventory.js
+ * No hard-coded fallback: this component renders nothing it was not given or told.
  *
  * @component
  * @param {Object} props

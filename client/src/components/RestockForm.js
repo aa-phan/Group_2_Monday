@@ -7,6 +7,22 @@ function todayISODate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * RestockForm renders the form a household member uses to add a new batch
+ * to an item, creating the item if it does not already exist.
+ *
+ * Data source: mutates via client/src/api/inventory.js
+ * No hard-coded fallback: this component renders nothing it was not given or told.
+ *
+ * @component
+ * @param {Object} props
+ * @param {string} props.householdId - The household this restock belongs
+ *   to. No fallback/default.
+ * @param {string} props.userId - The acting user's id. No fallback/default.
+ * @param {Function} props.onRestocked - Called with the restocked item
+ *   after a successful submit, including its `matchAmbiguity` field when
+ *   the server could not disambiguate.
+ */
 export default function RestockForm({ householdId, userId, onRestocked }) {
   const [itemName, setItemName] = useState('');
   const [location, setLocation] = useState(LOCATIONS[0]);

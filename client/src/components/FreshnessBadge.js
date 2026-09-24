@@ -48,6 +48,20 @@ const TITLES = {
 const UNKNOWN_LABEL = 'No date';
 const UNKNOWN_TITLE = 'No date was recorded for this batch, so freshness cannot be determined.';
 
+/**
+ * Data source: props only
+ * No hard-coded fallback: this component renders nothing it was not given or told.
+ *
+ * @component
+ * @param {Object} props
+ * @param {string} props.freshness - The server-computed enum: `fresh`,
+ *   `expiring_soon`, `expired`, or `unknown`. This component performs no
+ *   date arithmetic.
+ * @param {string} props.location - One of Pantry, Fridge, or Freezer;
+ *   selects the label/title wording. The badge's colour is a reinforcing
+ *   signal presented alongside a text label and a title tooltip, never in
+ *   place of them.
+ */
 export default function FreshnessBadge({ freshness, location }) {
   const locationLabels = LABELS[location] || {};
   const locationTitles = TITLES[location] || {};

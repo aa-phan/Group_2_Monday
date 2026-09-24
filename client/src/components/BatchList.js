@@ -9,6 +9,16 @@ import FreshnessBadge from './FreshnessBadge.js';
  * Pantry/Fridge, oldest purchase date first for Freezer, per D-02/D-11 and
  * hardwareDatabase's _batchSortKey) -- re-sorting here in the browser would
  * show a household the wrong thing about what gets used first.
+ *
+ * Data source: props only
+ * No hard-coded fallback: this component renders nothing it was not given or told.
+ *
+ * @component
+ * @param {Object} props
+ * @param {Array} props.batches - The item's batch history, rendered in the
+ *   order it is received.
+ * @param {string} props.location - One of Pantry, Fridge, or Freezer;
+ *   forwarded to `FreshnessBadge` to word each batch's freshness correctly.
  */
 export default function BatchList({ batches, location }) {
   return (

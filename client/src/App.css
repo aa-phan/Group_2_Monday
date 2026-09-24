@@ -1,20 +1,20 @@
 .app-container {
   max-width: 960px;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: var(--space-2xl) var(--space-xl) var(--space-4xl);
 }
 
 .app-heading {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-2xl);
 }
 
 .location-section {
-  margin-bottom: 32px;
+  margin-bottom: var(--space-3xl);
 }
 
 .location-section h2 {
-  border-bottom: 1px solid #d1d5db;
-  padding-bottom: 4px;
+  border-bottom: var(--rule-width) solid var(--color-rule);
+  padding-bottom: var(--space-2xs);
 }
 
 .item-card-list {
@@ -46,72 +46,73 @@
 }
 
 .muted-text {
-  color: #6b7280;
+  color: var(--color-ink-muted);
   font-style: italic;
 }
 
 .error-text {
-  color: #b91c1c;
+  color: var(--color-danger);
 }
 
 .restock-form {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   max-width: 420px;
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
+  margin-top: var(--space-xl);
+  padding: var(--space-xl);
+  border: var(--rule-width) solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
 }
 
 .restock-form label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 0.9rem;
+  gap: var(--space-2xs);
+  font-size: var(--text-md);
 }
 
 .restock-form button {
   justify-self: start;
-  padding: 8px 16px;
+  padding: var(--space-sm) var(--space-xl);
 }
 
 .freshness-badge {
   display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border: 1px solid transparent;
+  padding: var(--space-3xs) var(--space-md);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  border: var(--rule-width) solid transparent;
   white-space: nowrap;
 }
 
 .freshness-badge--fresh {
-  background-color: #dcfce7;
-  color: #166534;
-  border-color: #86efac;
+  background-color: var(--color-fresh-bg);
+  color: var(--color-fresh-fg);
+  border-color: var(--color-fresh-border);
 }
 
 .freshness-badge--expiring_soon {
-  background-color: #fef3c7;
-  color: #92400e;
-  border-color: #fcd34d;
+  background-color: var(--color-expiring-bg);
+  color: var(--color-expiring-fg);
+  border-color: var(--color-expiring-border);
 }
 
 .freshness-badge--expired {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border-color: #fca5a5;
+  background-color: var(--color-expired-bg);
+  color: var(--color-expired-fg);
+  border-color: var(--color-expired-border);
 }
 
 .freshness-badge--unknown {
-  background-color: #f3f4f6;
-  color: #374151;
-  border-color: #d1d5db;
+  background-color: var(--color-unknown-bg);
+  color: var(--color-unknown-fg);
+  border-color: var(--color-unknown-border);
 }
 
 .item-disclosure {
-  padding: 8px;
+  padding: var(--space-sm);
 }
 
 .item-summary {
@@ -124,93 +125,93 @@
 }
 
 .item-summary__name {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   min-width: 140px;
 }
 
 .item-summary__capacity,
 .item-summary__availability {
-  color: #374151;
-  font-size: 0.9rem;
+  color: var(--color-ink);
+  font-size: var(--text-md);
   font-variant-numeric: tabular-nums;
 }
 
 .batch-list {
-  margin: 8px 0 4px 24px;
+  margin: var(--space-sm) 0 var(--space-2xs) var(--space-2xl);
 }
 
 .batch-list__note {
-  color: #6b7280;
-  font-size: 0.8rem;
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
   font-style: italic;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-2xs);
 }
 
 .batch-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 
 .batch-table th,
 .batch-table td {
   text-align: left;
-  padding: 4px 8px;
-  border: 1px solid #e5e7eb;
+  padding: var(--space-2xs) var(--space-sm);
+  border: var(--rule-width) solid var(--color-rule-soft);
 }
 
 .ambiguity-notice {
-  margin: 8px 0 4px 24px;
-  padding: 8px;
-  background-color: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  color: #92400e;
+  margin: var(--space-sm) 0 var(--space-2xs) var(--space-2xl);
+  padding: var(--space-sm);
+  background-color: var(--color-surface);
+  border: var(--rule-width) solid var(--color-expiring-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-expiring-fg);
 }
 
 .item-actions {
-  margin: 12px 0 4px 24px;
-  padding: 12px;
-  border-top: 1px solid #e5e7eb;
+  margin: var(--space-lg) 0 var(--space-2xs) var(--space-2xl);
+  padding: var(--space-lg);
+  border-top: var(--rule-width) solid var(--color-rule-soft);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .item-actions__row {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .item-actions__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 0.85rem;
+  gap: var(--space-2xs);
+  font-size: var(--text-sm);
 }
 
 .item-actions__field input {
   width: 72px;
-  padding: 4px 6px;
+  padding: var(--space-2xs) var(--space-xs);
 }
 
 .item-actions__row button {
-  padding: 6px 12px;
+  padding: var(--space-xs) var(--space-lg);
 }
 
 .item-actions__message {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   margin: 0;
 }
 
 .item-actions__reservations {
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
 }
 
 .item-actions__over-reserved {
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
 }
 
 .reservation-list {
@@ -219,35 +220,68 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .reservation-entry {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.85rem;
+  gap: var(--space-sm);
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
 }
 
 .reservation-entry--own {
-  background-color: #eef2ff;
-  border: 1px solid #c7d2fe;
-  color: #3730a3;
-  font-weight: 600;
+  background-color: var(--color-claim-own-bg);
+  border: var(--rule-width) solid var(--color-claim-own-border);
+  color: var(--color-claim-own-fg);
+  font-weight: var(--weight-semibold);
 }
 
 .reservation-entry--other {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  color: #6b7280;
+  background-color: var(--color-claim-other-bg);
+  border: var(--rule-width) solid var(--color-claim-other-border);
+  color: var(--color-claim-other-fg);
 }
 
 .reservation-entry__release {
-  padding: 2px 8px;
-  font-size: 0.8rem;
+  padding: var(--space-3xs) var(--space-sm);
+  font-size: var(--text-xs);
+}
+
+.restock-form button,
+.item-actions__row button,
+.reservation-entry__release {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  border: var(--rule-width) solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  transition: border-color var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
+}
+
+.restock-form button:hover,
+.item-actions__row button:hover,
+.reservation-entry__release:hover {
+  border-color: var(--color-accent);
+}
+
+.restock-form button:focus-visible,
+.item-actions__row button:focus-visible,
+.reservation-entry__release:focus-visible {
+  outline: var(--stripe-width) solid var(--color-accent);
+  outline-offset: var(--space-3xs);
+}
+
+.restock-form button:disabled,
+.item-actions__row button:disabled,
+.reservation-entry__release:disabled {
+  color: var(--color-ink-muted);
+  border-color: var(--color-rule-soft);
+  cursor: not-allowed;
 }
 
 @media (max-width: 599px) {
@@ -260,5 +294,13 @@
   .app-container {
     padding-left: var(--space-lg);
     padding-right: var(--space-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .restock-form button,
+  .item-actions__row button,
+  .reservation-entry__release {
+    transition-duration: 0.01ms;
   }
 }

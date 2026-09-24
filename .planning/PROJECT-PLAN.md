@@ -9,7 +9,7 @@
 | Name | Track | Responsibility |
 |------|-------|----------------|
 | Siddharth Kolukuluri | A. Account & Household Management | Sign-up and sign-in, credential encryption, sessions, creating and joining households |
-| Aaron Phan | B. Inventory Management | Inventory by location, restock, reserve, consume, freshness flags |
+| Aaron Phan | B. Inventory Management + E. UI Design (dual duty) | Inventory by location, restock, reserve, consume, freshness flags; plus cross-cutting UI/UX polish and documented component contracts for Tracks A and C to wire into |
 | Kody Keo | C. Data Integration & API | REST API, live MongoDB data with no hard-coded values, password reset, custom storage locations |
 | Aashrith Attelli | D. Deployment & Quality | PyTest coverage, cloud deployment, architecture sketch |
 

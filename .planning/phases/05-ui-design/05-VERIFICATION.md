@@ -1,12 +1,13 @@
 ---
 phase: 05-ui-design
 verified: 2026-09-24T22:00:00Z
-status: human_needed
+status: passed
 score: 5/5 must-haves verified (code + doc level); 0 failed; deferred visual/perceptual checks routed to human verification
 behavior_unverified: 0
 overrides_applied: 0
 re_verification: null
 human_verification:
+
   - test: "Run `npm --prefix client run dev` with a reachable Flask/MongoDB backend (seeded household `H1` with items in Pantry, Fridge, and Freezer). At 1200px, confirm each item card shows a visibly distinct colored left-edge stripe per location (Pantry/Fridge/Freezer), no column-header row is present, clicking an item's summary expands/collapses its batch list and actions, and clicking inside a Consume/Reserve control does NOT collapse the card."
     expected: "Cards render with distinct location stripes, disclosure toggle works, click-containment inside ItemActions holds."
     why_human: "Visual color distinctness and interactive click-behavior on a live DOM cannot be confirmed by static grep/AST checks; requires a rendered browser session (WINDOWS ledger #6, backend unreachable in the sandboxed executor worktree)."

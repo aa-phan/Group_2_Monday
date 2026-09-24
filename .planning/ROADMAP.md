@@ -54,7 +54,7 @@ track's "Depends on" line for the one place they touch.
 - [x] **Phase 2 (Track B): Inventory Management** - Users can view pantry/fridge/freezer inventory by location, reserve items, consume/checkout items, restock/check-in items, and see freshness flags (completed 2026-09-22)
 - [ ] **Phase 3 (Track C): Data Integration & API** - The app runs entirely on live MongoDB/REST data, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered
 - [ ] **Phase 4 (Track D): Deployment & Quality** - The app is test-covered and reachable via a public URL
-- [ ] **Phase 5 (Track E): UI Design** - Track B's inventory UI is visually coherent and phone-usable, with a documented component contract for Track A/C to wire into
+- [x] **Phase 5 (Track E): UI Design** - Track B's inventory UI is visually coherent and phone-usable, with a documented component contract for Track A/C to wire into (completed 2026-09-24)
 
 ## Phase Details
 

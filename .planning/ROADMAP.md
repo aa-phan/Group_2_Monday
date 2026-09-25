@@ -186,6 +186,22 @@ Track A and Track B execute in parallel (independent tracks, one coordination po
 | D. Deployment & Quality | 0/TBD | Not started | - |
 | E. UI Design | 0/2 | Planned | - |
 
+### Phase 6 (Track E): Visual Design Polish
+
+**Goal**: PantryTrack's inventory UI reads as an intentionally designed, cohesive product — not a functional-but-plain scaffold — while preserving every behavior, prop contract, and token semantic Phase 5 established.
+**Depends on**: Phase 5 (Track E: UI Design). Builds on its design-token system (`client/src/index.css`), card markup, and `05-DESIGN.md` contract rather than replacing them — this phase deepens the visual language, it does not re-architect it.
+**Requirements**: None from REQUIREMENTS.md — additive quality work, same as Phase 5. Board items use `DESIGN` in place of a requirement ID.
+**Owner**: Aaron Phan, dual duty alongside Track B.
+**Success Criteria** (what must be TRUE):
+
+  1. The app has a clear, consistent visual point of view (a real aesthetic direction, not default-browser styling) applied across every screen state — not just the happy-path inventory list.
+  2. Every UI state a user can actually hit is designed, not just functionally present: loading, error/retry, empty, and disabled states are visually intentional and match the rest of the system (closing the Phase 5 UI-review gap on the unstyled Retry button and plain-text loading state).
+  3. Visual hierarchy, spacing rhythm, and color usage read as cohesive across Pantry/Fridge/Freezer sections, item cards, batch history, and the restock form — no section looks like it was styled separately from the others.
+  4. All existing Phase 5 guarantees still hold: zero hex literals outside the token file, WCAG AA contrast maintained, the 599px responsive breakpoint still works with no horizontal scroll, and no component prop contract, data-fetch behavior, or `05-DESIGN.md`-documented API changes.
+  5. A follow-up 6-pillar UI audit scores meaningfully higher than Phase 5's 19/24, with Experience Design and Visuals specifically improved.
+
+**Plans**: 0 plans
+
 ---
 *Roadmap created: 2026-09-14*
 *Last updated: 2026-09-24 after adding Phase 5 (Track E: UI Design), Aaron's dual duty alongside Track B*

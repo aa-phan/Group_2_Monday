@@ -202,7 +202,20 @@ Track A and Track B execute in parallel (independent tracks, one coordination po
   5. The underlying data contract is unchanged: `InventoryView`'s props, `client/src/api/inventory.js`'s fetch/mutation calls, and every item/batch/reservation field consumed from the server are identical to Phase 5 — only the presentational markup and styling change. WCAG AA contrast is maintained under the new palette.
   6. A follow-up 6-pillar UI audit scores meaningfully higher than Phase 5's 19/24, with Experience Design and Visuals specifically improved.
 
-**Plans**: 0 plans
+**Plans**: 3 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 06-01-PLAN.md — Dashboard tracer: botanical tokens, the flattened inventory table, and the shared modal chrome (DESIGN)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 06-02-PLAN.md — The palette proven against WCAG AA, the designed loading/error/empty states, and phone width (DESIGN)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 06-03-PLAN.md — Prop contracts for the new components and the 05-DESIGN.md supersession (DESIGN)
 
 ---
 *Roadmap created: 2026-09-14*

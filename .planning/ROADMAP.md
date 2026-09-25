@@ -186,19 +186,21 @@ Track A and Track B execute in parallel (independent tracks, one coordination po
 | D. Deployment & Quality | 0/TBD | Not started | - |
 | E. UI Design | 0/2 | Planned | - |
 
-### Phase 6 (Track E): Visual Design Polish
+### Phase 6 (Track E): Dashboard Redesign
 
-**Goal**: PantryTrack's inventory UI reads as an intentionally designed, cohesive product — not a functional-but-plain scaffold — while preserving every behavior, prop contract, and token semantic Phase 5 established.
-**Depends on**: Phase 5 (Track E: UI Design). Builds on its design-token system (`client/src/index.css`), card markup, and `05-DESIGN.md` contract rather than replacing them — this phase deepens the visual language, it does not re-architect it.
+**Goal**: PantryTrack's inventory UI is rebuilt as a genuine dashboard — a distinct botanical/organic-serif visual language (warm alabaster/sage/terracotta palette, Playfair Display + Source Sans 3 typography, soft-shadow rounded surfaces) applied to a real dashboard information architecture (a single filterable data table with location tabs and a stats/filter strip, centered modal dialogs for Add Item and item-detail actions) — not a token-only polish pass over Phase 5's per-location card-list layout.
+**Depends on**: Phase 5 (Track E: UI Design). The underlying data contract, component prop shapes, and fetch/mutation behavior documented in `05-DESIGN.md` must not change — `InventoryView` still fetches the same way and takes the same props — but the presentational markup (per-location card sections, inline restock form, inline card-expansion) is deliberately replaced, not just re-skinned. This phase supersedes Phase 5's "hairline borders, no shadow, no gradient" elevation rule and its brown/teal/blue palette with the new botanical direction; 05-DESIGN.md's data-layer contract sections remain authoritative, its visual-token sections do not.
 **Requirements**: None from REQUIREMENTS.md — additive quality work, same as Phase 5. Board items use `DESIGN` in place of a requirement ID.
 **Owner**: Aaron Phan, dual duty alongside Track B.
+**Scope note (locked via live in-browser preview, 2026-09-24 — see 06-UI-SPEC.md):** three prior directions were prototyped live and rejected before this one: (1) a token-only deepening of Phase 5's existing palette — too timid; (2) a botanical palette applied to Phase 5's existing 3-column card-board layout — the side-by-side columns read as a Kanban board implying drag-and-drop that doesn't exist (flagged by `ux-heuristics-review`); (3) the dashboard-table layout with right-side sliding drawers for Add Item and item-detail — functionally fine but visually inconsistent with the botanical direction's rounded, centered-modal-friendly aesthetic. The locked direction (4th iteration) keeps the table+filter-tabs+modal structure from (3) but replaces both drawers with centered rounded modals.
 **Success Criteria** (what must be TRUE):
 
-  1. The app has a clear, consistent visual point of view (a real aesthetic direction, not default-browser styling) applied across every screen state — not just the happy-path inventory list.
-  2. Every UI state a user can actually hit is designed, not just functionally present: loading, error/retry, empty, and disabled states are visually intentional and match the rest of the system (closing the Phase 5 UI-review gap on the unstyled Retry button and plain-text loading state).
-  3. Visual hierarchy, spacing rhythm, and color usage read as cohesive across Pantry/Fridge/Freezer sections, item cards, batch history, and the restock form — no section looks like it was styled separately from the others.
-  4. All existing Phase 5 guarantees still hold: zero hex literals outside the token file, WCAG AA contrast maintained, the 599px responsive breakpoint still works with no horizontal scroll, and no component prop contract, data-fetch behavior, or `05-DESIGN.md`-documented API changes.
-  5. A follow-up 6-pillar UI audit scores meaningfully higher than Phase 5's 19/24, with Experience Design and Visuals specifically improved.
+  1. The app has a clear, consistent visual point of view (the botanical/organic-serif direction: warm neutral background, sage/terracotta/forest-green palette, Playfair Display display type + Source Sans 3 body type, heavily rounded soft-shadow surfaces, pill-shaped controls) applied across every screen state, not just the happy-path table.
+  2. The inventory list is a single filterable data table (Location/Item/Capacity/Available/Freshness columns) with location filter pills (All/Pantry/Fridge/Freezer) above it, replacing Phase 5's three stacked/side-by-side per-location card sections.
+  3. Clicking a table row opens a centered modal dialog showing that item's batch history and Consume/Reserve/Release controls; the "+ Add Item" header action opens the restock form in the same centered-modal pattern. Both modals share one consistent chrome (rounded corners, soft shadow, dimmed backdrop, explicit × close button, backdrop-click-to-close) — no sidebar/drawer pattern.
+  4. Every UI state a user can actually hit is designed, not just functionally present: loading, error/retry, and empty states are visually intentional and match the rest of the system (closing the Phase 5 UI-review gap on the unstyled Retry button and plain-text loading state).
+  5. The underlying data contract is unchanged: `InventoryView`'s props, `client/src/api/inventory.js`'s fetch/mutation calls, and every item/batch/reservation field consumed from the server are identical to Phase 5 — only the presentational markup and styling change. WCAG AA contrast is maintained under the new palette.
+  6. A follow-up 6-pillar UI audit scores meaningfully higher than Phase 5's 19/24, with Experience Design and Visuals specifically improved.
 
 **Plans**: 0 plans
 

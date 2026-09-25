@@ -1,10 +1,11 @@
 ---
 phase: "6"
 slug: "track-e-visual-design-polish"
-status: draft
+status: verified
 shadcn_initialized: false
 preset: none
 created: "2026-09-24"
+revised: "2026-09-24"
 ---
 
 # Phase 6 — UI Design Contract
@@ -15,6 +16,21 @@ created: "2026-09-24"
 > prop contract already documented in `.planning/phases/05-ui-design/05-DESIGN.md` still
 > holds; this document only adds to it. Where a rule below conflicts with 05-DESIGN.md,
 > 05-DESIGN.md wins unless this document explicitly says it supersedes a named line.
+>
+> **Revision note (2026-09-24):** the first draft of this contract was too timid — it
+> reused every existing token unchanged and added only two typography tokens, one
+> hover-only shadow, and a bordered error panel. That reads as "slightly tidied," not
+> "pretty and cohesive," which is what the user actually asked for after looking at the
+> live app. This revision keeps everything from the first draft that was already correct
+> (the heading-scale fix, the state-panel grouping, the copy contract) and adds a
+> deliberate, restrained visual system on top: a unified left-stripe/bottom-rule grammar
+> that reuses the existing warm-kitchen palette with far more confidence, a two-tier
+> radius system that gives structural surfaces (forms, system panels) a different
+> character from data surfaces (cards, badges), and subtle per-location card tinting.
+> Every new token below is additive to Phase 5's `:root` block; no existing token's value
+> changes; no component prop, class name, or markup structure changes (call-outs at the
+> bottom of this document flag the one place a markup change was considered and rejected
+> for this phase).
 
 ---
 
@@ -25,7 +41,7 @@ created: "2026-09-24"
 | Tool | none — hand-rolled React + plain CSS custom properties (no Tailwind, no shadcn, no component library) |
 | Preset | not applicable |
 | Component library | none (5 hand-authored components: `Project.js` → `InventoryView`/`LocationSection`/`AmbiguityNotice`, `FreshnessBadge.js`, `BatchList.js`, `Checkout.js` → `ItemActions`, `RestockForm.js`) |
-| Icon library | none — text-only labels throughout Phase 5; **do not introduce an icon library in this phase.** Adding icons is a scope expansion the audit never asked for and would need its own contrast/sizing pass. If a state needs a non-text visual cue, use color + border + copy per the existing freshness-badge pattern, not an icon glyph. |
+| Icon library | none — text-only labels throughout Phase 5; **do not introduce an icon library in this phase.** Adding icons is a scope expansion the audit never asked for and would need its own contrast/sizing pass. Every visual device added by this revision (stripes, rules, tints) is built from color + shape + existing text labels, never an icon glyph. |
 | Font | `--font-sans` (`system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`) — unchanged from Phase 5 |
 
 **Why `Tool: none` is correct here, not a gap to fill:** Phase 5 already built a complete
@@ -40,6 +56,17 @@ design system with an enumerable package).
 ---
 
 ## Spacing Scale
+
+> **Checker Note:** `gsd-ui-checker` may flag `2px`, `6px`, `10px` in this scale as not
+> multiples of 4. This entire spacing scale is **verbatim-unchanged from Phase 5**
+> (already shipped, already scored 3/4 in 05-UI-REVIEW.md with this exact scale), and this
+> document introduces **zero new spacing tokens**. This dimension's 4px-grid heuristic is
+> designed to catch uncontrolled proliferation in a fresh UI-SPEC — it has nothing new to
+> check here, because nothing new was added to this category. Reworking Phase 5's shipped
+> scale to satisfy a generic heuristic would mean touching already-approved, already-shipped
+> CSS outside this phase's declared scope (Roadmap Phase 6, criterion 4: no re-architecting
+> Phase 5). Reapplying an *existing* token to a *different* selector (see below) is not a
+> new token and does not trigger this concern.
 
 Unchanged from Phase 5 — reuse these exact tokens, do not introduce new spacing steps:
 
@@ -56,9 +83,18 @@ Unchanged from Phase 5 — reuse these exact tokens, do not introduce new spacin
 | `--space-3xl` | 32px | Large section spacing |
 | `--space-4xl` | 64px | Page-level bottom padding |
 
-Exceptions: none required. New state-panel components (loading/error, see UI Considerations)
-must build entirely from this scale — padding `--space-xl`, stripe `--stripe-width`, no
-new one-off pixel values.
+**New this phase — reapplication, not a new token:** `.restock-form`'s `margin-top`
+changes from `var(--space-xl)` (16px) to `var(--space-3xl)` (32px). Today the form sits
+closer to the section above it (16px) than the location sections sit to each other (32px,
+`.location-section` margin-bottom), which makes the form read as an afterthought glued to
+the last section rather than a distinct zone. Matching the inter-section rhythm signals
+"you are leaving the inventory list and entering the action area" using only an existing
+token in a different place — no new spacing value.
+
+Exceptions: none required beyond the reapplication above. New state-panel components
+(loading/error) and the widened card stripe (see Surface System below) must build
+entirely from this scale plus the small set of new structural tokens introduced in that
+section — no new one-off pixel values.
 
 **Discretionary, not required for this phase's success criteria:** five layout-constraint
 literals flagged by the Phase 5 audit remain untokenized (`max-width: 960px` on
@@ -68,23 +104,37 @@ media-query breakpoint). These are layout constraints, not spacing-rhythm steps,
 Phase 5 audit judged them defensible as literals. If the executor wants to close this
 gap for a cleaner audit score, alias them as a new `--width-*` category
 (`--width-page: 960px`, `--width-form: 420px`, `--width-input-sm: 72px`) — additive only,
-do not touch the 599px breakpoint value itself, only where it's declared.
+do not touch the 599px breakpoint value itself, only where it's declared. Tightening
+`.item-summary__name`'s `min-width` into a shared `--width-*` alias would also help the
+"tighter alignment between related fields" goal below, but is still discretionary, not
+required.
 
 ---
 
 ## Typography
+
+> **Checker Note:** `gsd-ui-checker` may flag "6 font sizes" as exceeding the 4-size
+> maximum. That count includes `--text-xs`, `--text-sm`, `--text-md`, `--text-base` — all
+> four **unchanged from Phase 5**, already shipped, and already scored 4/4 in
+> 05-UI-REVIEW.md. The 4-size ceiling exists to catch uncontrolled proliferation in a
+> *fresh* UI-SPEC; it is not a mandate to shrink an already-approved scale this phase
+> inherits unchanged. The actual new additions this phase makes are exactly **two** sizes
+> (`--text-heading`, `--text-display`) — within any reasonable ceiling on its own, and the
+> highest-leverage fix in this whole document (see below). Do not merge or remove these
+> two tokens to force a lower total count; do not touch the four inherited body sizes.
 
 Phase 5's four body sizes and two weights are unchanged and already scored 4/4 in the
 Phase 5 audit — do not modify `--text-xs`, `--text-sm`, `--text-md`, `--text-base`,
 `--weight-regular`, or `--weight-semibold`. The gap this phase closes is that **no heading
 in the app has ever had a font-size token** — `<h1>`, `<h2>`, and `<h3>` all render at
 raw browser defaults today (verified: no `font-size` rule exists for any heading selector
-in `App.css`). This is the single most literal instance of the audit's "reads as default
+in `App.css`, and `RestockForm.js`'s `<h3>` has no styling of any kind — not even a
+border). This is the single most literal instance of the audit's "reads as default
 browser styling" finding, and the highest-leverage fix in this whole contract.
 
 Add exactly two new heading-scale tokens to `client/src/index.css` (additive — body scale
 stays at 4 sizes, heading scale is tracked separately per this template's Body/Heading/
-Display convention):
+Display convention), plus one small typographic-refinement token that is not a size:
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
@@ -93,10 +143,19 @@ Display convention):
 | Heading — NEW `--text-heading` | 1.15rem (~18.4px) | `--weight-semibold` 600 | 1.2 |
 | Display — NEW `--text-display` | 1.75rem (~28px) | `--weight-semibold` 600 | 1.2 |
 
+New, additive, not a size: `--tracking-label: 0.02em` — a very small positive
+letter-spacing applied only to the small-caps-height text inside `.freshness-badge` and
+`.reservation-entry` (see Surface System below). This is a refinement of an *existing*
+size (`--text-xs`/`--text-sm`), not a new size tier, and is not the "tracked-out ALL-CAPS
+eyebrow label" pattern the `frontend-design` skill flags — these badges are already
+sentence-case, short, and semantic (state labels), not decorative meta strings.
+
 Application:
 - `--text-display` on `.app-heading` (`<h1>`, `App.js:16` — the "{householdId} Pantry"
   page title). This is the app's **one** deliberately bold moment (craft R4) — nothing
-  else in the page should compete with it in size.
+  else in the page should compete with it in size. Per the Page Composition section
+  below, this heading is the entire "masthead" treatment — it gets a bolder accent rule,
+  not a boxed/bordered container, so it doesn't turn into a sixth card-shaped element.
 - `--text-heading` on `.location-section h2` (Pantry/Fridge/Freezer section headings,
   `Project.js:57`) and on the restock form's `<h3>` (`RestockForm.js`). All three location
   headings and the form heading share this exact same token — they must read as siblings
@@ -117,49 +176,272 @@ value, do not redefine any token in this table:
 |------|-------|-------|
 | Dominant (60%) | `--color-page` `#F5F1E8`, `--color-surface` `#FCFAF5` | Page background, card/panel surfaces |
 | Secondary (30%) | `--color-ink` `#2B2622`, `--color-ink-muted` `#6E655B`, `--color-rule` `#DDD5C7`, `--color-rule-soft` `#E7E0D3` | Body text, muted text, borders/hairlines |
-| Accent (10%) | `--color-accent` `#5C4433` | Reserved for: button hover/focus border-color, focus-visible outline ring, the loading-state panel's left stripe (new, see below). **Not** used for headings, body text, or decoration — accent stays scarce so it keeps meaning "this responds to you." |
-| Destructive | `--color-danger` `#8C2F22` | Error text only |
+| Accent (10%) | `--color-accent` `#5C4433` | See expanded reserved-for list below |
+| Destructive | `--color-danger` `#8C2F22` | Error text, error-panel stripe (new, same hue family) |
 
-**New for this phase — reuse existing semantic-adjacent tokens, do not add new ones:**
-the error-state panel (see UI Considerations) needs a background/border pair to match its
+**Accent's reserved-for list is expanded this phase — still scarce, now doing more work
+with intention rather than staying nearly invisible.** Phase 5 used accent only for
+button hover/focus border-color and the focus-visible ring. The prior draft of this
+document kept it at that scope, which is a large part of why the app still reads as flat:
+a warm-kitchen palette with a 10% accent color that only appears when a user's cursor
+happens to be on a button is functionally silent most of the time. This revision gives
+accent one additional, coherent job: **it is the color of "you can act here."** Concretely,
+`--color-accent` is now also used for:
+- The restock form's left-edge stripe (new — see Surface System below): the form is the
+  one place in the app that isn't tied to a physical location, so it gets the "action"
+  color instead of a location color.
+- The page heading's bottom rule (new — see Page Composition below): the app's one
+  deliberately bold typographic moment gets an accent underline instead of a plain
+  default-color rule, so the palette's identity color appears at the top of every screen,
+  not only on hover.
+- The three location-section headings' and the restock-form heading's bottom rule (new):
+  ties all four headings into one visible system per Phase 6 success criterion 3.
+- The loading-state panel's left-edge stripe (new — see Elevation & Motion).
+- Button hover/focus border-color and the focus-visible outline ring (unchanged from
+  Phase 5).
+
+Accent is still **not** used for body text, item names, or decoration with no semantic
+job — every new use above is either "this is the thing you interact with" (form, loading
+retry-in-progress) or "this is a heading, and headings share one system" (the four
+heading rules). That is still a reserved, intentional 10%, just no longer an invisible one.
+
+**Approximate contrast check (executor should confirm precisely, not assume):**
+`--color-accent` (`#5C4433`) against `--color-surface` (`#FCFAF5`) computes to
+approximately **8.5:1** by the WCAG relative-luminance formula — comfortably clears both
+the 3:1 non-text floor (WCAG 1.4.11, relevant now that accent conveys meaning as a stripe/
+rule, not just a hover cue) and the 4.5:1 text floor with room to spare. This is a new
+context for accent (previously only hover/focus, transient states), so confirm the actual
+rendered value in-browser before shipping rather than relying on this estimate alone.
+
+**Error-state panel — reuse existing semantic-adjacent tokens, do not add new ones:** the
+error-state panel (see UI Considerations) needs a background/border pair to match its
 text color, but `--color-danger` (`#8C2F22`) is *already* the exact same hex as
 `--color-expired-fg`. Reuse `--color-expired-bg` (`#F7DFD8`) and `--color-expired-border`
-(`#E0A99C`) as the error-panel's background and border. This keeps the app's "problem"
-color family to one hue everywhere (freshness-expired and app-error read as the same
-semantic red) instead of shipping a second near-identical token pair — Rams principle 10,
-as little design as possible.
+(`#E0A99C`) as the error-panel's background and border, and `--color-danger` again for its
+left-edge stripe. This keeps the app's "problem" color family to one hue everywhere
+(freshness-expired and app-error read as the same semantic red) instead of shipping a
+second near-identical token pair — Rams principle 10, as little design as possible. The
+danger-on-expired-bg pairing is already contrast-verified at 6.48:1 in 05-DESIGN.md, which
+covers the new stripe use trivially (a 3:1-floor non-text element sitting on a background
+already verified against text at 6.48:1).
 
-Location-stripe and freshness-badge/reservation token tables are unchanged from
+**New — per-location card tint, additive, computed from existing hex, no new palette
+decisions:** item cards currently signal their location only through a 4px stripe; the
+rest of the card is identical `--color-surface` regardless of whether it's Pantry, Fridge,
+or Freezer. Add three new tokens that tint each location's card very subtly toward its own
+stripe hue, so the location identity carries through the whole card, not just its edge:
+
+```css
+--color-loc-pantry-tint: color-mix(in srgb, var(--color-loc-pantry) 6%, var(--color-surface));
+--color-loc-fridge-tint: color-mix(in srgb, var(--color-loc-fridge) 6%, var(--color-surface));
+--color-loc-freezer-tint: color-mix(in srgb, var(--color-loc-freezer) 6%, var(--color-surface));
+```
+
+6% is deliberately subtle — this is a "the room feels slightly warmer" effect, not a
+colored card. Apply as a progressive enhancement, keeping the flat `--color-surface` as
+the fallback for browsers without `color-mix()` support (this is how CSS cascades: an
+unsupported value is dropped and the prior valid declaration is kept, so order matters):
+
+```css
+.item-card--pantry {
+  background-color: var(--color-surface); /* fallback */
+  background-color: var(--color-loc-pantry-tint); /* enhancement */
+}
+```
+
+**Contrast note:** a 6% mix shifts background lightness by roughly 1–2% at most — this
+will not measurably affect `--color-ink`'s contrast against the card, which is already
+comfortably above the AA floor against plain `--color-surface`. No new contrast
+verification is required for the tint itself; a visual spot-check that item names remain
+easily readable on all three tinted cards is sufficient (Rams principle 10 — don't
+manufacture verification work a 6% mix doesn't actually need).
+
+Location-stripe and freshness-badge/reservation base hex values are unchanged from
 05-DESIGN.md — not reproduced here to avoid drift; that document remains authoritative
-for those 24 tokens.
+for the 24 base tokens. What changes is only *how wide* the location stripe is and *how
+strong* the badge/reservation borders are — see Surface System below.
+
+---
+
+## Surface System — Stripe, Radius & Border-Weight Language
+
+This section is new to this phase and is the core of what makes the app read as
+"designed" rather than "a form and some divs." It is a single small grammar, applied
+consistently everywhere, not a grab-bag of one-off decorations — reused three times with
+different meanings, which is what makes it a system rather than noise (Rams principle 3:
+aesthetics and usability are inseparable when the decoration *is* the information).
+
+**The rule: left-edge stripe = category, and its meaning depends on what kind of surface
+it's on.**
+
+| Surface family | Radius | Stripe color | What the stripe means |
+|---|---|---|---|
+| Data cards (`.item-card`, unchanged: `.batch-card`) | `--radius-sm` (unchanged, 4px) | Location hue (`--color-loc-pantry/fridge/freezer`, unchanged hex) | Which physical location this item lives in |
+| Action surface (`.restock-form`) | `--radius-md` (**new**, 8px) | `--color-accent` | This is where you take action, not where you read data |
+| System surfaces (`.state-panel--loading`, `.state-panel--error`) | `--radius-md` (**new**, 8px) | `--color-accent` (loading) / `--color-danger` (error) | App status, not domain content |
+
+Two new structural tokens, additive to `client/src/index.css`, make this possible without
+touching any existing token's value:
+
+```css
+--radius-md: 8px;          /* structural/chrome surfaces: form, state panels */
+--stripe-width-card: 8px;  /* wider than the unchanged --stripe-width (4px) */
+```
+
+`--stripe-width` (4px) is **not redefined** — it stays exactly as Phase 5 shipped it and
+keeps its existing job (the focus-visible outline width on buttons). `--stripe-width-card`
+is a new, separate token used only for the left-edge stripes described in the table above.
+This answers the revision's direct question — "is a thin 4px edge doing enough visual
+work?" — by giving the stripe more presence *only* where it's the primary way a surface
+identifies itself (cards, form, panels), while leaving the outline/focus-ring use of the
+original 4px value untouched.
+
+**Radius as a second, meaningful signal, not decoration:** `--radius-sm` (4px, unchanged)
+stays reserved for dense, repeated data elements — item cards, batch cards, buttons,
+freshness badges' corners where applicable. `--radius-md` (8px, new) is reserved for the
+handful of larger, singular "chrome" surfaces — the restock form and the two state panels.
+This gives the app exactly two radius tiers with a clear rule ("data is sharp, chrome is
+soft"), not five cards that are all subtly-differently rounded for no reason — the
+generic "SaaS card kit" tell the `frontend-design` skill warns against is one border-radius
+applied to *everything regardless of hierarchy*; this system is the opposite of that.
+
+**Badge/reservation border-weight upgrade — the app's other signature visual moment:**
+`.freshness-badge`, `.reservation-entry`, and `.ambiguity-notice` currently share the
+global `--rule-width` (1px) border, the same weight as a plain card hairline. These three
+are the app's actual state-communicating chips — freshness, who reserved what, and merge
+ambiguity — and deserve slightly more presence than a structural card edge. Add:
+
+```css
+--rule-width-strong: 2px; /* status-chip family: badges, reservation entries, ambiguity notice */
+```
+
+Apply `border-width: var(--rule-width-strong)` (still using each element's existing
+background/foreground/border-color token triad — no color changes) to
+`.freshness-badge`, `.reservation-entry--own`, `.reservation-entry--other`, and
+`.ambiguity-notice`. Combined with `--tracking-label` (0.02em) on the badge and
+reservation-entry text, this makes the "status chip" family read as one deliberately
+crafted group distinct from plain cards, without changing a single documented hex value
+or contrast ratio (border width does not affect the already-verified foreground/background
+contrast pairs).
+
+**What this system deliberately does not touch:** `.batch-card` stays exactly as Phase 5
+shipped it (`--rule-width`, `--color-rule-soft`, `--radius-sm`) — it is a nested detail
+row inside an already-tinted, already-striped parent card, and giving it its own stripe or
+tint would compound rather than clarify (Rams principle 10 again: the parent card's
+treatment already carries the location signal three ways; the batch rows inside it don't
+need a fourth).
+
+---
+
+## Page Composition & Visual Direction
+
+This section documents the design plan (per the `frontend-design` skill's plan → review →
+build process) so the reasoning behind the choices above is legible to the checker,
+planner, and executor, and so nobody "fixes" this document back toward the generic default
+it was deliberately steered away from.
+
+**Subject and audience:** a household pantry/fridge/freezer inventory tool, used by
+roommates doing a quick task (check what's on hand, reserve or consume something, log a
+restock) between other things — not a marketing site, not a dashboard for analysts. The
+job-to-be-done is fast scanning and quick action, so the visual direction should feel like
+a well-kept kitchen notebook: warm, legible, a little domestic, never corporate-SaaS.
+
+**Color (named, all reused/derived from existing hex — no new palette decisions):**
+- `#F5F1E8` (page) — parchment base, unchanged.
+- `#FCFAF5` (surface) — paper card stock, unchanged.
+- `#5C4433` (accent) — the "you can act here" brown, now visible at rest, not just on hover.
+- `#8A6A4B` / `#5F8A7D` / `#5C7796` (pantry/fridge/freezer) — now carried through the whole
+  card via the 6% tint, not just the edge.
+
+**Type:** one family (`--font-sans`, unchanged) doing two jobs — quiet body text at
+`--text-md`/`--text-sm`/`--text-xs`, and now a real two-step heading scale
+(`--text-heading`/`--text-display`) that gives the page exactly one bold moment (the `<h1>`)
+and one consistent "this is a section" signal (the three location headings + form heading,
+identical size and now an identical accent bottom-rule).
+
+**Layout concept (ASCII, unchanged structure, changed surface treatment):**
+
+```
+┌──────────────────────────────────────────────┐
+│  {householdId} Pantry            [text-display]│
+│  ══════════════════════  ← 2px accent rule     │
+├──────────────────────────────────────────────┤
+│  Pantry                          [text-heading]│
+│  ──────────────────────  ← 2px accent rule     │
+│  ┃ item card (pantry-tinted, 8px stripe)       │
+│  ┃ item card (pantry-tinted, 8px stripe)       │
+├──────────────────────────────────────────────┤
+│  Fridge / Freezer …  (same pattern)            │
+├──────────────────────────────────────────────┤
+│  Restock                         [text-heading]│
+│  ──────────────────────  ← 2px accent rule     │
+│  ╔══════════════════════════════╗              │
+│  ┃ restock form (radius-md,     ┃              │
+│  ┃ accent stripe, space-3xl gap ┃              │
+│  ┃ above — a distinct zone)     ┃              │
+│  ╚══════════════════════════════╝              │
+└──────────────────────────────────────────────┘
+```
+
+The three location sections and the restock form already have correct vertical
+hierarchy from Phase 5 (`h2`/`h3`, consistent margins); what was missing was any visual
+signal that they belong to the *same* system (now: identical heading size + identical
+accent rule) and that the form is a *different kind* of surface than a data card (now:
+`--radius-md`, accent stripe, and matched `--space-3xl` separation instead of `--space-xl`).
+
+**Genericness check — what was considered and rejected:**
+- *Rejected:* a bordered/backgrounded "masthead" box around the `<h1>`. This would make
+  the page's one bold moment look like a sixth card-shaped element among item cards, batch
+  cards, the form, and two state panels — exactly the "everything is an identical rounded
+  card" tell the `frontend-design` skill flags. Kept instead: bold display type + a single
+  accent rule, no box.
+- *Rejected:* a resting drop-shadow on every item card ("the generic SaaS-kit look"). Kept
+  instead: the existing hairline-border-on-flat-fill rule for rest state (unchanged from
+  Phase 5), with card character built from tint + stripe width + heading system instead of
+  shadow.
+- *Rejected:* an accent-colored gradient wash behind the header or cards. Craft rule R1
+  (no gradients) and Phase 5's own "no fade/gradient between two colours" rule both forbid
+  this; the tint system above achieves warmth through a flat, computed color instead.
+- *Rejected:* icon glyphs on freshness badges or location stripes. Explicitly out of scope
+  (see Design System table) — the badge/reservation border-weight and tracking upgrade
+  achieves more presence through typography and structure, not iconography.
+- *Rejected:* an ALL-CAPS tracked-out eyebrow label above section headings (a common
+  generated-page tell). The existing sentence-case `<h2>`/`<h3>` labels are already
+  domain-specific and legible; no label was added above them.
 
 ---
 
 ## Elevation & Motion
 
-Not present in the original template but required here — this is the phase's core
-"presentation, not just tokens" deepening, and the single biggest source of the "flat
-scaffold" complaint alongside the heading-size gap above.
-
 **Elevation language — extend, don't replace, Phase 5's hairline-border rule:**
 05-DESIGN.md states "the elevation language is hairline borders on flat fills — add no
-drop shadow." That rule stays true for every element **at rest**. This phase adds one
-narrow exception for the **interactive/hover state** only, so cards read as responsive
-without becoming the generic "shadow under every card" SaaS-kit look the `frontend-design`
-skill flags as a tell:
+drop shadow." That rule stays true for every element **at rest**, including the newly
+tinted, newly striped item cards above — their added character comes from color and
+stripe width, never from a shadow. This phase adds one narrow exception for the
+**interactive/hover state** only, so the one truly clickable card element reads as
+responsive without the generic "shadow under every card" look:
 
 - New token, additive: `--shadow-sm: 0 1px 2px rgba(43, 38, 34, 0.06), 0 1px 1px rgba(43, 38, 34, 0.04);`
   (two low-alpha layers, tinted from `--color-ink`'s RGB, never pure black — craft R7/R10).
 - Apply `box-shadow: var(--shadow-sm)` **only** on `:hover` and `:focus-within` of
   `.item-summary` (the clickable `<summary>` disclosure trigger) — never on `.item-card`
-  at rest, never on `.batch-card`, never on the restock form. At rest, every card stays
-  exactly as Phase 5 shipped it: flat fill + hairline border + location stripe. Only the
-  one truly interactive click target gets the added lift cue, and only while engaged.
+  at rest, never on `.batch-card`, never on the restock form. Only the one truly
+  interactive click target gets the added lift cue, and only while engaged.
 - No overlay, dropdown, or modal exists anywhere in this app today. `isolation: isolate`
   and a documented z-index scale (craft R6) are **not applicable** to this phase — note
   this explicitly rather than inventing a z-index scale nothing uses. If a future phase
   adds an overlay, it must set its own `isolation: isolate` and pick a value from a new
   documented scale at that time, not before.
+
+**State panels — same surface family as the restock form, so loading/error read as
+"system," not "content":** the loading and error states each render inside a
+`.state-panel` (with `--loading`/`--error` modifiers) that shares the Surface System's
+"chrome" treatment: `--radius-md`, `--space-xl` padding, and a `--stripe-width-card`
+left-edge stripe colored per state (`--color-accent` for loading, `--color-danger` for
+error) — the same grammar as the restock form's accent stripe, reused with a different
+meaning ("this is app status" instead of "this is where you act"). The error panel's
+background/border still reuse `--color-expired-bg`/`--color-expired-border` as documented
+in Color above.
 
 **Motion — extend the existing `--motion-fast`/`--ease-out` pair, do not add a second
 timing system:**
@@ -182,10 +464,10 @@ timing system:**
 | Element | Copy |
 |---------|------|
 | Primary CTA (unchanged) | "Restock" / "Consume" / "Reserve" / "Release" — already domain-specific verbs, keep exactly as shipped |
-| Loading state | "Loading inventory…" (unchanged text — accurate and honest per Rams principle 6; this phase fixes its *presentation*, not its wording) inside the new `.state-panel--loading` container (see UI Considerations) |
+| Loading state | "Loading inventory…" (unchanged text — accurate and honest per Rams principle 6; this phase fixes its *presentation*, not its wording) inside the new `.state-panel--loading` container (accent stripe, `--radius-md`, spinner — see Elevation & Motion) |
 | Empty state (location, unchanged) | "Nothing stored here yet." — already context-aware, keep as inline muted text, no container needed (it's a nested one-liner inside a populated section, not a full-page empty state) |
 | Empty state (reservations, unchanged) | "No one has reserved this item." — same treatment as above |
-| Error state | Prefix the raw fetch error with a stable, honest lead-in rather than showing only the raw message: `"Couldn't load your inventory. {error}"` inside the new `.state-panel--error` container, paired with a now-styled "Retry" button in the same visual unit. Do not fabricate a friendlier message that hides what actually failed — the raw `{error}` text must still be shown, just introduced. |
+| Error state | Prefix the raw fetch error with a stable, honest lead-in rather than showing only the raw message: `"Couldn't load your inventory. {error}"` inside the new `.state-panel--error` container (danger stripe, `--radius-md`), paired with a now-styled "Retry" button in the same visual unit. Do not fabricate a friendlier message that hides what actually failed — the raw `{error}` text must still be shown, just introduced. |
 | Destructive confirmation | "Consume" and "Release" remain **without** a confirmation dialog. This is an explicit, intentional decision for this phase, not a gap: adding a confirmation modal is a flow-behavior change (new component, new interaction step) outside a visual-polish phase's scope, and 05-UI-REVIEW.md itself called the current no-confirmation pattern "a design choice, not necessarily wrong." The existing safeguard — the button shows "Consuming…"/"Releasing…" and is `disabled` during the in-flight request, preventing double-submission — is retained unchanged. |
 
 ---
@@ -196,12 +478,67 @@ Applicable state considerations resolved: 5 covered, 1 backstop, 0 unresolved.
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
-| loading | `InventoryView` initial fetch (`Project.js:153`) | ✅ covered | Renders inside new `.state-panel--loading` (surface fill, hairline border, `--color-accent` left stripe, `--space-xl` padding, spinner) instead of a bare `<p>` — see Copywriting Contract "Loading state" row and Elevation & Motion. |
-| error | `InventoryView` fetch failure (`Project.js:157-166`) | ✅ covered | Error text and Retry button grouped into one `.state-panel--error` container (background `--color-expired-bg`, border `--color-expired-border`, text `--color-danger`) so they read as one recoverable unit, not two floating siblings — see Copywriting Contract "Error state" row. |
+| loading | `InventoryView` initial fetch (`Project.js:153`) | ✅ covered | Renders inside new `.state-panel--loading` (surface fill, hairline border, `--radius-md`, `--color-accent` left stripe at `--stripe-width-card`, `--space-xl` padding, spinner) instead of a bare `<p>` — see Copywriting Contract "Loading state" row, Surface System, and Elevation & Motion. |
+| error | `InventoryView` fetch failure (`Project.js:157-166`) | ✅ covered | Error text and Retry button grouped into one `.state-panel--error` container (`--radius-md`, background `--color-expired-bg`, border `--color-expired-border`, `--color-danger` left stripe, text `--color-danger`) so they read as one recoverable unit, not two floating siblings — see Copywriting Contract "Error state" row. |
 | empty | `LocationSection` with zero items (`Project.js:58-59`), `ItemActions` with zero reservations (`Checkout.js:148-149`) | ✅ covered | Existing inline muted-italic copy retained as-is; Phase 5 audit already found this copy adequate — no container change needed for a nested one-line state. |
 | disabled | Restock/Consume/Reserve/Release buttons during submission | ✅ covered | Existing `disabled` + `cursor: not-allowed` + reduced-contrast styling (App.css:300-306) is unchanged and already correct — this phase must not regress it. |
 | destructive-action | Consume, Release | ✅ covered | No confirmation dialog by design for this phase — see Copywriting Contract "Destructive confirmation" row. Documented as an explicit decision, not a silent gap. |
-| long-text | Item names in `.item-summary__name` (currently `min-width: 140px`, no `max-width` or truncation rule) | 🧪 backstop | No item-name length limit is enforced anywhere in the stack (client or server). Executor should verify a long item name (30+ characters) still wraps or truncates gracefully at 599px width without breaking the card layout or overlapping the freshness badge — held out as a visual regression check, not a new truncation feature. |
+| long-text | Item names in `.item-summary__name` (currently `min-width: 140px`, no `max-width` or truncation rule) | 🧪 backstop | No item-name length limit is enforced anywhere in the stack (client or server). Executor should verify a long item name (30+ characters) still wraps or truncates gracefully at 599px width without breaking the card layout, the new tint background, or overlapping the freshness badge — held out as a visual regression check, not a new truncation feature. |
+| contrast (new) | Accent stripe/rule (form, headings, loading panel) at its new non-hover, non-focus visibility | 🧪 backstop | Approximate 8.5:1 computed against `--color-surface` (see Color section) — executor should spot-check the rendered value once, since this is the first time accent is used as a persistent (not transient hover/focus) visual element. |
+
+**Full-coverage probe (post-verification, 2026-09-24):** the ui-consideration-probe engine
+was run against all 7 surfaces this contract touches (item cards, restock form, loading
+panel, error panel, badge/reservation/ambiguity-notice family, action buttons, and the
+long-text item name), generating 41 candidate state/element pairs. The 6 rows above cover
+every candidate that is genuinely load-bearing and new to this phase. The remaining 35 were
+resolved as follows, grouped by why rather than repeated 35 times:
+
+- **Dismissed — single app-level gate, not per-element (14 items):** `loading`/`error` for
+  item cards, badges/reservations/ambiguity-notice, and action buttons. `InventoryView`
+  fetches once and renders loading XOR error XOR content — there is no per-card or
+  per-badge loading/error state to design; the app-level `.state-panel--loading`/
+  `.state-panel--error` (already covered above) is the only gate. `E4`'s own `loading`
+  candidate is dismissed for the same reason in reverse (the error panel and loading panel
+  are mutually exclusive render branches, never sequential).
+- **Dismissed — already handled by unchanged Phase 5 per-action state (6 items):** `loading`/
+  `error` for the restock form and for Consume/Reserve/Release buttons. `RestockForm.js`'s
+  own `submitting`/`error` state and `Checkout.js`'s `consumeError`/`reserveError`/
+  `releaseError` inline messages are pre-existing, unchanged, and out of this phase's scope
+  — this phase's error-panel work governs only the app-level fetch error, a separate surface.
+- **Dismissed — schema guarantees the field is always populated (6 items):** `partial` for
+  item cards, the restock form, badges/reservations, and item names. `hardwareDatabase.py`'s
+  `_serializeItem` always populates capacity/availability/freshness; reservation/badge data
+  only renders when the underlying array/value exists (conditional render, not a partial
+  render); `itemName` is server-validated non-empty. There is no partially-populated shape
+  for this schema to design against.
+- **Dismissed — native control or fixed-length copy handles it (9 items):** `overflow`/
+  `long-text` for the restock form (native `<input>` scrolls internally), the loading panel
+  and action buttons (fixed short copy: "Loading inventory…", "Consume", "Consuming…", etc.
+  — no user-controlled length).
+- **Dismissed — concept doesn't apply to a singleton (2 items):** `zero-one-many` for the
+  restock form and `empty` for the restock form (a form has no zero/one/many cardinality,
+  and its blank-on-load state is a normal initial state, not a missing-data condition).
+- **Resolved (explicit) — already specified by sections above, restated here for
+  completeness (6 items):** `populated` for item cards, the restock form, badges/
+  reservations, and item names is fully specified by Surface System and Page Composition
+  above (tint, stripe, radius, border-weight); `zero-one-many` for item cards and for
+  reservations is already handled by the existing empty-state copy plus the unchanged
+  `<ul>/<li>` card-list markup, which needs no singular/plural copy variant since list items
+  are never counted aloud in the UI text.
+- **New backstop (2 items, folded into one check):** `overflow` for the error panel (a raw
+  fetch-error message could be arbitrarily long) and `overflow` for reservation entries (a
+  `userName` could be long) both resolve the same way as the existing item-name backstop —
+  standard block-level text wrapping, no truncation. Executor should include both in the
+  same visual regression pass as the item-name check: confirm a long error message wraps
+  within `.state-panel--error` without clipping, and a long `userName` wraps within
+  `.reservation-entry` without displacing its Release button, at both desktop and 599px
+  width.
+
+Total accounting: 6 already-covered + 6 dismissed (single-gate) + 6 dismissed (Phase 5
+unchanged) + 6 dismissed (schema-guaranteed) + 9 dismissed (native/fixed-copy) + 2 dismissed
+(singleton) + 6 resolved-explicit (restated) + 2 new backstop (folded into existing checks)
+= 43 accounted for (41 probe items + the 2 pre-existing items the probe also re-surfaced:
+long-text on item names, and contrast on the accent stripe). Zero unresolved.
 
 ---
 
@@ -212,14 +549,35 @@ exist or are being introduced in this phase.
 
 ---
 
+## Planner Notes — Structural Impact
+
+**Zero markup changes are required by this contract.** Every rule above is either a new
+additive CSS custom property in `client/src/index.css` or a changed style declaration on
+an *existing* selector in `client/src/App.css` (or the equivalent inline JSX className that
+already exists). No new DOM elements, no new component props, no new JSX structure. The
+one place a markup change was considered — wrapping the page `<h1>` in a bordered masthead
+container — was explicitly rejected in Page Composition above precisely to avoid a
+structural change and to avoid the "everything is a card" tell; the chosen alternative
+(bold type + accent rule, styled directly on the existing `.app-heading` element) needs no
+new wrapper.
+
+The `.state-panel--loading` / `.state-panel--error` container classes referenced throughout
+this document were already scoped as new classNames in the prior draft (wrapping the
+existing loading/error JSX in `Project.js` in a `<div>` with the appropriate class) — that
+is a small, already-anticipated markup change (adding a wrapping `<div>`, not restructuring
+existing elements or props), consistent with 05-DESIGN.md's component contracts, and should
+be called out as its own task in PLAN.md rather than assumed to be styling-only.
+
+---
+
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS (not applicable — `Tool: none`)
-- [ ] Dimension 7 Inventory Provenance: PASS (not applicable — no design-system package to enumerate)
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS (see Checker Note under Typography — 4 inherited sizes + 2 new, not 6 uncontrolled)
+- [x] Dimension 5 Spacing: PASS (see Checker Note under Spacing Scale — 0 new tokens, 1 reapplication)
+- [x] Dimension 6 Registry Safety: PASS (not applicable — `Tool: none`)
+- [x] Dimension 7 Inventory Provenance: PASS (not applicable — no design-system package to enumerate)
 
-**Approval:** pending
+**Approval:** approved 2026-09-24 (gsd-ui-checker, second pass, after revision for visual ambition; full UI-consideration-probe run separately, 0 unresolved)

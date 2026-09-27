@@ -2,7 +2,7 @@
 
 ## Project
 
-**PantryTrack — Household Food Inventory PoC (Group 2 Monday — MIS385N Team Project)**
+**PantryTrack — Household Food Inventory PoC (Group 2 Monday — ECE 461L Team Project)**
 
 A Proof-of-Concept web application that lets members of a household track shared food inventory across the pantry, fridge, and freezer. Users create secure accounts, create or join a household, and use it to see what food is on hand, reserve items for themselves, log consumption, and log restocking — all backed by a live database, with the class's HaaS "hardware resource" concept reframed as **food item stock** (each item has a total capacity and a remaining availability, the same shape as the assignment's HWSet1/HWSet2 mockup). Built with a Flask/MongoDB backend and a React frontend (starter scaffold already exists in `server/` and `client/`).
 

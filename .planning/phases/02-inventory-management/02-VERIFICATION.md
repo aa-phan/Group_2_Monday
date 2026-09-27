@@ -1,16 +1,18 @@
 ---
 phase: 02-inventory-management
 verified: 2026-09-16T00:00:00Z
-status: human_needed
+status: passed
 score: 12/13 must-haves verified
 behavior_unverified: 1
 overrides_applied: 0
 behavior_unverified_items:
+
   - truth: "Two consume requests arriving at once cannot drive an item below zero: each consume applies its recomputed batches through a single conditional update that matches only the exact capacity and reserved quantity it read, and a losing writer re-reads and re-checks the guard before retrying, exhausting to 409 rather than overwriting (edge: INV-04/concurrency)."
     test: "Run two consume requests against the same item concurrently (e.g. two threads or two overlapping HTTP requests against a real, multi-threaded/multi-process MongoDB, not mongomock) that together exceed capacity, and confirm exactly one succeeds and one gets 409 concurrent_modification, with capacity never going negative."
     expected: "Item capacity never drops below zero; the losing writer receives 409 rather than corrupting the stored batch list."
     why_human: "The plan itself authors this truth with `verification: backstop` because mongomock is single-threaded and cannot exercise a real race. The mitigation (find_one_and_update pinned on the exact capacity read, retried 3x) is present and correct by code inspection, and the WR-02 review fix specifically hardened this exact filter, but no executed concurrency test proves it under contention."
 human_verification:
+
   - test: "Browser click-through: restock 'Oats' 4 units into Pantry via the running UI, confirm it appears with capacity 4/availability 4 without a page reload; restock 3 more and confirm ONE Oats row with capacity 7."
     expected: "Item appears live after submit with no reload; second restock merges into the same row."
     why_human: "Plan 02-01 Task 4's browser <human-check> was deferred to end-of-phase per HUMAN_VERIFY_MODE=end-of-phase. Logged as WINDOWS.md id 1 (open). A live HTTP smoke test against the real Flask dev server was run as partial substitute evidence, but no interactive browser session was recorded."

@@ -106,6 +106,23 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | TD-09 | Technical debt | Backend test harness | Set up PyTest and write coverage for login, create/join household, reserve, consume, and restock routes. | OPS-02 | 2 |
 | TD-10 | Technical debt | Retire generic naming | As implementation lands, rename the scaffold's generic "project"/"hardware set" language to household/food-item domain terms so code and UI stay legible. | — | 2 |
 
+## 6. UI Design — Track E
+
+**Goal:** The app looks and works like one coherent product, not four developers' separately-styled screens — and each functional track gets a documented, prop-based contract to wire its real data into instead of touching presentation internals.
+
+**Owner:** Aaron Phan, dual duty alongside Track B (Inventory Management). Not a PDF rubric-owning track — no `Req` line maps to a stakeholder need or system requirement; this is additive quality work.
+
+**Scope note:** Design stories start with Track B's UI, since it's the only track with a real screen to critique. As Track A and Track C build their own UI (login/household pages; stretch-feature UI), Track E's harness items (TD-13/TD-14/TD-15 below) are what those tracks wire into — add further Track E design stories once that UI exists, rather than designing speculatively against code that isn't written yet.
+
+| ID | Type | Title | Story / Description | Req | Phase |
+|----|------|-------|----------------------|-----|-------|
+| US-15 | User story | Clean, scannable inventory layout | As a household member, I want the inventory view laid out with clear visual grouping and spacing instead of bare HTML tables, so I can scan what's on hand without hunting through rows. | DESIGN | 2 |
+| US-16 | User story | Freshness cues readable at a glance | As a household member, I want freshness badges to use consistent color coding I can recognize instantly, not just read, so I know what to use first without stopping to read every label. | DESIGN | 2 |
+| US-17 | User story | Usable inventory view on a phone | As a household member checking stock from my phone while grocery shopping, I want the inventory view and its restock/reserve/consume controls to work on a small screen, so I don't need a laptop to use the app day-to-day. | DESIGN | 2 |
+| TD-13 | Technical debt | Document the session-identity harness for Track A | Define and document the exact prop contract (`householdId`, `userId`, `userName`) `InventoryView` and its children expect — currently hardcoded as constants in `client/src/App.js` — so Track A can wire in real login/session data (ACCT-04) by replacing three values at one call site instead of tracing through component internals. | DESIGN | 2 |
+| TD-14 | Technical debt | Document the live-data contract for Track C's audit | Confirm and document that every presentational component (`InventoryView`, `RestockForm`, `FreshnessBadge`, `BatchList`, `Checkout`/`ItemActions`) receives all displayed data via props only, with no internal fetch or hard-coded fallback, so Track C can audit DATA-01/DATA-03 (no hard-coded data) against a documented contract instead of re-reading component internals. | DESIGN | 2 |
+| TD-15 | Technical debt | Shared design tokens for cross-track UI consistency | Extract a small shared set of style tokens (spacing scale, color palette, typography) from Track B's `client/src/App.css` into a reusable base other tracks' UI can adopt, so Track A's login/household pages and Track C's stretch-feature UI (password reset, custom locations) look like one app instead of three. | DESIGN | 2 |
+
 ## Future Vision — Research Backlog (not scheduled, v2)
 
 The household's full product vision, beyond this PoC's committed scope — each needs hardware sensors, ML modeling, or third-party integrations no semester project can fund. Kept visible so the team can spike opportunistically without risking rubric-critical time.
@@ -125,9 +142,11 @@ The household's full product vision, beyond this PoC's committed scope — each 
 
 ---
 
-**Totals:** 5 committed features · 18 user stories (9 with sub-stories — 9 additional sub-story rows under Track B) · 17 technical debt items (13 Phase 2 + 4 Phase 1 scope/schema/stories items) · 10 research items · 19/19 v1 requirements covered.
+**Totals:** 6 committed features · 21 user stories (9 with sub-stories — 9 additional sub-story rows under Track B) · 20 technical debt items (16 Phase 2 + 4 Phase 1 scope/schema/stories items) · 10 research items · 19/19 v1 requirements covered (Track E's items are additive quality work, not mapped to a stakeholder requirement).
 
 **4 tracks, 4 developers:** Track A, Track B, Track C, and Track D each own exactly one Phase 1 rubric item (US-R1-A/B/C/D → R1-1/R1-2/R1-4/R1-3 respectively) plus either one Phase 2 rubric item or, for Track C, a promoted stretch-feature scope (US-13, US-14) in place of a numbered R2 item.
+
+**Plus Track E (UI Design), dual duty:** Aaron Phan owns Track E alongside Track B. Track E isn't a rubric-owning track — it's cross-cutting design/polish work, starting with Track B's UI (the only screen that exists) and leaving documented component contracts (TD-13/TD-14/TD-15) for Track A and Track C to wire their real data into once their own UI lands.
 
 **Out of scope reminder:** The Project Plan (team members, sprint cadence, collaboration tools, methodology, toolchain — R1-1) is now represented on this board via US-R1-A, owned by Track A.
 

@@ -1,6 +1,11 @@
 :root {
-  /* Typography (D-07) */
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+  --text-display-lg: 2.2rem;
+  --text-display-md: 1.3rem;
+  --leading-display: 1.2;
+  --weight-bold: 700;
   --text-xs: 0.8rem;
   --text-sm: 0.85rem;
   --text-md: 0.9rem;
@@ -9,7 +14,7 @@
   --weight-semibold: 600;
   --leading-body: 1.55;
 
-  /* Spacing (D-03) */
+  /* Spacing (unchanged from Phase 5) */
   --space-3xs: 2px;
   --space-2xs: 4px;
   --space-xs: 6px;
@@ -21,28 +26,40 @@
   --space-3xl: 32px;
   --space-4xl: 64px;
 
-  /* Radius and structure */
+  /* Shape and elevation */
   --radius-sm: 4px;
   --radius-pill: 999px;
+  --radius-lg: 20px;
+  --radius-modal: 24px;
   --rule-width: 1px;
-  --stripe-width: 4px;
+  --shadow-card: 0 10px 15px -3px rgba(45,58,49,0.06);
+  --shadow-modal: 0 25px 50px -12px rgba(45,58,49,0.25);
+  --z-backdrop: 100;
+  --z-modal: 101;
+  --focus-ring-width: 4px;
 
-  /* Warm-kitchen base palette (D-05) */
-  --color-page: #F5F1E8;
-  --color-surface: #FCFAF5;
-  --color-ink: #2B2622;
+  /* Botanical base palette */
+  --color-bg: #F9F8F4;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #F2F0EB;
+  --color-ink: #2D3A31;
   --color-ink-muted: #6E655B;
-  --color-rule: #DDD5C7;
-  --color-rule-soft: #E7E0D3;
-  --color-accent: #5C4433;
-  --color-danger: #8C2F22;
+  --color-stone: #E6E2DA;
+  --color-sage: #8C9A84;
+  --color-terracotta: #C27B66;
+  --color-on-ink: #FFFFFF;
+  --color-backdrop: rgba(45,58,49,0.25);
+  --color-danger-bg: #F7DFD8;
+  --color-danger-fg: #8C2F22;
+  --color-danger-border: #E0A99C;
 
-  /* Location stripe colours (D-06) */
-  --color-loc-pantry: #8A6A4B;
-  --color-loc-fridge: #5F8A7D;
-  --color-loc-freezer: #5C7796;
+  /* Migration aliases -- plan 06-02 removes this group */
+  --color-rule: var(--color-stone);
+  --color-rule-soft: var(--color-stone);
+  --color-accent: var(--color-ink);
+  --color-danger: var(--color-danger-fg);
 
-  /* Freshness palette (D-03, D-08) */
+  /* Freshness palette (Phase 5 values, unchanged in this task) */
   --color-fresh-bg: #DCEFD8;
   --color-fresh-fg: #2F5D2A;
   --color-fresh-border: #A8CFA0;
@@ -56,7 +73,7 @@
   --color-unknown-fg: #4A443C;
   --color-unknown-border: #D4CBBC;
 
-  /* Reservation-state colours */
+  /* Reservation-state colours (Phase 5 values, unchanged in this task) */
   --color-claim-own-bg: #E4EBDF;
   --color-claim-own-fg: #3C5233;
   --color-claim-own-border: #B9C9AC;
@@ -68,9 +85,9 @@
   --motion-fast: 150ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
 
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   color: var(--color-ink);
-  background-color: var(--color-page);
+  background-color: var(--color-bg);
 }
 
 body {

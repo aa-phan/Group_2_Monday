@@ -47,7 +47,8 @@
     "security_enforcement": true,
     "security_asvs_level": 1,
     "security_block_on": "high",
-    "live_dom_uat": true
+    "live_dom_uat": true,
+    "use_worktrees": true
   },
   "ship": {
     "pr_body_sections": [

@@ -9,15 +9,14 @@ Project = {
     'projectName': projectName,
     'projectId': projectId,
     'description': description,
-    'hwSets': {HW1: 0, HW2: 10, ...},
     'users': [user1, user2, ...]
 }
 
-Item-stock shape (Track B) is superseded by hardwareDatabase's own
-docstring: household inventory now lives in the separate `Items`
-collection (householdId + location + itemKey), not nested in this
-document. This document's `users` list remains the source of truth for
-household membership; see assertHouseholdMember below.
+Hardware-set stock (Track B) is superseded by hardwareDatabase's own
+docstring: it now lives in the separate `HardwareSets` collection
+(projectId + hwSetKey), not nested in this document. This document's
+`users` list remains the source of truth for project membership; see
+assertProjectMember below.
 '''
 
 # Function to query a project by its ID
@@ -52,18 +51,23 @@ def checkInHW(client, projectId, hwSetName, qty, userId):
 
 
 # ---------------------------------------------------------------------------
-# Track B — household inventory (food-item stock)
+# Track B — hardware resource management (generic HaaS domain)
 #
-# Inventory lives in the separate `Items` collection (hardwareDatabase.py),
-# keyed by householdId + location + itemKey. This section reads the
-# `Households` collection only to check membership (`users` list); it never
-# reads or writes household document fields Track A owns (projectName,
-# hwSets, etc. above).
+# Hardware-set stock lives in the separate `HardwareSets` collection
+# (hardwareDatabase.py), keyed by projectId + hwSetKey. This section reads
+# the `Households` collection only to check membership (`users` list); it
+# never reads or writes project document fields Track A owns (projectName,
+# etc. above). (The collection is still named `Households` on disk from an
+# earlier domain iteration -- see hardwareDB.PROJECTS_COLLECTION -- but every
+# field and function here is project/hardware vocabulary, not food/household.)
 # ---------------------------------------------------------------------------
 
 
 class NotAHouseholdMemberError(Exception):
-    """Raised when userId is not a member of the household. Maps to HTTP 403."""
+    """Raised when userId is not a member of the project. Maps to HTTP 403.
+    (Class name kept for backward compatibility with existing callers/tests;
+    semantically this is "not a project member".)
+    """
 
 
 # Re-exported so the route layer can catch it as projectsDB.ReservationNotOwnedError
@@ -73,69 +77,73 @@ class NotAHouseholdMemberError(Exception):
 ReservationNotOwnedError = hardwareDB.ReservationNotOwnedError
 
 
-def assertHouseholdMember(client, householdId, userId):
+def assertProjectMember(client, projectId, userId):
     """Trust-boundary guard: raise NotAHouseholdMemberError unless userId is
-    a member of the household identified by householdId. Every inventory
-    route calls this first, before touching any stock.
+    a member of the project identified by projectId. Every hardware route
+    calls this first, before touching any stock.
 
-    householdId and userId must be plain strings. request.get_json()
-    decodes arbitrary JSON, so without this check a client could pass a
-    dict (e.g. {"$ne": "..."}) that Mongo would interpret as a query
-    operator instead of an equality match, defeating household isolation
-    for this function and every hardwareDatabase filter built from the
-    same unvalidated value downstream (CR-01).
+    projectId and userId must be plain strings. request.get_json() decodes
+    arbitrary JSON, so without this check a client could pass a dict (e.g.
+    {"$ne": "..."}) that Mongo would interpret as a query operator instead
+    of an equality match, defeating project isolation for this function and
+    every hardwareDatabase filter built from the same unvalidated value
+    downstream.
     """
-    if not isinstance(householdId, str) or not isinstance(userId, str):
+    if not isinstance(projectId, str) or not isinstance(userId, str):
         raise NotAHouseholdMemberError(userId)
 
     db = client[hardwareDB.DB_NAME]
-    household = db[hardwareDB.HOUSEHOLDS_COLLECTION].find_one({"householdId": householdId})
+    project = db[hardwareDB.PROJECTS_COLLECTION].find_one({"householdId": projectId})
 
-    if household is None or userId not in household.get("users", []):
+    if project is None or userId not in project.get("users", []):
         raise NotAHouseholdMemberError(userId)
 
 
-def restockItem(client, householdId, userId, location, itemName, quantity, purchaseDate, bestByDate):
-    """Append a new batch to an item after verifying household membership."""
-    assertHouseholdMember(client, householdId, userId)
-    return hardwareDB.addBatch(client, householdId, location, itemName, quantity, purchaseDate, bestByDate)
+# Backward-compatible alias -- older call sites/tests may still import this name.
+assertHouseholdMember = assertProjectMember
 
 
-def getHouseholdInventory(client, householdId, userId):
-    """Return the household's inventory grouped by location after verifying
-    household membership.
+def checkinHardwareSet(client, projectId, userId, hwSetName, quantity):
+    """Check in units of a hardware set after verifying project membership."""
+    assertProjectMember(client, projectId, userId)
+    return hardwareDB.checkinHardware(client, projectId, hwSetName, quantity)
+
+
+def getProjectHardwareStatus(client, projectId, userId):
+    """Return the project's hardware-set status list after verifying
+    project membership.
     """
-    assertHouseholdMember(client, householdId, userId)
-    return hardwareDB.getItemsByLocation(client, householdId)
+    assertProjectMember(client, projectId, userId)
+    return hardwareDB.getHardwareStatus(client, projectId)
 
 
-def consumeItem(client, householdId, userId, location, itemName, quantity):
-    """Draw quantity units out of an item's batches (FIFO, D-02) after
-    verifying household membership. Reservations never gate this call
-    (D-05, D-06, D-07) -- the guard hardwareDB.consumeFromItem applies
-    compares the requested quantity against capacity alone.
+def checkoutHardwareSet(client, projectId, userId, hwSetName, quantity):
+    """Check out units of a hardware set after verifying project
+    membership. Requests (reservations) never gate this call -- the guard
+    hardwareDB.checkoutHardware applies compares the requested quantity
+    against capacity alone.
     """
-    assertHouseholdMember(client, householdId, userId)
-    return hardwareDB.consumeFromItem(client, householdId, location, itemName, quantity)
+    assertProjectMember(client, projectId, userId)
+    return hardwareDB.checkoutHardware(client, projectId, hwSetName, quantity)
 
 
-def reserveItem(client, householdId, userId, userName, location, itemName, quantity):
-    """Claim a quantity of an item under userId/userName after verifying
-    household membership. Never compares quantity against what is on
-    hand -- D-07: the overbooking guard applies to consume only.
+def requestHardwareSet(client, projectId, userId, userName, hwSetName, quantity):
+    """Claim (request) a quantity of a hardware set under userId/userName
+    after verifying project membership. Never compares quantity against
+    what is on hand -- the overbooking guard applies to checkout only.
     """
-    assertHouseholdMember(client, householdId, userId)
+    assertProjectMember(client, projectId, userId)
     return hardwareDB.addReservation(
-        client, householdId, location, itemName, quantity, userId, userName
+        client, projectId, hwSetName, quantity, userId, userName
     )
 
 
-def releaseReservation(client, householdId, userId, reservationId):
-    """Release a reservation after verifying household membership. Only
-    the member who created the reservation can release it (D-08) --
+def releaseReservation(client, projectId, userId, reservationId):
+    """Release a reservation after verifying project membership. Only the
+    member who created the reservation can release it --
     hardwareDB.removeReservation enforces that and raises
     ReservationNotOwnedError otherwise.
     """
-    assertHouseholdMember(client, householdId, userId)
-    return hardwareDB.removeReservation(client, householdId, reservationId, userId)
+    assertProjectMember(client, projectId, userId)
+    return hardwareDB.removeReservation(client, projectId, reservationId, userId)
 

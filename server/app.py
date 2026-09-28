@@ -131,15 +131,15 @@ def get_project_info():
     # Return a JSON response
     return jsonify({})
 
-# Route for viewing household inventory grouped by location
-@app.route('/api/inventory', methods=['GET'])
-def get_inventory():
+# Route for viewing a project's hardware-set status (capacity/availability)
+@app.route('/api/hardware', methods=['GET'])
+def get_hardware_status():
     # Extract data from request
-    householdId = request.args.get('householdId')
+    projectId = request.args.get('projectId')
     userId = request.args.get('userId')
 
-    if not householdId:
-        return jsonify({"error": "missing_parameter", "field": "householdId"}), 400
+    if not projectId:
+        return jsonify({"error": "missing_parameter", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "missing_parameter", "field": "userId"}), 400
 
@@ -147,12 +147,12 @@ def get_inventory():
     client = getMongoClient()
 
     try:
-        # Fetch household inventory using the projectsDB module
-        locations = projectsDB.getHouseholdInventory(client, householdId, userId)
+        # Fetch hardware-set status using the projectsDB module
+        hardwareSets = projectsDB.getProjectHardwareStatus(client, projectId, userId)
     except projectsDB.NotAHouseholdMemberError:
-        return jsonify({"error": "not_a_household_member"}), 403
+        return jsonify({"error": "not_a_project_member"}), 403
     except hardwareDB.ItemNotFoundError:
-        return jsonify({"error": "item_not_found"}), 404
+        return jsonify({"error": "hardware_set_not_found"}), 404
     except hardwareDB.InvalidInventoryInput as error:
         return jsonify({"error": "invalid_input", "field": str(error)}), 400
     finally:
@@ -160,23 +160,20 @@ def get_inventory():
         client.close()
 
     # Return a JSON response
-    return jsonify({"householdId": householdId, "locations": locations})
+    return jsonify({"projectId": projectId, "hardwareSets": hardwareSets})
 
-# Route for restocking a food item into a location
-@app.route('/api/inventory/restock', methods=['POST'])
-def restock_inventory():
+# Route for checking in units of a hardware set
+@app.route('/api/hardware/checkin', methods=['POST'])
+def checkin_hardware():
     # Extract data from request
     body = request.get_json(silent=True) or {}
-    householdId = body.get('householdId')
+    projectId = body.get('projectId')
     userId = body.get('userId')
-    location = body.get('location')
-    itemName = body.get('itemName')
+    hwSetName = body.get('hwSetName')
     quantity = body.get('quantity')
-    purchaseDate = body.get('purchaseDate')
-    bestByDate = body.get('bestByDate')
 
-    if not householdId:
-        return jsonify({"error": "invalid_input", "field": "householdId"}), 400
+    if not projectId:
+        return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
@@ -184,36 +181,35 @@ def restock_inventory():
     client = getMongoClient()
 
     try:
-        # Attempt to restock the item using the projectsDB module
-        item = projectsDB.restockItem(
-            client, householdId, userId, location, itemName, quantity, purchaseDate, bestByDate
+        # Attempt to check in the hardware set using the projectsDB module
+        hardwareSet = projectsDB.checkinHardwareSet(
+            client, projectId, userId, hwSetName, quantity
         )
     except projectsDB.NotAHouseholdMemberError:
-        return jsonify({"error": "not_a_household_member"}), 403
+        return jsonify({"error": "not_a_project_member"}), 403
     except hardwareDB.InvalidInventoryInput as error:
         return jsonify({"error": "invalid_input", "field": str(error)}), 400
     except hardwareDB.ItemNotFoundError:
-        return jsonify({"error": "item_not_found"}), 404
+        return jsonify({"error": "hardware_set_not_found"}), 404
     finally:
         # Close the MongoDB connection
         client.close()
 
     # Return a JSON response
-    return jsonify({"item": item}), 201
+    return jsonify({"hardwareSet": hardwareSet}), 201
 
-# Route for consuming a quantity of a food item (FIFO, D-02, D-06, D-07)
-@app.route('/api/inventory/consume', methods=['POST'])
-def consume_inventory():
+# Route for checking out units of a hardware set
+@app.route('/api/hardware/checkout', methods=['POST'])
+def checkout_hardware():
     # Extract data from request
     body = request.get_json(silent=True) or {}
-    householdId = body.get('householdId')
+    projectId = body.get('projectId')
     userId = body.get('userId')
-    location = body.get('location')
-    itemName = body.get('itemName')
+    hwSetName = body.get('hwSetName')
     quantity = body.get('quantity')
 
-    if not householdId:
-        return jsonify({"error": "invalid_input", "field": "householdId"}), 400
+    if not projectId:
+        return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
@@ -221,14 +217,16 @@ def consume_inventory():
     client = getMongoClient()
 
     try:
-        # Attempt to consume the item using the projectsDB module
-        item = projectsDB.consumeItem(client, householdId, userId, location, itemName, quantity)
+        # Attempt to check out the hardware set using the projectsDB module
+        hardwareSet = projectsDB.checkoutHardwareSet(
+            client, projectId, userId, hwSetName, quantity
+        )
     except projectsDB.NotAHouseholdMemberError:
-        return jsonify({"error": "not_a_household_member"}), 403
+        return jsonify({"error": "not_a_project_member"}), 403
     except hardwareDB.InvalidInventoryInput as error:
         return jsonify({"error": "invalid_input", "field": str(error)}), 400
     except hardwareDB.ItemNotFoundError:
-        return jsonify({"error": "item_not_found"}), 404
+        return jsonify({"error": "hardware_set_not_found"}), 404
     except hardwareDB.InsufficientStockError as error:
         return jsonify({
             "error": "insufficient_stock",
@@ -242,22 +240,21 @@ def consume_inventory():
         client.close()
 
     # Return a JSON response
-    return jsonify({"item": item}), 200
+    return jsonify({"hardwareSet": hardwareSet}), 200
 
-# Route for reserving a quantity of a food item (dibs, D-04, D-05, D-07)
-@app.route('/api/inventory/reserve', methods=['POST'])
-def reserve_inventory():
+# Route for requesting (reserving) a quantity of a hardware set (SN3)
+@app.route('/api/hardware/request', methods=['POST'])
+def request_hardware():
     # Extract data from request
     body = request.get_json(silent=True) or {}
-    householdId = body.get('householdId')
+    projectId = body.get('projectId')
     userId = body.get('userId')
     userName = body.get('userName')
-    location = body.get('location')
-    itemName = body.get('itemName')
+    hwSetName = body.get('hwSetName')
     quantity = body.get('quantity')
 
-    if not householdId:
-        return jsonify({"error": "invalid_input", "field": "householdId"}), 400
+    if not projectId:
+        return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
@@ -265,34 +262,34 @@ def reserve_inventory():
     client = getMongoClient()
 
     try:
-        # Attempt to reserve the item using the projectsDB module
-        reservationId, item = projectsDB.reserveItem(
-            client, householdId, userId, userName, location, itemName, quantity
+        # Attempt to request the hardware set using the projectsDB module
+        reservationId, hardwareSet = projectsDB.requestHardwareSet(
+            client, projectId, userId, userName, hwSetName, quantity
         )
     except projectsDB.NotAHouseholdMemberError:
-        return jsonify({"error": "not_a_household_member"}), 403
+        return jsonify({"error": "not_a_project_member"}), 403
     except hardwareDB.InvalidInventoryInput as error:
         return jsonify({"error": "invalid_input", "field": str(error)}), 400
     except hardwareDB.ItemNotFoundError:
-        return jsonify({"error": "item_not_found"}), 404
+        return jsonify({"error": "hardware_set_not_found"}), 404
     finally:
         # Close the MongoDB connection
         client.close()
 
     # Return a JSON response
-    return jsonify({"reservationId": reservationId, "item": item}), 201
+    return jsonify({"reservationId": reservationId, "hardwareSet": hardwareSet}), 201
 
-# Route for releasing a reservation the caller created (D-08)
-@app.route('/api/inventory/release', methods=['POST'])
-def release_inventory():
+# Route for releasing a request (reservation) the caller created
+@app.route('/api/hardware/release', methods=['POST'])
+def release_hardware():
     # Extract data from request
     body = request.get_json(silent=True) or {}
-    householdId = body.get('householdId')
+    projectId = body.get('projectId')
     userId = body.get('userId')
     reservationId = body.get('reservationId')
 
-    if not householdId:
-        return jsonify({"error": "invalid_input", "field": "householdId"}), 400
+    if not projectId:
+        return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
@@ -301,9 +298,9 @@ def release_inventory():
 
     try:
         # Attempt to release the reservation using the projectsDB module
-        item = projectsDB.releaseReservation(client, householdId, userId, reservationId)
+        hardwareSet = projectsDB.releaseReservation(client, projectId, userId, reservationId)
     except projectsDB.NotAHouseholdMemberError:
-        return jsonify({"error": "not_a_household_member"}), 403
+        return jsonify({"error": "not_a_project_member"}), 403
     except projectsDB.ReservationNotOwnedError:
         return jsonify({"error": "not_your_reservation"}), 403
     except hardwareDB.ReservationNotFoundError:
@@ -313,7 +310,7 @@ def release_inventory():
         client.close()
 
     # Return a JSON response
-    return jsonify({"item": item}), 200
+    return jsonify({"hardwareSet": hardwareSet}), 200
 
 # Main entry point for the application
 if __name__ == '__main__':

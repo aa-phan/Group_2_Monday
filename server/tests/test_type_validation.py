@@ -1,14 +1,14 @@
-"""Regression tests for CR-01: unvalidated householdId/userId/reservationId/
-userName types allow NoSQL-operator injection that bypasses household
-isolation.
+"""Regression tests for the NoSQL-operator-injection guard: unvalidated
+projectId/userId/reservationId/userName types allow injection that bypasses
+project isolation.
 
 request.get_json() decodes arbitrary JSON, so a client can POST a dict
 (e.g. {"$ne": "..."}) in place of a plain string identifier. Mongo then
 interprets that value as a query operator instead of an equality match,
-which can match documents belonging to OTHER households. Each test here
-seeds a second household (H2) that the requesting user ("alice") is not a
-member of, then attempts the injection against each of the four mutating
-inventory routes and asserts the request is rejected with H2's data left
+which can match documents belonging to OTHER projects. Each test here
+seeds a second project (P2) that the requesting user ("alice") is not a
+member of, then attempts the injection against each of the mutating
+hardware routes and asserts the request is rejected with P2's data left
 completely untouched.
 """
 
@@ -16,138 +16,116 @@ import hardwareDatabase as hardwareDB
 import projectsDatabase as projectsDB
 
 
-def _seedOtherHousehold(mongo):
-    """H2 belongs to "carol" only. alice (seeded by the `mongo` fixture as
-    a member of H1) has no relationship to H2 and must never be able to
-    read or mutate its stock. H2's only item ("SecretStash") lives in
-    Pantry so a householdId-injection that widens the query to "any
-    household's Pantry item named SecretStash" resolves deterministically
-    onto H2, regardless of which household document the injected
-    householdId happens to match during membership assertion.
+def _seedOtherProject(mongo):
+    """P2 belongs to "carol" only. alice (seeded by the `mongo` fixture as
+    a member of H1) has no relationship to P2 and must never be able to
+    read or mutate its hardware sets.
     """
     db = mongo[hardwareDB.DB_NAME]
-    db[hardwareDB.HOUSEHOLDS_COLLECTION].insert_one(
-        {"householdId": "H2", "users": ["carol"]}
+    db[hardwareDB.PROJECTS_COLLECTION].insert_one(
+        {"householdId": "P2", "users": ["carol"]}
     )
-    db[hardwareDB.ITEMS_COLLECTION].insert_one(
+    db[hardwareDB.HARDWARE_SETS_COLLECTION].insert_one(
         {
-            "householdId": "H2",
-            "location": "Pantry",
-            "itemKey": "secretstash",
-            "itemName": "SecretStash",
-            "batches": [
-                {
-                    "batchId": "seed-batch",
-                    "quantity": 10,
-                    "purchaseDate": "2026-06-01",
-                    "bestByDate": None,
-                    "createdAt": "2026-06-01T00:00:00+00:00",
-                }
-            ],
-            "reservations": [],
+            "projectId": "P2",
+            "hwSetKey": "secrethwset",
+            "hwSetName": "SecretHWSet",
             "capacity": 10,
+            "reservations": [],
             "reservedQuantity": 0,
         }
     )
 
 
-def _rawItem(mongo, householdId, location, itemKey):
+def _rawHardwareSet(mongo, projectId, hwSetKey):
     db = mongo[hardwareDB.DB_NAME]
-    return db[hardwareDB.ITEMS_COLLECTION].find_one(
-        {"householdId": householdId, "location": location, "itemKey": itemKey}
+    return db[hardwareDB.HARDWARE_SETS_COLLECTION].find_one(
+        {"projectId": projectId, "hwSetKey": hwSetKey}
     )
 
 
-# --- Route-level: dict householdId across all four mutating routes --------
+# --- Route-level: dict projectId across all four mutating routes ----------
 
 
-def test_restock_rejects_dict_householdId_and_writes_nothing(api, mongo):
-    _seedOtherHousehold(mongo)
+def test_checkin_rejects_dict_projectId_and_writes_nothing(api, mongo):
+    _seedOtherProject(mongo)
 
     response = api.post(
-        "/api/inventory/restock",
+        "/api/hardware/checkin",
         json={
-            "householdId": {"$ne": "nope"},
+            "projectId": {"$ne": "nope"},
             "userId": "alice",
-            "location": "Pantry",
-            "itemName": "SecretStash",
+            "hwSetName": "SecretHWSet",
             "quantity": 1,
-            "purchaseDate": "2026-06-01",
-            "bestByDate": None,
         },
     )
     assert response.status_code in (400, 403)
 
-    raw = _rawItem(mongo, "H2", "Pantry", "secretstash")
+    raw = _rawHardwareSet(mongo, "P2", "secrethwset")
     assert raw["capacity"] == 10
-    assert len(raw["batches"]) == 1
 
 
-def test_consume_rejects_dict_householdId_and_writes_nothing(api, mongo):
-    _seedOtherHousehold(mongo)
+def test_checkout_rejects_dict_projectId_and_writes_nothing(api, mongo):
+    _seedOtherProject(mongo)
 
     response = api.post(
-        "/api/inventory/consume",
+        "/api/hardware/checkout",
         json={
-            "householdId": {"$ne": "nope"},
+            "projectId": {"$ne": "nope"},
             "userId": "alice",
-            "location": "Pantry",
-            "itemName": "SecretStash",
+            "hwSetName": "SecretHWSet",
             "quantity": 10,
         },
     )
     assert response.status_code in (400, 403)
 
-    raw = _rawItem(mongo, "H2", "Pantry", "secretstash")
+    raw = _rawHardwareSet(mongo, "P2", "secrethwset")
     assert raw["capacity"] == 10
-    assert raw["batches"][0]["quantity"] == 10
 
 
-def test_consume_rejects_list_householdId_and_writes_nothing(api, mongo):
-    _seedOtherHousehold(mongo)
+def test_checkout_rejects_list_projectId_and_writes_nothing(api, mongo):
+    _seedOtherProject(mongo)
 
     response = api.post(
-        "/api/inventory/consume",
+        "/api/hardware/checkout",
         json={
-            "householdId": ["H2"],
+            "projectId": ["P2"],
             "userId": "alice",
-            "location": "Pantry",
-            "itemName": "SecretStash",
+            "hwSetName": "SecretHWSet",
             "quantity": 10,
         },
     )
     assert response.status_code in (400, 403)
 
-    raw = _rawItem(mongo, "H2", "Pantry", "secretstash")
+    raw = _rawHardwareSet(mongo, "P2", "secrethwset")
     assert raw["capacity"] == 10
 
 
-def test_reserve_rejects_dict_householdId_and_writes_nothing(api, mongo):
-    _seedOtherHousehold(mongo)
+def test_request_rejects_dict_projectId_and_writes_nothing(api, mongo):
+    _seedOtherProject(mongo)
 
     response = api.post(
-        "/api/inventory/reserve",
+        "/api/hardware/request",
         json={
-            "householdId": {"$ne": "nope"},
+            "projectId": {"$ne": "nope"},
             "userId": "alice",
             "userName": "Alice",
-            "location": "Pantry",
-            "itemName": "SecretStash",
+            "hwSetName": "SecretHWSet",
             "quantity": 5,
         },
     )
     assert response.status_code in (400, 403)
 
-    raw = _rawItem(mongo, "H2", "Pantry", "secretstash")
+    raw = _rawHardwareSet(mongo, "P2", "secrethwset")
     assert raw["reservedQuantity"] == 0
     assert raw["reservations"] == []
 
 
-def test_release_rejects_dict_householdId_and_writes_nothing(api, mongo):
-    _seedOtherHousehold(mongo)
+def test_release_rejects_dict_projectId_and_writes_nothing(api, mongo):
+    _seedOtherProject(mongo)
     db = mongo[hardwareDB.DB_NAME]
-    db[hardwareDB.ITEMS_COLLECTION].update_one(
-        {"householdId": "H2", "location": "Pantry", "itemKey": "secretstash"},
+    db[hardwareDB.HARDWARE_SETS_COLLECTION].update_one(
+        {"projectId": "P2", "hwSetKey": "secrethwset"},
         {
             "$push": {
                 "reservations": {
@@ -163,16 +141,16 @@ def test_release_rejects_dict_householdId_and_writes_nothing(api, mongo):
     )
 
     response = api.post(
-        "/api/inventory/release",
+        "/api/hardware/release",
         json={
-            "householdId": {"$ne": "nope"},
+            "projectId": {"$ne": "nope"},
             "userId": "alice",
             "reservationId": "carol-resv-1",
         },
     )
     assert response.status_code == 403
 
-    raw = _rawItem(mongo, "H2", "Pantry", "secretstash")
+    raw = _rawHardwareSet(mongo, "P2", "secrethwset")
     assert raw["reservedQuantity"] == 2
     assert len(raw["reservations"]) == 1
 
@@ -181,10 +159,10 @@ def test_release_rejects_dict_householdId_and_writes_nothing(api, mongo):
 
 
 def test_remove_reservation_rejects_dict_reservationId_and_writes_nothing(mongo):
-    _seedOtherHousehold(mongo)
+    _seedOtherProject(mongo)
     db = mongo[hardwareDB.DB_NAME]
-    db[hardwareDB.ITEMS_COLLECTION].update_one(
-        {"householdId": "H2", "location": "Pantry", "itemKey": "secretstash"},
+    db[hardwareDB.HARDWARE_SETS_COLLECTION].update_one(
+        {"projectId": "P2", "hwSetKey": "secrethwset"},
         {
             "$push": {
                 "reservations": {
@@ -200,22 +178,22 @@ def test_remove_reservation_rejects_dict_reservationId_and_writes_nothing(mongo)
     )
 
     try:
-        hardwareDB.removeReservation(mongo, "H2", {"$ne": "nope"}, "carol")
+        hardwareDB.removeReservation(mongo, "P2", {"$ne": "nope"}, "carol")
         raised = False
     except hardwareDB.ReservationNotFoundError:
         raised = True
     assert raised
 
-    raw = _rawItem(mongo, "H2", "Pantry", "secretstash")
+    raw = _rawHardwareSet(mongo, "P2", "secrethwset")
     assert raw["reservedQuantity"] == 2
     assert len(raw["reservations"]) == 1
 
 
 def test_remove_reservation_rejects_list_reservationId_and_writes_nothing(mongo):
-    _seedOtherHousehold(mongo)
+    _seedOtherProject(mongo)
     db = mongo[hardwareDB.DB_NAME]
-    db[hardwareDB.ITEMS_COLLECTION].update_one(
-        {"householdId": "H2", "location": "Pantry", "itemKey": "secretstash"},
+    db[hardwareDB.HARDWARE_SETS_COLLECTION].update_one(
+        {"projectId": "P2", "hwSetKey": "secrethwset"},
         {
             "$push": {
                 "reservations": {
@@ -231,32 +209,32 @@ def test_remove_reservation_rejects_list_reservationId_and_writes_nothing(mongo)
     )
 
     try:
-        hardwareDB.removeReservation(mongo, "H2", ["carol-resv-1"], "carol")
+        hardwareDB.removeReservation(mongo, "P2", ["carol-resv-1"], "carol")
         raised = False
     except hardwareDB.ReservationNotFoundError:
         raised = True
     assert raised
 
-    raw = _rawItem(mongo, "H2", "Pantry", "secretstash")
+    raw = _rawHardwareSet(mongo, "P2", "secrethwset")
     assert raw["reservedQuantity"] == 2
     assert len(raw["reservations"]) == 1
 
 
-# --- assertHouseholdMember: shared choke point ------------------------------
+# --- assertProjectMember: shared choke point --------------------------------
 
 
-def test_assert_household_member_rejects_dict_householdId(mongo):
+def test_assert_project_member_rejects_dict_projectId(mongo):
     try:
-        projectsDB.assertHouseholdMember(mongo, {"$ne": "nope"}, "alice")
+        projectsDB.assertProjectMember(mongo, {"$ne": "nope"}, "alice")
         raised = False
     except projectsDB.NotAHouseholdMemberError:
         raised = True
     assert raised
 
 
-def test_assert_household_member_rejects_dict_userId(mongo):
+def test_assert_project_member_rejects_dict_userId(mongo):
     try:
-        projectsDB.assertHouseholdMember(mongo, "H1", {"$ne": "nope"})
+        projectsDB.assertProjectMember(mongo, "H1", {"$ne": "nope"})
         raised = False
     except projectsDB.NotAHouseholdMemberError:
         raised = True
@@ -266,33 +244,29 @@ def test_assert_household_member_rejects_dict_userId(mongo):
 # --- userName injection (addReservation) ------------------------------------
 
 
-def test_reserve_rejects_dict_userName_and_writes_nothing(api, mongo):
+def test_request_rejects_dict_userName_and_writes_nothing(api, mongo):
     api.post(
-        "/api/inventory/restock",
+        "/api/hardware/checkin",
         json={
-            "householdId": "H1",
+            "projectId": "H1",
             "userId": "alice",
-            "location": "Pantry",
-            "itemName": "Rice",
+            "hwSetName": "HWSet1",
             "quantity": 5,
-            "purchaseDate": "2026-06-01",
-            "bestByDate": None,
         },
     )
 
     response = api.post(
-        "/api/inventory/reserve",
+        "/api/hardware/request",
         json={
-            "householdId": "H1",
+            "projectId": "H1",
             "userId": "alice",
             "userName": {"$ne": "nope"},
-            "location": "Pantry",
-            "itemName": "Rice",
+            "hwSetName": "HWSet1",
             "quantity": 1,
         },
     )
     assert response.status_code == 400
 
-    raw = _rawItem(mongo, "H1", "Pantry", "rice")
+    raw = _rawHardwareSet(mongo, "H1", "hwset1")
     assert raw["reservedQuantity"] == 0
     assert raw["reservations"] == []

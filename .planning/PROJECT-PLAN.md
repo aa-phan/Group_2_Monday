@@ -2,16 +2,16 @@
 
 **Team:** Group 2 Monday · ECE 461L Team Project, Fall 2026
 **Project:** A generic Hardware-as-a-Service (HaaS) resource-management web app (Proof of Concept), per the assignment's own domain
-**Last updated:** 2026-09-28 (domain reverted from an earlier food-inventory reframing back to the assignment's generic hardware-resource domain)
+**Last updated:** 2026-09-28 (Track D rescoped to Quality Assurance & Deployment, folding in former Track E)
 
 ## 1. Team Members
 
 | Name | Track | Responsibility |
 |------|-------|----------------|
 | Siddharth Kolukuluri | A. Account & Project Management | Sign-up and sign-in, credential encryption, sessions, creating and joining projects |
-| Aaron Phan | B. Hardware Resource Management + E. UI Design (dual duty) | Hardware-set status, checkin, request, checkout; plus cross-cutting UI/UX polish and documented component contracts for Tracks A and C to wire into |
-| Kody Keo | C. Data Integration & API | REST API, live MongoDB data with no hard-coded values, password reset, arbitrary named hardware sets |
-| Aashrith Attelli | D. Deployment & Quality | PyTest coverage, cloud deployment, architecture sketch |
+| Aaron Phan | B. Hardware Resource Management | Hardware-set status, checkin, request, checkout |
+| Kody Keo | C. Data Integration & API | REST API, live MongoDB data with no hard-coded values, explicit hardware-set-type management |
+| Aashrith Attelli | D. Quality Assurance & Deployment | Comprehensive PyTest suite wired into CI, early CI/CD pipeline, cloud deployment, architecture sketch, password-reset stretch feature, and all cross-cutting UI/UX design work (folded in from the former Track E) |
 
 ## 2. Methodology
 

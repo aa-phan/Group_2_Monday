@@ -11,9 +11,9 @@ async function throwForErrorResponse(response) {
   const body = await parseErrorBody(response);
   const message = body.error ? body.error : `Request failed with status ${response.status}`;
   const error = new Error(message);
-  // Carried through only when present -- the insufficient-stock case (409)
-  // is the one caller that needs these to say how many units are actually
-  // on hand, per plan 02-04's interface contract.
+  // Carried through only when present -- the insufficient-availability case
+  // (409) is the one caller that needs these to say how many units are
+  // actually on hand.
   if (typeof body.onHand === 'number') {
     error.onHand = body.onHand;
   }
@@ -26,9 +26,9 @@ async function throwForErrorResponse(response) {
   throw error;
 }
 
-export async function fetchInventory(householdId, userId) {
-  const params = new URLSearchParams({ householdId, userId });
-  const response = await fetch(`/api/inventory?${params.toString()}`);
+export async function fetchHardware(projectId, userId) {
+  const params = new URLSearchParams({ projectId, userId });
+  const response = await fetch(`/api/hardware?${params.toString()}`);
 
   if (!response.ok) {
     await throwForErrorResponse(response);
@@ -51,18 +51,18 @@ async function postJson(path, payload) {
   return response.json();
 }
 
-export async function restockItem(payload) {
-  return postJson('/api/inventory/restock', payload);
+export async function checkinHardware(payload) {
+  return postJson('/api/hardware/checkin', payload);
 }
 
-export async function consumeItem(payload) {
-  return postJson('/api/inventory/consume', payload);
+export async function checkoutHardware(payload) {
+  return postJson('/api/hardware/checkout', payload);
 }
 
-export async function reserveItem(payload) {
-  return postJson('/api/inventory/reserve', payload);
+export async function requestHardware(payload) {
+  return postJson('/api/hardware/request', payload);
 }
 
-export async function releaseReservation(payload) {
-  return postJson('/api/inventory/release', payload);
+export async function releaseRequest(payload) {
+  return postJson('/api/hardware/release', payload);
 }

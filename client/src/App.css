@@ -31,7 +31,7 @@ h3 {
   color: var(--color-danger);
 }
 
-.restock-form {
+.checkin-form {
   display: grid;
   gap: var(--space-sm);
   max-width: 420px;
@@ -42,108 +42,19 @@ h3 {
   background-color: var(--color-surface);
 }
 
-.restock-form label {
+.checkin-form label {
   display: flex;
   flex-direction: column;
   gap: var(--space-2xs);
   font-size: var(--text-md);
 }
 
-.restock-form button {
+.checkin-form button {
   justify-self: start;
   padding: var(--space-sm) var(--space-xl);
 }
 
-.freshness-badge {
-  display: inline-block;
-  padding: var(--space-3xs) var(--space-md);
-  border-radius: var(--radius-pill);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  border: var(--rule-width) solid transparent;
-  white-space: nowrap;
-}
-
-.freshness-badge--fresh {
-  background-color: var(--color-fresh-bg);
-  color: var(--color-fresh-fg);
-  border-color: var(--color-fresh-border);
-}
-
-.freshness-badge--expiring_soon {
-  background-color: var(--color-expiring-bg);
-  color: var(--color-expiring-fg);
-  border-color: var(--color-expiring-border);
-}
-
-.freshness-badge--expired {
-  background-color: var(--color-expired-bg);
-  color: var(--color-expired-fg);
-  border-color: var(--color-expired-border);
-}
-
-.freshness-badge--unknown {
-  background-color: var(--color-unknown-bg);
-  color: var(--color-unknown-fg);
-  border-color: var(--color-unknown-border);
-}
-
-.batch-list {
-  margin: var(--space-sm) 0 var(--space-2xs) var(--space-2xl);
-}
-
-.batch-list__note {
-  color: var(--color-ink-muted);
-  font-size: var(--text-xs);
-  font-style: italic;
-  margin-bottom: var(--space-2xs);
-}
-
-.batch-card-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
-}
-
-.batch-card {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xl);
-  align-items: baseline;
-  padding: var(--space-sm);
-  border: var(--rule-width) solid var(--color-rule-soft);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-}
-
-.batch-card__field {
-  display: flex;
-  gap: var(--space-2xs);
-  align-items: baseline;
-}
-
-.batch-card__label {
-  color: var(--color-ink-muted);
-}
-
-.batch-card__value {
-  font-variant-numeric: tabular-nums;
-}
-
-.ambiguity-notice {
-  margin: var(--space-sm) 0 var(--space-2xs) var(--space-2xl);
-  padding: var(--space-sm);
-  background-color: var(--color-surface);
-  border: var(--rule-width) solid var(--color-expiring-border);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--color-expiring-fg);
-}
-
-.item-actions {
+.hw-actions {
   margin: var(--space-lg) 0 var(--space-2xs) var(--space-2xl);
   padding: var(--space-lg);
   border-top: var(--rule-width) solid var(--color-rule-soft);
@@ -152,42 +63,42 @@ h3 {
   gap: var(--space-sm);
 }
 
-.item-actions__row {
+.hw-actions__row {
   display: flex;
   align-items: flex-end;
   gap: var(--space-sm);
 }
 
-.item-actions__field {
+.hw-actions__field {
   display: flex;
   flex-direction: column;
   gap: var(--space-2xs);
   font-size: var(--text-sm);
 }
 
-.item-actions__field input {
+.hw-actions__field input {
   width: 72px;
   padding: var(--space-2xs) var(--space-xs);
 }
 
-.item-actions__row button {
+.hw-actions__row button {
   padding: var(--space-xs) var(--space-lg);
 }
 
-.item-actions__message {
+.hw-actions__message {
   font-size: var(--text-sm);
   margin: 0;
 }
 
-.item-actions__reservations {
+.hw-actions__requests {
   margin-top: var(--space-2xs);
 }
 
-.item-actions__over-reserved {
+.hw-actions__over-requested {
   margin-top: var(--space-2xs);
 }
 
-.reservation-list {
+.request-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -196,7 +107,7 @@ h3 {
   gap: var(--space-2xs);
 }
 
-.reservation-entry {
+.request-entry {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -206,25 +117,25 @@ h3 {
   font-size: var(--text-sm);
 }
 
-.reservation-entry--own {
+.request-entry--own {
   background-color: var(--color-claim-own-bg);
   border: var(--rule-width) solid var(--color-claim-own-border);
   color: var(--color-claim-own-fg);
   font-weight: var(--weight-semibold);
 }
 
-.reservation-entry--other {
+.request-entry--other {
   background-color: var(--color-claim-other-bg);
   border: var(--rule-width) solid var(--color-claim-other-border);
   color: var(--color-claim-other-fg);
 }
 
-.reservation-entry__release {
+.request-entry__release {
   padding: var(--space-3xs) var(--space-sm);
   font-size: var(--text-xs);
 }
 
-.inventory-table-wrap {
+.hardware-table-wrap {
   background-color: var(--color-surface);
   border: var(--rule-width) solid var(--color-stone);
   border-radius: var(--radius-lg);
@@ -232,12 +143,12 @@ h3 {
   overflow: hidden;
 }
 
-.inventory-table {
+.hardware-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.inventory-table thead th {
+.hardware-table thead th {
   background-color: var(--color-surface-soft);
   color: var(--color-ink-muted);
   font-size: var(--text-xs);
@@ -249,27 +160,27 @@ h3 {
   line-height: var(--leading-display);
 }
 
-.inventory-table tbody td {
+.hardware-table tbody td {
   padding: var(--space-lg) var(--space-xl);
   border-top: var(--rule-width) solid var(--color-stone);
   font-size: var(--text-md);
   line-height: var(--leading-body);
 }
 
-.inventory-table tbody tr {
+.hardware-table tbody tr {
   cursor: pointer;
   transition: background-color var(--motion-fast) var(--ease-out);
 }
 
-.inventory-table tbody tr:hover {
+.hardware-table tbody tr:hover {
   background-color: var(--color-surface-soft);
 }
 
-.inventory-table__num {
+.hardware-table__num {
   font-variant-numeric: tabular-nums;
 }
 
-.inventory-table__open {
+.hardware-table__open {
   background: none;
   border: none;
   padding: 0;
@@ -324,15 +235,15 @@ h3 {
   padding: var(--space-2xs);
 }
 
-.item-detail__summary {
+.hw-detail__summary {
   color: var(--color-ink-muted);
   font-size: var(--text-sm);
   margin: 0 0 var(--space-xl);
 }
 
-.restock-form button,
-.item-actions__row button,
-.reservation-entry__release {
+.checkin-form button,
+.hw-actions__row button,
+.request-entry__release {
   background-color: var(--color-surface);
   color: var(--color-ink);
   border: var(--rule-width) solid var(--color-rule);
@@ -342,23 +253,23 @@ h3 {
     background-color var(--motion-fast) var(--ease-out);
 }
 
-.restock-form button:hover,
-.item-actions__row button:hover,
-.reservation-entry__release:hover {
+.checkin-form button:hover,
+.hw-actions__row button:hover,
+.request-entry__release:hover {
   border-color: var(--color-accent);
 }
 
-.restock-form button:focus-visible,
-.item-actions__row button:focus-visible,
-.reservation-entry__release:focus-visible,
-.inventory-table__open:focus-visible {
+.checkin-form button:focus-visible,
+.hw-actions__row button:focus-visible,
+.request-entry__release:focus-visible,
+.hardware-table__open:focus-visible {
   outline: var(--focus-ring-width) solid var(--color-ink);
   outline-offset: var(--space-3xs);
 }
 
-.restock-form button:disabled,
-.item-actions__row button:disabled,
-.reservation-entry__release:disabled {
+.checkin-form button:disabled,
+.hw-actions__row button:disabled,
+.request-entry__release:disabled {
   color: var(--color-ink-muted);
   border-color: var(--color-rule-soft);
   cursor: not-allowed;
@@ -370,38 +281,31 @@ h3 {
     padding-right: var(--space-lg);
   }
 
-  .batch-card {
-    flex-direction: column;
-    gap: var(--space-2xs);
-  }
-
-  .item-actions__row {
+  .hw-actions__row {
     flex-wrap: wrap;
   }
 
-  .item-actions__field {
+  .hw-actions__field {
     flex: 1 1 100%;
   }
 
-  .item-actions__field input {
+  .hw-actions__field input {
     width: 100%;
   }
 
-  .restock-form {
+  .checkin-form {
     max-width: 100%;
   }
 
-  .batch-list,
-  .ambiguity-notice,
-  .item-actions {
+  .hw-actions {
     margin-left: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .restock-form button,
-  .item-actions__row button,
-  .reservation-entry__release {
+  .checkin-form button,
+  .hw-actions__row button,
+  .request-entry__release {
     transition-duration: 0.01ms;
   }
 }

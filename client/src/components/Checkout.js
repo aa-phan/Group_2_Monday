@@ -1,87 +1,86 @@
 import { useState } from 'react';
-import { consumeItem, reserveItem, releaseReservation } from '../api/inventory.js';
+import { checkoutHardware, requestHardware, releaseRequest } from '../api/hardware.js';
 
 /**
- * The name "Checkout.js" carries over from the assignment's checkout
- * mockup, which maps onto consuming (see plan 02-04). This component also
- * renders reserve and release -- everything a household member does to an
- * item's own row besides restocking.
+ * The name "Checkout.js" carries over from the assignment's Resource
+ * Management mockup, which shows Checkout and Checkin buttons directly.
+ * This component renders Checkout and Request/Release -- everything a
+ * project member does to a hardware set's own row besides checking it in.
  *
- * A reservation is a coordination signal among housemates ("dibs"), never a lock
- * (D-05, D-07). The consume control below is never disabled, hidden, or gated
- * by the presence of any reservation, and the reserved display below only
+ * A request is a coordination signal among project members ("dibs"), never a
+ * lock (SN3). The checkout control below is never disabled, hidden, or
+ * gated by the presence of any request, and the request display below only
  * ever names who claimed what -- it never says "unavailable", "locked", or
  * "blocked".
  *
- * Data source: mutates via client/src/api/inventory.js
+ * Data source: mutates via client/src/api/hardware.js
  * No hard-coded fallback: this component renders nothing it was not given or told.
  *
  * @component
  * @param {Object} props
- * @param {Object} props.item - The already-fetched item object. Reads
- *   `householdId`, `location`, `itemName`, `capacity`, `reservations`, and
- *   `reservedQuantity`.
+ * @param {string} props.projectId - The project this hardware set belongs
+ *   to. No fallback/default.
+ * @param {Object} props.hwSet - The already-fetched hardware set object.
+ *   Reads `hwSetName`, `capacity`, `requests`, and `requestedQuantity`.
  * @param {string} props.userId - The acting member's identity. No default.
  * @param {string} props.userName - The acting member's display name. No
  *   default.
  * @param {Function} props.onChanged - Async reload callback, awaited after
  *   every successful mutation.
  */
-export default function ItemActions({ item, userId, userName, onChanged }) {
-  const [consumeQuantity, setConsumeQuantity] = useState('1');
-  const [reserveQuantity, setReserveQuantity] = useState('1');
-  const [consumeError, setConsumeError] = useState(null);
-  const [reserveError, setReserveError] = useState(null);
+export default function HardwareActions({ projectId, hwSet, userId, userName, onChanged }) {
+  const [checkoutQuantity, setCheckoutQuantity] = useState('1');
+  const [requestQuantity, setRequestQuantity] = useState('1');
+  const [checkoutError, setCheckoutError] = useState(null);
+  const [requestError, setRequestError] = useState(null);
   const [releaseError, setReleaseError] = useState(null);
-  const [consuming, setConsuming] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
   const [claimInFlight, setClaimInFlight] = useState(false);
   const [releaseTargetId, setReleaseTargetId] = useState(null);
 
-  async function handleConsume(event) {
+  async function handleCheckout(event) {
     event.preventDefault();
-    setConsumeError(null);
-    setConsuming(true);
+    setCheckoutError(null);
+    setCheckingOut(true);
     try {
-      await consumeItem({
-        householdId: item.householdId,
+      await checkoutHardware({
+        projectId,
         userId,
-        location: item.location,
-        itemName: item.itemName,
-        quantity: Number(consumeQuantity),
+        hwSetName: hwSet.hwSetName,
+        quantity: Number(checkoutQuantity),
       });
       // Leave the entered quantity in place on success too -- a member
-      // consuming the same amount repeatedly (e.g. "1 cup" at a time)
-      // shouldn't have to retype it every time.
+      // checking out the same amount repeatedly shouldn't have to retype it
+      // every time.
       await onChanged();
     } catch (error) {
       if (typeof error.onHand === 'number') {
-        setConsumeError(
-          `Only ${error.onHand} on hand -- can't consume ${error.requested}. Try a smaller amount.`
+        setCheckoutError(
+          `Only ${error.onHand} available -- can't check out ${error.requested}. Try a smaller amount.`
         );
       } else {
-        setConsumeError(error.message);
+        setCheckoutError(error.message);
       }
     } finally {
-      setConsuming(false);
+      setCheckingOut(false);
     }
   }
 
-  async function handleReserve(event) {
+  async function handleRequest(event) {
     event.preventDefault();
-    setReserveError(null);
+    setRequestError(null);
     setClaimInFlight(true);
     try {
-      await reserveItem({
-        householdId: item.householdId,
+      await requestHardware({
+        projectId,
         userId,
         userName,
-        location: item.location,
-        itemName: item.itemName,
-        quantity: Number(reserveQuantity),
+        hwSetName: hwSet.hwSetName,
+        quantity: Number(requestQuantity),
       });
       await onChanged();
     } catch (error) {
-      setReserveError(error.message);
+      setRequestError(error.message);
     } finally {
       setClaimInFlight(false);
     }
@@ -91,10 +90,10 @@ export default function ItemActions({ item, userId, userName, onChanged }) {
     setReleaseError(null);
     setReleaseTargetId(targetId);
     try {
-      await releaseReservation({
-        householdId: item.householdId,
+      await releaseRequest({
+        projectId,
         userId,
-        reservationId: targetId,
+        requestId: targetId,
       });
       await onChanged();
     } catch (error) {
@@ -104,70 +103,70 @@ export default function ItemActions({ item, userId, userName, onChanged }) {
     }
   }
 
-  const reservations = item.reservations || [];
-  const reservedTotal = item.reservedQuantity || 0;
-  const overReserved = reservedTotal > item.capacity;
+  const requests = hwSet.requests || [];
+  const requestedTotal = hwSet.requestedQuantity || 0;
+  const overRequested = requestedTotal > hwSet.capacity;
 
   return (
-    // Clicking inside these controls must not toggle the surrounding
-    // <details> disclosure the item row lives in.
-    <div className="item-actions" onClick={(event) => event.stopPropagation()}>
-      <form className="item-actions__row" onSubmit={handleConsume}>
-        <label className="item-actions__field">
-          Consume
+    // Clicking inside these controls must not toggle any surrounding
+    // disclosure the hardware set row lives in.
+    <div className="hw-actions" onClick={(event) => event.stopPropagation()}>
+      <form className="hw-actions__row" onSubmit={handleCheckout}>
+        <label className="hw-actions__field">
+          Checkout
           <input
             type="number"
             min="1"
-            value={consumeQuantity}
-            onChange={(event) => setConsumeQuantity(event.target.value)}
+            value={checkoutQuantity}
+            onChange={(event) => setCheckoutQuantity(event.target.value)}
           />
         </label>
-        <button type="submit" disabled={consuming}>
-          {consuming ? 'Consuming...' : 'Consume'}
+        <button type="submit" disabled={checkingOut}>
+          {checkingOut ? 'Checking out...' : 'Checkout'}
         </button>
       </form>
-      {consumeError && <p className="error-text item-actions__message">{consumeError}</p>}
+      {checkoutError && <p className="error-text hw-actions__message">{checkoutError}</p>}
 
-      <form className="item-actions__row" onSubmit={handleReserve}>
-        <label className="item-actions__field">
-          Reserve
+      <form className="hw-actions__row" onSubmit={handleRequest}>
+        <label className="hw-actions__field">
+          Request
           <input
             type="number"
             min="1"
-            value={reserveQuantity}
-            onChange={(event) => setReserveQuantity(event.target.value)}
+            value={requestQuantity}
+            onChange={(event) => setRequestQuantity(event.target.value)}
           />
         </label>
         <button type="submit" disabled={claimInFlight}>
-          {claimInFlight ? 'Reserving...' : 'Reserve'}
+          {claimInFlight ? 'Requesting...' : 'Request'}
         </button>
       </form>
-      {reserveError && <p className="error-text item-actions__message">{reserveError}</p>}
+      {requestError && <p className="error-text hw-actions__message">{requestError}</p>}
 
-      <div className="item-actions__reservations">
-        {reservations.length === 0 ? (
-          <p className="muted-text">No one has reserved this item.</p>
+      <div className="hw-actions__requests">
+        {requests.length === 0 ? (
+          <p className="muted-text">No one has requested this hardware set.</p>
         ) : (
-          <ul className="reservation-list">
-            {reservations.map((entry) => {
-              const entryId = entry.reservationId;
+          <ul className="request-list">
+            {requests.map((entry) => {
+              const entryId = entry.requestId;
               const isThisRowPending = releaseTargetId === entryId;
               return (
                 <li
                   key={entryId}
                   className={
                     entry.userId === userId
-                      ? 'reservation-entry reservation-entry--own'
-                      : 'reservation-entry reservation-entry--other'
+                      ? 'request-entry request-entry--own'
+                      : 'request-entry request-entry--other'
                   }
                 >
-                  <span className="reservation-entry__label">
-                    Reserved by {entry.userName}: {entry.quantity}
+                  <span className="request-entry__label">
+                    Requested by {entry.userName}: {entry.quantity}
                   </span>
                   {entry.userId === userId && (
                     <button
                       type="button"
-                      className="reservation-entry__release"
+                      className="request-entry__release"
                       onClick={() => handleRelease(entryId)}
                       disabled={isThisRowPending}
                     >
@@ -179,14 +178,14 @@ export default function ItemActions({ item, userId, userName, onChanged }) {
             })}
           </ul>
         )}
-        {overReserved && (
-          <p className="muted-text item-actions__over-reserved">
-            {reservedTotal} reserved of {item.capacity} on hand -- reserving is a coordination
-            signal, not a hold, so this is expected.
+        {overRequested && (
+          <p className="muted-text hw-actions__over-requested">
+            {requestedTotal} requested of {hwSet.capacity} capacity -- requesting is a
+            coordination signal, not a hold, so this is expected.
           </p>
         )}
       </div>
-      {releaseError && <p className="error-text item-actions__message">{releaseError}</p>}
+      {releaseError && <p className="error-text hw-actions__message">{releaseError}</p>}
     </div>
   );
 }

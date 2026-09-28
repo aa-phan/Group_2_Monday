@@ -1,85 +1,52 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchInventory } from '../api/inventory.js';
-import BatchList from './BatchList.js';
-import FreshnessBadge from './FreshnessBadge.js';
-import ItemActions from './Checkout.js';
-import RestockForm from './RestockForm.js';
+import { fetchHardware } from '../api/hardware.js';
+import HardwareActions from './Checkout.js';
+import CheckinForm from './RestockForm.js';
 import Modal from './Modal.js';
 
-const LOCATION_ORDER = ['Pantry', 'Fridge', 'Freezer'];
-
 /**
- * AmbiguityNotice renders the message shown when a restock could not be
- * merged into an existing item because more than one existing item could
- * match it.
+ * HardwareTable renders one row per hardware set in the project, matching
+ * the assignment's Figure 3 Resource Management mockup: a flat list showing
+ * each set's name, capacity, and availability -- a hardware set is just a
+ * named, countable resource, with no other dimension to it.
  *
  * Data source: props only
  * No hard-coded fallback: this component renders nothing it was not given or told.
  *
  * @component
  * @param {Object} props
- * @param {Object} props.notice - Carries `itemName`, `itemKey`, `location`,
- *   and `candidates` describing the restock that could not be merged.
+ * @param {Array} props.hardwareSets - The project's hardware sets, each
+ *   `{ hwSetName, capacity, available }`, in the order received.
+ * @param {Function} props.onRowClick - Called with the clicked hardware set
+ *   when a project member wants to check it out, request it, or check it in.
  */
-function AmbiguityNotice({ notice }) {
+function HardwareTable({ hardwareSets, onRowClick }) {
   return (
-    <p className="ambiguity-notice">
-      &quot;{notice.itemName}&quot; wasn&apos;t merged into an existing item because it could
-      match more than one: {notice.candidates.join(', ')}. A separate item was created instead.
-    </p>
-  );
-}
-
-/**
- * InventoryTable renders every location's items flattened into a single row
- * set -- replaces Phase 5's three per-location `LocationSection` card lists.
- *
- * Data source: props only
- * No hard-coded fallback: this component renders nothing it was not given or told.
- *
- * @component
- * @param {Object} props
- * @param {Array} props.rows - `{ item, location }` pairs, one per item
- *   across all locations, in `LOCATION_ORDER` sequence.
- * @param {Function} props.onRowClick - Called with the clicked row when a
- *   household member wants that item's detail.
- */
-function InventoryTable({ rows, onRowClick }) {
-  return (
-    <div className="inventory-table-wrap">
-      <table className="inventory-table">
+    <div className="hardware-table-wrap">
+      <table className="hardware-table">
         <thead>
           <tr>
-            <th>Location</th>
-            <th>Item</th>
+            <th>Hardware Set</th>
             <th>Capacity</th>
             <th>Available</th>
-            <th>Freshness</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
-            const { item, location } = row;
-            return (
-              <tr
-                key={`${location}:${item.itemKey}`}
-                className="inventory-table__row"
-                onClick={() => onRowClick(row)}
-              >
-                <td>{location}</td>
-                <td>
-                  <button type="button" className="inventory-table__open" aria-haspopup="dialog">
-                    {item.itemName}
-                  </button>
-                </td>
-                <td className="inventory-table__num">{item.capacity}</td>
-                <td className="inventory-table__num">{item.availability}</td>
-                <td>
-                  <FreshnessBadge freshness={item.freshness} location={location} />
-                </td>
-              </tr>
-            );
-          })}
+          {hardwareSets.map((hwSet) => (
+            <tr
+              key={hwSet.hwSetName}
+              className="hardware-table__row"
+              onClick={() => onRowClick(hwSet)}
+            >
+              <td>
+                <button type="button" className="hardware-table__open" aria-haspopup="dialog">
+                  {hwSet.hwSetName}
+                </button>
+              </td>
+              <td className="hardware-table__num">{hwSet.capacity}</td>
+              <td className="hardware-table__num">{hwSet.available}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -87,112 +54,86 @@ function InventoryTable({ rows, onRowClick }) {
 }
 
 /**
- * InventoryView is the top-level presentational component for a household's
- * inventory. It fetches its own inventory data through
- * client/src/api/inventory.js, but accepts session identity as props rather
+ * ResourceView is the top-level presentational component for a project's
+ * hardware resources. It fetches its own data through
+ * client/src/api/hardware.js, but accepts session identity as props rather
  * than reading it from any global auth state -- Track A's session/auth layer
  * wires real values in here once it lands.
  *
- * See .planning/phases/05-ui-design/05-DESIGN.md for the data contract and
- * .planning/phases/06-track-e-visual-design-polish/06-UI-SPEC.md for the
- * dashboard layout this component now renders.
- *
- * Data source: fetches via client/src/api/inventory.js
+ * Data source: fetches via client/src/api/hardware.js
  * No hard-coded fallback: this component renders nothing it was not given or told.
  *
  * @component
  * @param {Object} props
- * @param {string} props.householdId - The household whose inventory to load.
+ * @param {string} props.projectId - The project whose hardware sets to load.
  *   No fallback/default; a real session must supply this.
- * @param {string} props.userId - The acting user's id, used for reserve/
- *   consume/release calls. No fallback/default.
- * @param {string} props.userName - Display name shown on reservation entries
+ * @param {string} props.userId - The acting user's id, used for request/
+ *   checkout/release calls. No fallback/default.
+ * @param {string} props.userName - Display name shown on request entries
  *   this user creates. No fallback/default.
  */
-export default function InventoryView({ householdId, userId, userName }) {
-  const [inventory, setInventory] = useState(null);
+export default function ResourceView({ projectId, userId, userName }) {
+  const [hardware, setHardware] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [ambiguityNotice, setAmbiguityNotice] = useState(null);
   const [openModal, setOpenModal] = useState(null);
 
-  const loadInventory = useCallback(async () => {
+  const loadHardware = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchInventory(householdId, userId);
-      setInventory(data);
+      const data = await fetchHardware(projectId, userId);
+      setHardware(data);
     } catch (fetchError) {
       setError(fetchError.message);
     } finally {
       setLoading(false);
     }
-  }, [householdId, userId]);
+  }, [projectId, userId]);
 
   useEffect(() => {
-    loadInventory();
-  }, [loadInventory]);
+    loadHardware();
+  }, [loadHardware]);
 
-  const handleRestocked = useCallback(
-    async (restockedItem) => {
-      setAmbiguityNotice(
-        restockedItem && restockedItem.matchAmbiguity
-          ? {
-              location: restockedItem.location,
-              itemKey: restockedItem.itemKey,
-              itemName: restockedItem.itemName,
-              candidates: restockedItem.matchAmbiguity,
-            }
-          : null
-      );
-      await loadInventory();
-    },
-    [loadInventory]
-  );
+  const handleCheckedIn = useCallback(async () => {
+    await loadHardware();
+  }, [loadHardware]);
 
   if (loading) {
-    return <p>Loading inventory...</p>;
+    return <p>Loading hardware resources...</p>;
   }
 
   if (error) {
     return (
       <div>
         <p className="error-text">{error}</p>
-        <button type="button" onClick={loadInventory}>
+        <button type="button" onClick={loadHardware}>
           Retry
         </button>
       </div>
     );
   }
 
-  const locations = inventory ? inventory.locations : {};
-
-  const rows = LOCATION_ORDER.flatMap((location) =>
-    (locations[location] || []).map((item) => ({ item, location }))
-  );
+  const hardwareSets = hardware ? hardware.hardwareSets : [];
 
   return (
     <div>
-      <InventoryTable
-        rows={rows}
-        onRowClick={(row) =>
-          setOpenModal({ kind: 'detail', item: row.item, location: row.location })
-        }
+      <HardwareTable
+        hardwareSets={hardwareSets}
+        onRowClick={(hwSet) => setOpenModal({ kind: 'detail', hwSet })}
       />
-      <RestockForm householdId={householdId} userId={userId} onRestocked={handleRestocked} />
+      <CheckinForm projectId={projectId} userId={userId} onCheckedIn={handleCheckedIn} />
       {openModal && openModal.kind === 'detail' && (
-        <Modal title={openModal.item.itemName} onClose={() => setOpenModal(null)}>
-          <p className="item-detail__summary">
-            {openModal.location} &middot; Capacity {openModal.item.capacity} &middot; Available{' '}
-            {openModal.item.availability} &middot;{' '}
-            <FreshnessBadge freshness={openModal.item.freshness} location={openModal.location} />
+        <Modal title={openModal.hwSet.hwSetName} onClose={() => setOpenModal(null)}>
+          <p className="hw-detail__summary">
+            Capacity {openModal.hwSet.capacity} &middot; Available {openModal.hwSet.available}
           </p>
-          <BatchList batches={openModal.item.batches} location={openModal.location} />
-          <ItemActions
-            item={openModal.item}
+          <HardwareActions
+            projectId={projectId}
+            hwSet={openModal.hwSet}
             userId={userId}
             userName={userName}
-            onChanged={loadInventory}
+            onChanged={loadHardware}
           />
         </Modal>
       )}

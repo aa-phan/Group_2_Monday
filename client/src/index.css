@@ -59,21 +59,7 @@
   --color-accent: var(--color-ink);
   --color-danger: var(--color-danger-fg);
 
-  /* Freshness palette (Phase 5 values, unchanged in this task) */
-  --color-fresh-bg: #DCEFD8;
-  --color-fresh-fg: #2F5D2A;
-  --color-fresh-border: #A8CFA0;
-  --color-expiring-bg: #FAEBC8;
-  --color-expiring-fg: #7A5310;
-  --color-expiring-border: #E4C273;
-  --color-expired-bg: #F7DFD8;
-  --color-expired-fg: #8C2F22;
-  --color-expired-border: #E0A99C;
-  --color-unknown-bg: #EDE7DC;
-  --color-unknown-fg: #4A443C;
-  --color-unknown-border: #D4CBBC;
-
-  /* Reservation-state colours (Phase 5 values, unchanged in this task) */
+  /* Request-state colours (own/other claim on a hardware set) */
   --color-claim-own-bg: #E4EBDF;
   --color-claim-own-fg: #3C5233;
   --color-claim-own-border: #B9C9AC;

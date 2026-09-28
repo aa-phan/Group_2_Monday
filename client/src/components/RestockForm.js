@@ -1,34 +1,25 @@
 import { useState } from 'react';
-import { restockItem } from '../api/inventory.js';
-
-const LOCATIONS = ['Pantry', 'Fridge', 'Freezer'];
-
-function todayISODate() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { checkinHardware } from '../api/hardware.js';
 
 /**
- * RestockForm renders the form a household member uses to add a new batch
- * to an item, creating the item if it does not already exist.
+ * CheckinForm renders the form a project member uses to check units of a
+ * hardware set into the project, creating the hardware set if it does not
+ * already exist. Matches the assignment's Figure 3 mockup: a hardware-set
+ * name and a quantity, nothing else -- no location, no dates.
  *
- * Data source: mutates via client/src/api/inventory.js
+ * Data source: mutates via client/src/api/hardware.js
  * No hard-coded fallback: this component renders nothing it was not given or told.
  *
  * @component
  * @param {Object} props
- * @param {string} props.householdId - The household this restock belongs
- *   to. No fallback/default.
+ * @param {string} props.projectId - The project this checkin belongs to.
+ *   No fallback/default.
  * @param {string} props.userId - The acting user's id. No fallback/default.
- * @param {Function} props.onRestocked - Called with the restocked item
- *   after a successful submit, including its `matchAmbiguity` field when
- *   the server could not disambiguate.
+ * @param {Function} props.onCheckedIn - Called after a successful checkin.
  */
-export default function RestockForm({ householdId, userId, onRestocked }) {
-  const [itemName, setItemName] = useState('');
-  const [location, setLocation] = useState(LOCATIONS[0]);
+export default function CheckinForm({ projectId, userId, onCheckedIn }) {
+  const [hwSetName, setHwSetName] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [purchaseDate, setPurchaseDate] = useState(todayISODate());
-  const [bestByDate, setBestByDate] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,16 +29,13 @@ export default function RestockForm({ householdId, userId, onRestocked }) {
     setSubmitting(true);
 
     try {
-      const response = await restockItem({
-        householdId,
+      await checkinHardware({
+        projectId,
         userId,
-        location,
-        itemName,
+        hwSetName,
         quantity: Number(quantity),
-        purchaseDate,
-        bestByDate: bestByDate || null,
       });
-      await onRestocked(response.item);
+      await onCheckedIn();
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -56,28 +44,17 @@ export default function RestockForm({ householdId, userId, onRestocked }) {
   }
 
   return (
-    <form className="restock-form" onSubmit={handleSubmit}>
-      <h3>Restock an item</h3>
+    <form className="checkin-form" onSubmit={handleSubmit}>
+      <h3>Check in a hardware set</h3>
 
       <label>
-        Item name
+        Hardware set name
         <input
           type="text"
-          value={itemName}
-          onChange={(event) => setItemName(event.target.value)}
+          value={hwSetName}
+          onChange={(event) => setHwSetName(event.target.value)}
           required
         />
-      </label>
-
-      <label>
-        Location
-        <select value={location} onChange={(event) => setLocation(event.target.value)}>
-          {LOCATIONS.map((loc) => (
-            <option key={loc} value={loc}>
-              {loc}
-            </option>
-          ))}
-        </select>
       </label>
 
       <label>
@@ -91,27 +68,8 @@ export default function RestockForm({ householdId, userId, onRestocked }) {
         />
       </label>
 
-      <label>
-        Purchase date
-        <input
-          type="date"
-          value={purchaseDate}
-          onChange={(event) => setPurchaseDate(event.target.value)}
-          required
-        />
-      </label>
-
-      <label>
-        Best-by date
-        <input
-          type="date"
-          value={bestByDate}
-          onChange={(event) => setBestByDate(event.target.value)}
-        />
-      </label>
-
       <button type="submit" disabled={submitting}>
-        {submitting ? 'Restocking...' : 'Restock'}
+        {submitting ? 'Checking in...' : 'Checkin'}
       </button>
 
       {error && <p className="error-text">{error}</p>}

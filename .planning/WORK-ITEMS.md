@@ -1,6 +1,6 @@
 # HaaS Resource Manager — Feature Board & Initial Work Items (R1-2)
 
-**Board (visual):** https://claude.ai/code/artifact/f0a9abd4-7299-49bd-87c5-e400d61a4fcc — being updated to match this revision.
+**Board (visual):** https://claude.ai/code/artifact/f0a9abd4-7299-49bd-87c5-e400d61a4fcc
 
 This is the source-of-truth for the Phase 1 rubric item R1-2 ("All Features on a board. Initial work items — user stories, technical debt, or research items — created for features"). If the team also maintains a GitHub Projects board, import these cards there and keep it as the canonical issue-tracker-adjacent board (kept **separate** from the bug/issue tracker per the assignment's General Requirements).
 

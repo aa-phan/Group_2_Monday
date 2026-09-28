@@ -402,10 +402,28 @@ def getHardwareStatus(client, projectId):
 
 def _serializeHardwareSet(doc):
     """Convert a raw Mongo document into a JSON-serializable hardware-set
-    dict with `availability` derived.
+    dict with `available` derived.
+
+    The API boundary uses "request"/"requestId"/"requestedQuantity"/
+    "available" (the assignment mockup's own Figure 3 vocabulary) even
+    though the internal storage/implementation below this line keeps its
+    original "reservation"/"availability" naming -- only this serializer
+    and the /api/hardware/request+release routes in app.py know about the
+    translation, so client and server agree on the wire format without a
+    repo-wide rename of the underlying reservation machinery.
     """
     capacity = doc.get("capacity", 0)
     reservedQuantity = doc.get("reservedQuantity", 0)
+    requests = [
+        {
+            "requestId": reservation.get("reservationId"),
+            "userId": reservation.get("userId"),
+            "userName": reservation.get("userName"),
+            "quantity": reservation.get("quantity"),
+            "createdAt": reservation.get("createdAt"),
+        }
+        for reservation in doc.get("reservations", [])
+    ]
 
     return {
         "_id": str(doc["_id"]) if isinstance(doc.get("_id"), ObjectId) else doc.get("_id"),
@@ -413,7 +431,7 @@ def _serializeHardwareSet(doc):
         "hwSetKey": doc.get("hwSetKey"),
         "hwSetName": doc.get("hwSetName"),
         "capacity": capacity,
-        "reservations": doc.get("reservations", []),
-        "reservedQuantity": reservedQuantity,
-        "availability": max(capacity - reservedQuantity, 0),
+        "requests": requests,
+        "requestedQuantity": reservedQuantity,
+        "available": max(capacity - reservedQuantity, 0),
     }

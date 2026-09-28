@@ -45,7 +45,7 @@ def _rawHardwareSet(mongo, projectId, hwSetKey):
 def test_checkin_creates_hardware_set_with_full_availability(api):
     hwSet = _checkin(api, "H1", "alice", "HWSet1", 10)
     assert hwSet["capacity"] == 10
-    assert hwSet["availability"] == 10
+    assert hwSet["available"] == 10
     assert hwSet["hwSetName"] == "HWSet1"
 
 
@@ -63,7 +63,7 @@ def test_checkout_reduces_capacity(api):
     assert response.status_code == 200
     hwSet = response.get_json()["hardwareSet"]
     assert hwSet["capacity"] == 6
-    assert hwSet["availability"] == 6
+    assert hwSet["available"] == 6
 
 
 def test_checkout_rejects_quantity_exceeding_capacity(api, mongo):

@@ -34,7 +34,7 @@ def _request(api, projectId, userId, userName, hwSetName, quantity):
 def _release(api, projectId, userId, reservationId):
     return api.post(
         "/api/hardware/release",
-        json={"projectId": projectId, "userId": userId, "reservationId": reservationId},
+        json={"projectId": projectId, "userId": userId, "requestId": reservationId},
     )
 
 
@@ -46,11 +46,11 @@ def test_request_adds_reservation_without_reducing_capacity(api):
     body = response.get_json()
     hwSet = body["hardwareSet"]
     assert hwSet["capacity"] == 10
-    assert hwSet["reservedQuantity"] == 4
-    assert hwSet["availability"] == 6
-    assert len(hwSet["reservations"]) == 1
-    assert hwSet["reservations"][0]["userId"] == "alice"
-    assert hwSet["reservations"][0]["quantity"] == 4
+    assert hwSet["requestedQuantity"] == 4
+    assert hwSet["available"] == 6
+    assert len(hwSet["requests"]) == 1
+    assert hwSet["requests"][0]["userId"] == "alice"
+    assert hwSet["requests"][0]["quantity"] == 4
 
 
 def test_request_never_compares_quantity_against_capacity(api):
@@ -62,7 +62,7 @@ def test_request_never_compares_quantity_against_capacity(api):
     response = _request(api, "H1", "alice", "Alice", "HWSet1", 100)
     assert response.status_code == 201
     hwSet = response.get_json()["hardwareSet"]
-    assert hwSet["reservedQuantity"] == 100
+    assert hwSet["requestedQuantity"] == 100
 
 
 def test_request_unknown_hardware_set_returns_404(api):
@@ -72,19 +72,19 @@ def test_request_unknown_hardware_set_returns_404(api):
 
 def test_release_removes_reservation_and_restores_availability(api):
     _checkin(api, "H1", "alice", "HWSet1", 10)
-    reservationId = _request(api, "H1", "alice", "Alice", "HWSet1", 3).get_json()["reservationId"]
+    reservationId = _request(api, "H1", "alice", "Alice", "HWSet1", 3).get_json()["requestId"]
 
     response = _release(api, "H1", "alice", reservationId)
     assert response.status_code == 200
     hwSet = response.get_json()["hardwareSet"]
-    assert hwSet["reservedQuantity"] == 0
-    assert hwSet["availability"] == 10
-    assert hwSet["reservations"] == []
+    assert hwSet["requestedQuantity"] == 0
+    assert hwSet["available"] == 10
+    assert hwSet["requests"] == []
 
 
 def test_release_by_non_owner_is_rejected(api):
     _checkin(api, "H1", "alice", "HWSet1", 10)
-    reservationId = _request(api, "H1", "alice", "Alice", "HWSet1", 3).get_json()["reservationId"]
+    reservationId = _request(api, "H1", "alice", "Alice", "HWSet1", 3).get_json()["requestId"]
 
     # bob is not a member of H1 -- membership check fires first.
     response = _release(api, "H1", "bob", reservationId)
@@ -102,5 +102,5 @@ def test_two_simultaneous_requests_both_survive(api):
     response = _request(api, "H1", "alice", "Alice", "HWSet1", 3)
 
     hwSet = response.get_json()["hardwareSet"]
-    assert hwSet["reservedQuantity"] == 5
-    assert len(hwSet["reservations"]) == 2
+    assert hwSet["requestedQuantity"] == 5
+    assert len(hwSet["requests"]) == 2

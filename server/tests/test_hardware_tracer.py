@@ -29,7 +29,7 @@ def test_checkin_then_read_shows_hardware_set(api):
     assert len(hardwareSets) == 1
     assert hardwareSets[0]["hwSetName"] == "HWSet1"
     assert hardwareSets[0]["capacity"] == 4
-    assert hardwareSets[0]["availability"] == 4
+    assert hardwareSets[0]["available"] == 4
 
 
 def test_second_checkin_of_normalized_name_merges_into_one_set(api):
@@ -74,7 +74,7 @@ def test_full_checkin_request_checkout_release_flow(api):
     reservationId = api.post(
         "/api/hardware/request",
         json={"projectId": "H1", "userId": "alice", "userName": "Alice", "hwSetName": "HWSet1", "quantity": 3},
-    ).get_json()["reservationId"]
+    ).get_json()["requestId"]
 
     checkoutResponse = api.post(
         "/api/hardware/checkout",
@@ -85,10 +85,10 @@ def test_full_checkin_request_checkout_release_flow(api):
 
     releaseResponse = api.post(
         "/api/hardware/release",
-        json={"projectId": "H1", "userId": "alice", "reservationId": reservationId},
+        json={"projectId": "H1", "userId": "alice", "requestId": reservationId},
     )
     assert releaseResponse.status_code == 200
     hwSet = releaseResponse.get_json()["hardwareSet"]
-    assert hwSet["reservedQuantity"] == 0
+    assert hwSet["requestedQuantity"] == 0
     assert hwSet["capacity"] == 5
-    assert hwSet["availability"] == 5
+    assert hwSet["available"] == 5

@@ -276,8 +276,9 @@ def request_hardware():
         # Close the MongoDB connection
         client.close()
 
-    # Return a JSON response
-    return jsonify({"reservationId": reservationId, "hardwareSet": hardwareSet}), 201
+    # Return a JSON response (wire field is "requestId" -- the assignment
+    # mockup's own "Request" vocabulary; internal storage stays reservationId)
+    return jsonify({"requestId": reservationId, "hardwareSet": hardwareSet}), 201
 
 # Route for releasing a request (reservation) the caller created
 @app.route('/api/hardware/release', methods=['POST'])
@@ -286,7 +287,9 @@ def release_hardware():
     body = request.get_json(silent=True) or {}
     projectId = body.get('projectId')
     userId = body.get('userId')
-    reservationId = body.get('reservationId')
+    # Wire field is "requestId" (the assignment mockup's own "Request"
+    # vocabulary); internal storage/functions still call it reservationId.
+    reservationId = body.get('requestId')
 
     if not projectId:
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400

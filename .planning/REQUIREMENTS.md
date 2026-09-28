@@ -1,9 +1,10 @@
-# Requirements: PantryTrack — Household Food Inventory PoC (Group 2 Monday)
+# Requirements: HaaS Resource Manager PoC (Group 2 Monday)
 
 **Defined:** 2026-09-14 (re-scoped from generic hardware domain to household food inventory domain)
-**Core Value:** A household member can see what food the household has across pantry/fridge/freezer, reserve or consume items, and restock — all from live shared data, with no hard-coded values anywhere in the app.
+**Reverted:** 2026-09-28 (food-inventory reframing dropped; back to the assignment's generic HaaS/hardware-resource domain)
+**Core Value:** A project member can see what hardware sets a project has, request/check out units they need, and check units back in — all from live shared data, with no hard-coded values anywhere in the app.
 
-Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirements SR1–SR5, MVP feature spec for User Management / Resource Management), reframed onto a household food inventory: household = "project", food item stock = "hardware resource".
+Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirements SR1–SR5, MVP feature spec for User Management / Resource Management), implemented directly per the assignment's own domain — no reframing.
 
 ## v1 Requirements
 
@@ -14,35 +15,35 @@ Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirement
 - [ ] **ACCT-03**: Userid and password are encrypted (not stored or transmitted in plaintext)
 - [ ] **ACCT-04**: User session persists across page navigation within the app
 
-### Household (SN1, SR4, SR5)
+### Project (SN1, SR4, SR5)
 
-- [ ] **HH-01**: User can create a new household by providing name, description, and householdID
-- [ ] **HH-02**: User can join/access an existing household by entering its householdID
-- [ ] **HH-03**: User can view the list of households they belong to
+- [ ] **PROJ-01**: User can create a new project by providing name, description, and projectID
+- [ ] **PROJ-02**: User can join/access an existing project by entering its projectID
+- [ ] **PROJ-03**: User can view the list of projects they belong to
 
-### Inventory (SN2, SN3, SN4, SN5, SR5)
+### Hardware Resources (SN2, SN3, SN4, SN5, SR5)
 
-- [x] **INV-01**: User can view all food items in a household's inventory, grouped by location (Pantry / Fridge / Freezer), each showing capacity (total units stocked) and availability (units not yet reserved or consumed)
-- [x] **INV-02**: User can restock an item — add a quantity with a purchase date and a best-by/expiration date ("check-in")
-- [x] **INV-03**: User can reserve/claim a quantity of an item for themselves without removing it from inventory ("request")
-- [x] **INV-04**: User can consume/remove a quantity of an item from inventory ("checkout"), and the action is rejected if it would exceed what's currently available
-- [x] **INV-05**: Each item displays a simple freshness flag (fresh / expiring soon / expired) computed from its best-by date vs. today — no sensor or ML input required
+- [x] **RES-01**: User can view all hardware sets in a project, each showing capacity (total units) and availability (units not yet checked out)
+- [x] **RES-02**: User can check in a hardware set — add units to its capacity/availability
+- [x] **RES-03**: User can request/claim units of a hardware set for themselves without removing them from availability
+- [x] **RES-04**: User can check out units of a hardware set, and the action is rejected if it would exceed what's currently available
+- [x] **RES-05**: A project can define any number of named hardware sets, not limited to a fixed pair
 
 ### Data & API (SR2, SR5, R2-1, R2-2)
 
-- [ ] **DATA-01**: User, household, and food-item data are persisted in MongoDB — no hard-coded data on any page
-- [ ] **DATA-02**: A REST API layer exposes user/household/inventory operations to the React frontend
-- [ ] **DATA-03**: Frontend renders all displayed values (capacity, availability, household list, item details, freshness flags) from live API responses
+- [ ] **DATA-01**: User, project, and hardware-set data are persisted in MongoDB — no hard-coded data on any page
+- [ ] **DATA-02**: A REST API layer exposes user/project/hardware-set operations to the React frontend
+- [ ] **DATA-03**: Frontend renders all displayed values (capacity, availability, project list, hardware-set details) from live API responses
 
 ### Deployment & Quality (SN6, SR1, R2-3, SN0)
 
 - [ ] **OPS-01**: App is deployed to a cloud host and reachable via a public URL for TAs/instructor
-- [ ] **OPS-02**: Automated tests (PyTest) cover core backend routes (login, create/join household, reserve, consume, restock)
+- [ ] **OPS-02**: Automated tests (PyTest) cover core backend routes (login, create/join project, request, checkout, checkin)
 
 ### Track C Stretch Features (not from PDF rubric — promoted backlog, Track C's Phase 2 scope)
 
 - [ ] **STRETCH-01**: User can reset a forgotten password via the existing Forgot Password flow
-- [ ] **STRETCH-02**: User can define custom storage locations beyond Pantry/Fridge/Freezer
+- [ ] **STRETCH-02**: User can define an arbitrary number of named hardware sets for a project, not limited to a fixed HWSet1/HWSet2 pair
 
 > Note: R1-1 (Project Plan — team members, sprint cadence, collaboration tools, methodology, toolchain) is now owned by Track A.
 
@@ -54,47 +55,36 @@ Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirement
 | R1-2 | Feature board (all features + initial work items) | Track B |
 | R1-4 | Tool choice & approach | Track C |
 | R1-3 | High-level sketch of application architecture | Track D |
-| R2-1 | Hardware/food-item resources stored in DB with an API | Track B |
-| R2-2 | User/household info live in the app, no hard-coded data | Track A |
+| R2-1 | Hardware resources stored in DB with an API | Track B |
+| R2-2 | User/project info live in the app, no hard-coded data | Track A |
 | R2-3 | Cloud deployment reachable via public URL | Track D |
 
 > Track C has no numbered R2 rubric item (only 3 exist for 4 tracks). Its Phase 2 contribution is instead the Stretch Features group above (STRETCH-01, STRETCH-02), promoted from the v2 backlog.
 
 ## v2 Requirements
 
-Deferred — acknowledged as valuable but out of committed scope for this PoC. These require hardware sensors, ML modeling, or third-party integrations not achievable in a semester project; several are natural candidates for research spikes on the board rather than committed user stories.
+Deferred — acknowledged as valuable but out of committed scope for this PoC.
 
 ### Automated Capture
 
-- **CAP-01**: RFID tag scanning to auto-detect items entering/leaving storage
-- **CAP-02**: Barcode scanning for quick item entry
-- **CAP-03**: Shelf/fridge weight sensors to detect quantity changes automatically
-- **CAP-04**: Fridge camera + computer vision to identify items without manual entry
-- **CAP-05**: Receipt/email scanning to auto-populate restocked items
+- **CAP-01**: RFID/barcode scanning to auto-detect hardware entering/leaving storage
+- **CAP-02**: Sensor-based automatic detection of checkout/checkin events
 
 ### Intelligent Tracking
 
-- **INT-01**: Consumption detection — distinguish "eaten" vs. "discarded" vs. "moved to another container" (MVP treats all removals as a single manual "consume" action)
-- **INT-02**: True spoilage prediction using storage temperature, humidity, package status, and food-specific shelf-life models (MVP uses a flat best-by-date comparison)
-- **INT-03**: Per-person behavior adaptation (e.g., learned consumption rate, frequently-ignored leftovers) driving smarter recommendations
+- **INT-01**: Usage analytics — which hardware sets are checked out most, run low most often
+- **INT-02**: Per-user behavior adaptation (e.g., typical checkout duration, frequent requesters) driving smarter availability forecasting
 
-### Planning & Purchasing
+### Planning & Procurement
 
-- **PLAN-01**: Meal planning recommendations based on what will spoil first, dietary restrictions, cook time, and servings needed
-- **PLAN-02**: Waste analytics — surface repeatedly discarded items and suggest smaller/adjusted purchase quantities
-- **PLAN-03**: Automated grocery list generation / staple reordering with duplicate-purchase avoidance
-
-### Safety
-
-- **SAFE-01**: Refrigeration-failure and temperature-excursion alerts
-- **SAFE-02**: "Food left out too long" timers/alerts
-- **SAFE-03**: Product recall lookups against scanned/logged items
+- **PLAN-01**: Low-availability alerts and automated reorder/procurement suggestions
+- **PLAN-02**: Checkout-duration reminders / overdue-return notifications
 
 ### Enhancements (from prior scoping pass, still applicable)
 
 - **ENH-01**: Password reset / "Forgot Password" flow (scaffold page `ForgotMyPassword.js` exists but not required by stakeholder needs) — **promoted to v1 committed scope as STRETCH-01 under Track C**
-- **ENH-02**: Admin view to define new food item categories/locations beyond Pantry/Fridge/Freezer — **promoted to v1 committed scope as STRETCH-02 under Track C**
-- **ENH-03**: Partial/fractional quantity tracking within a unit (e.g. "half the milk carton is left") — raised during Track B's discuss-phase; deferred, v1 uses whole-unit integer quantities only. See `.planning/phases/02-inventory-management/02-CONTEXT.md` Deferred Ideas.
+- **ENH-02**: Admin view to define new named hardware sets beyond a fixed pair — **promoted to v1 committed scope as STRETCH-02 under Track C**
+- **ENH-03**: Partial/fractional quantity tracking within a unit — raised during Track B's discuss-phase; deferred, v1 uses whole-unit integer quantities only.
 
 ## Out of Scope
 
@@ -105,6 +95,7 @@ Deferred — acknowledged as valuable but out of committed scope for this PoC. T
 | Mobile app | SR2 specifies a web front-end only |
 | Any physical sensor/hardware integration | No hardware budget/timeline for a course project — see v2 Automated Capture items instead |
 | Billing / payment processing | Not a stakeholder need |
+| Per-location/storage grouping of hardware sets | Not part of the assignment's mockup — a flat list of named hardware sets, no location dimension |
 
 ## Traceability
 
@@ -116,14 +107,14 @@ Which tracks cover which requirements. Populated during roadmap creation.
 | ACCT-02 | Track A | Pending |
 | ACCT-03 | Track A | Pending |
 | ACCT-04 | Track A | Pending |
-| HH-01 | Track A | Pending |
-| HH-02 | Track A | Pending |
-| HH-03 | Track A | Pending |
-| INV-01 | Track B | Complete |
-| INV-02 | Track B | Complete |
-| INV-03 | Track B | Complete |
-| INV-04 | Track B | Complete |
-| INV-05 | Track B | Complete |
+| PROJ-01 | Track A | Pending |
+| PROJ-02 | Track A | Pending |
+| PROJ-03 | Track A | Pending |
+| RES-01 | Track B | Complete |
+| RES-02 | Track B | Complete |
+| RES-03 | Track B | Complete |
+| RES-04 | Track B | Complete |
+| RES-05 | Track B | Complete |
 | DATA-01 | Track C | Pending |
 | DATA-02 | Track C | Pending |
 | DATA-03 | Track C | Pending |
@@ -140,4 +131,4 @@ Which tracks cover which requirements. Populated during roadmap creation.
 
 ---
 *Requirements defined: 2026-09-14*
-*Last updated: 2026-09-14 after restructuring to 4-track parallel structure (4 developers)*
+*Last updated: 2026-09-28 — reverted food-inventory domain (HH-*/INV-* IDs) back to generic HaaS domain (PROJ-*/RES-* IDs), status marks preserved from the equivalent already-shipped Track B work*

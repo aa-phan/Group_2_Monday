@@ -1,25 +1,33 @@
-# Roadmap: PantryTrack — Household Food Inventory PoC (Group 2 Monday)
+# Roadmap: HaaS Resource Manager PoC (Group 2 Monday)
 
 ## Overview
 
-This roadmap delivers the PantryTrack PoC by completing the existing Flask/MongoDB/React scaffold
-(routes and DB modules are stubbed but not implemented; client pages/components are still named
-generically after the assignment's "project"/"hardware set" template). Work is organized into
-**four parallel tracks**, one per developer (the team confirmed 4 developers), following the
-codebase's existing module seams rather than a sequential build order:
+This roadmap delivers the assignment's generic Hardware-as-a-Service (HaaS) PoC by completing the
+existing Flask/MongoDB/React scaffold (routes and DB modules are stubbed but not implemented;
+client pages/components are still named generically after the assignment's "project"/"hardware
+set" template). Work is organized into **four parallel tracks**, one per developer (the team
+confirmed 4 developers), following the codebase's existing module seams rather than a sequential
+build order:
 
-- **Track A — Account & Household Management**: everything in `usersDatabase.py` plus
-  the household-CRUD/membership half of `projectsDatabase.py` (households replace "projects"),
-  and the `MyLoginPage` / `MyRegistrationPage` / household-list parts of the frontend.
-- **Track B — Inventory Management**: everything in `hardwareDatabase.py` (food item
-  stock replaces "hardware sets") plus the reserve/consume/restock half of `projectsDatabase.py`,
-  and the `Checkout` / capacity-availability-by-location parts of the frontend.
+> **Domain note (mid-project pivot, 2026-09-28):** an earlier iteration of this roadmap reframed
+> "hardware set" as household food-item stock (pantry/fridge/freezer locations, freshness rules,
+> purchase batches). That reframing has been reverted — this roadmap and the codebase now
+> implement the assignment's generic hardware-resource domain directly (named hardware sets,
+> flat capacity/availability, request/checkout/checkin). Phase numbers, track ownership, and wave
+> structure below are unchanged from the food-domain era; only the domain nouns are.
+
+- **Track A — Account & Project Management**: everything in `usersDatabase.py` plus
+  the project-CRUD/membership half of `projectsDatabase.py`, and the
+  `MyLoginPage` / `MyRegistrationPage` / project-list parts of the frontend.
+- **Track B — Hardware Resource Management**: everything in `hardwareDatabase.py`
+  plus the request/checkout/checkin half of `projectsDatabase.py`,
+  and the resource-status/capacity-availability parts of the frontend.
 - **Track C — Data Integration & API**: eliminating hard-coded data everywhere and
   hardening the REST API layer so it only fully resolves once Tracks A and B have landed. Track
   C's *infrastructure* sub-tasks (Mongo Atlas provisioning, API response conventions) can start on
   day one in parallel with Tracks A and B; only the final integration/verification sub-tasks are
   gated on A and B substantially landing. Track C also owns two promoted stretch features
-  (password reset, custom storage locations) as its own committed Phase 2 scope, since only 3 of
+  (password reset, arbitrary named hardware sets) as its own committed Phase 2 scope, since only 3 of
   the 4 tracks can own one of the 3 real Phase 2 rubric items.
 - **Track D — Deployment & Quality**: writing PyTest coverage for the core backend routes and
   deploying the app to a public cloud URL. Track D's *infrastructure* sub-tasks (deployment
@@ -27,13 +35,13 @@ codebase's existing module seams rather than a sequential build order:
   tracks; only the final integration/verification/deploy sub-tasks are gated on Tracks A, B, and C
   substantially landing.
 
-**Explicit coordination point (resolved):** Track A owns household CRUD and membership
-(`server/projectsDatabase.py` — create household, join household, look up a user's households).
-Track B owns item-quantity updates and lives in a **separate `Items` collection**, not embedded in
-the household document — a one-way architecture decision made during Track B's 02-01 execution
+**Explicit coordination point (resolved):** Track A owns project CRUD and membership
+(`server/projectsDatabase.py` — create project, join project, look up a user's projects).
+Track B owns hardware-set quantity updates and lives in a **separate collection**, not embedded in
+the project document — a one-way architecture decision made during Track B's 02-01 execution
 checkpoint specifically to avoid the write-contention/merge-conflict risk this coordination point
-originally flagged. Items reference their household by ID; Track A and Track B no longer write to
-the same document at all.
+originally flagged. Hardware sets reference their project by ID; Track A and Track B no longer
+write to the same document at all.
 
 ## Phases
 
@@ -50,26 +58,26 @@ track's "Depends on" line for the one place they touch.
 > prefix here exists solely so `/gsd-discuss-phase`, `/gsd-plan-phase`, etc. can locate each
 > track's section.
 
-- [ ] **Phase 1 (Track A): Account & Household Management** - Users can securely register, log in, stay signed in, and create or join a household
-- [x] **Phase 2 (Track B): Inventory Management** - Users can view pantry/fridge/freezer inventory by location, reserve items, consume/checkout items, restock/check-in items, and see freshness flags (completed 2026-09-22)
-- [ ] **Phase 3 (Track C): Data Integration & API** - The app runs entirely on live MongoDB/REST data, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered
+- [ ] **Phase 1 (Track A): Account & Project Management** - Users can securely register, log in, stay signed in, and create or join a project
+- [x] **Phase 2 (Track B): Hardware Resource Management** - Users can view hardware-set status, request units, check units out, and check units back in (completed 2026-09-22)
+- [ ] **Phase 3 (Track C): Data Integration & API** - The app runs entirely on live MongoDB/REST data, and Track C's own promoted stretch features (password reset, arbitrary named hardware sets) are delivered
 - [ ] **Phase 4 (Track D): Deployment & Quality** - The app is test-covered and reachable via a public URL
-- [x] **Phase 5 (Track E): UI Design** - Track B's inventory UI is visually coherent and phone-usable, with a documented component contract for Track A/C to wire into (completed 2026-09-24)
+- [x] **Phase 5 (Track E): UI Design** - Track B's hardware-resource UI is visually coherent and phone-usable, with a documented component contract for Track A/C to wire into (completed 2026-09-24)
 
 ## Phase Details
 
-### Phase 1 (Track A): Account & Household Management
+### Phase 1 (Track A): Account & Project Management
 
-**Goal**: A household member can securely create an account, log in, stay logged in, and create or join a household to track shared food inventory within.
+**Goal**: A project member can securely create an account, log in, stay logged in, and create or join a project to manage shared hardware resources within.
 **Depends on**: Nothing (first track — can start immediately in parallel with Track B and Track C's infra sub-tasks)
-**Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04, HH-01, HH-02, HH-03
+**Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04, PROJ-01, PROJ-02, PROJ-03
 **Success Criteria** (what must be TRUE):
 
   1. A new user can register via the "New User" sign-up form and immediately log in with those same credentials.
   2. Userid and password are never stored or transmitted in plaintext (encrypted at rest and in transit).
   3. A logged-in user remains logged in while navigating between pages within the app (session persists).
-  4. A user can create a new household by supplying a name, description, and householdID.
-  5. A user can join an existing household by entering its householdID, and can see the list of every household they belong to.
+  4. A user can create a new project by supplying a name, description, and projectID.
+  5. A user can join an existing project by entering its projectID, and can see the list of every project they belong to.
 
 **Plans**: TBD
 **UI hint**: yes
@@ -78,18 +86,18 @@ Plans:
 
 - [ ] 01-01: TBD
 
-### Phase 2 (Track B): Inventory Management
+### Phase 2 (Track B): Hardware Resource Management
 
-**Goal**: Within a household, a member can see what food is on hand across pantry/fridge/freezer and reserve, consume, or restock items without ever over-committing what's available.
-**Depends on**: Track A only for cross-track integration testing (items reference a householdId but live in their own collection, not `projectsDatabase.py`'s document — see the resolved coordination point above). Development can proceed in parallel using seeded/test household data.
-**Requirements**: INV-01, INV-02, INV-03, INV-04, INV-05
+**Goal**: Within a project, a member can see what hardware sets are on hand and request, check out, or check in units without ever over-committing what's available.
+**Depends on**: Track A only for cross-track integration testing (hardware sets reference a projectId but live in their own collection, not `projectsDatabase.py`'s document — see the resolved coordination point above). Development can proceed in parallel using seeded/test project data.
+**Requirements**: RES-01, RES-02, RES-03, RES-04, RES-05
 **Success Criteria** (what must be TRUE):
 
-  1. A user can view all food items in a household's inventory grouped by location (Pantry / Fridge / Freezer), each showing capacity (total units stocked) and availability (units not yet reserved or consumed).
-  2. A user can restock an item — adding a quantity along with a purchase date and a best-by/expiration date ("check-in").
-  3. A user can reserve/claim a quantity of an item for themselves without removing it from the shared inventory ("request").
-  4. A user can consume/remove a quantity of an item from inventory ("checkout"), and the action is rejected if it would exceed what's currently available.
-  5. Every item displays a freshness flag (fresh / expiring soon / expired) computed from its best-by date compared to today — no sensor or ML input required.
+  1. A user can view all hardware sets in a project's inventory, each showing capacity (total units) and availability (units not yet requested or checked out).
+  2. A user can check in a hardware set — adding units to its capacity/availability.
+  3. A user can request/claim units of a hardware set for themselves without removing them from shared availability.
+  4. A user can check out units of a hardware set, and the action is rejected if it would exceed what's currently available.
+  5. A project can define any number of named hardware sets, not limited to a fixed pair.
 
 **Plans**: 4 plans
 **UI hint**: yes
@@ -97,31 +105,31 @@ Plans:
 Plans:
 **Wave 1**
 
-- [x] 02-01-PLAN.md — Tracer: restock one item into a location and see it in the inventory view (INV-01, INV-02)
+- [x] 02-01-PLAN.md — Tracer: check in one hardware set and see it in the resource view (RES-01, RES-02)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [x] 02-02-PLAN.md — Location-specific freshness flags: Pantry, Fridge, and Freezer rule-sets (INV-05)
+- [x] 02-02-PLAN.md — (superseded — was location-specific freshness rules, dropped in the domain revert; hardware sets carry no freshness concept)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [x] 02-03-PLAN.md — Item identity matching across restocks and per-item batch detail (INV-01, INV-02)
+- [x] 02-03-PLAN.md — Hardware-set identity across checkins and per-set detail (RES-01, RES-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [x] 02-04-PLAN.md — Reserve, release, and FIFO consume with the overbooking guard (INV-03, INV-04)
+- [x] 02-04-PLAN.md — Request, release, and checkout with the overbooking guard (RES-03, RES-04)
 
 ### Phase 3 (Track C): Data Integration & API
 
-**Goal**: The full application runs against a live MongoDB-backed REST API with zero hard-coded data anywhere, and Track C's own promoted stretch features (password reset, custom storage locations) are delivered as its Phase 2 scope.
+**Goal**: The full application runs against a live MongoDB-backed REST API with zero hard-coded data anywhere, and Track C's own promoted stretch features (password reset, arbitrary named hardware sets) are delivered as its Phase 2 scope.
 **Depends on**: Track A and Track B for final integration and verification (needs both feature sets substantially implemented to confirm no hard-coded data remains and exercise the full REST surface). Infra sub-tasks (MongoDB Atlas provisioning, API response conventions) can start on day one in parallel with Track A and Track B.
 **Requirements**: DATA-01, DATA-02, DATA-03, STRETCH-01, STRETCH-02
 **Success Criteria** (what must be TRUE):
 
-  1. All user, household, and food-item data lives in MongoDB collections, and every CRUD operation for each goes through a REST endpoint (no other data path exists).
-  2. Every page in the app (login, household portal/list, inventory view, reserve/consume/restock) renders its data — capacity, availability, household list, item details, freshness flags — from a live REST API call, with no hard-coded or mock values remaining in any component.
-  3. A user who forgot their password can reset it via the existing Forgot Password flow and regain access to their household's inventory.
-  4. A household member can define storage locations beyond the default Pantry/Fridge/Freezer (e.g. a garage freezer or wine fridge).
+  1. All user, project, and hardware-set data lives in MongoDB collections, and every CRUD operation for each goes through a REST endpoint (no other data path exists).
+  2. Every page in the app (login, project portal/list, hardware-resource view, request/checkout/checkin) renders its data — capacity, availability, project list, hardware-set details — from a live REST API call, with no hard-coded or mock values remaining in any component.
+  3. A user who forgot their password can reset it via the existing Forgot Password flow and regain access to their project's hardware resources.
+  4. A project member can define an arbitrary number of named hardware sets beyond a fixed pair.
 
 **Plans**: TBD
 **UI hint**: yes
@@ -137,8 +145,8 @@ Plans:
 **Requirements**: OPS-01, OPS-02
 **Success Criteria** (what must be TRUE):
 
-  1. Automated PyTest tests exist and pass for the core backend routes: login, create household, join household, reserve, consume, restock.
-  2. The deployed app is reachable at a public URL, and the instructor/TAs can complete the full account → household → reserve/consume/restock flow against the hosted instance.
+  1. Automated PyTest tests exist and pass for the core backend routes: login, create project, join project, request, checkout, checkin.
+  2. The deployed app is reachable at a public URL, and the instructor/TAs can complete the full account → project → request/checkout/checkin flow against the hosted instance.
 
 **Plans**: TBD
 **UI hint**: no
@@ -149,15 +157,15 @@ Plans:
 
 ### Phase 5 (Track E): UI Design
 
-**Goal**: Track B's inventory UI is visually coherent and usable on a phone, and Track A/Track C have a documented component contract to wire their own UI into instead of touching presentation internals.
-**Depends on**: Track B (all design work operates on Track B's already-built components — `InventoryView`, `RestockForm`, `FreshnessBadge`, `BatchList`, `Checkout`/`ItemActions`). Not gated on Track A or Track C landing first — the harness items (TD-13/TD-14/TD-15) are written *for* those tracks to consume later, not blocked on them existing yet.
+**Goal**: Track B's hardware-resource UI is visually coherent and usable on a phone, and Track A/Track C have a documented component contract to wire their own UI into instead of touching presentation internals.
+**Depends on**: Track B (all design work operates on Track B's already-built components). Not gated on Track A or Track C landing first — the harness items are written *for* those tracks to consume later, not blocked on them existing yet.
 **Requirements**: None from REQUIREMENTS.md — Track E is additive quality work, not tied to a stakeholder need or system requirement. Board items use `DESIGN` in place of a requirement ID.
 **Owner**: Aaron Phan, dual duty alongside Track B.
 **Success Criteria** (what must be TRUE):
 
-  1. The inventory view has clear visual grouping and spacing — not bare HTML tables — and is usable on a phone-width screen.
-  2. Freshness badges use consistent color coding a household member can recognize without reading the label text.
-  3. `InventoryView`'s session-identity props (`householdId`, `userId`, `userName`) are documented as a contract at one call site, so Track A can wire in real session data without touching component internals.
+  1. The hardware-resource view has clear visual grouping and spacing — not bare HTML tables — and is usable on a phone-width screen.
+  2. Status/availability indicators use consistent color coding a project member can recognize without reading the label text.
+  3. The top-level resource-view component's session-identity props (`projectId`, `userId`, `userName`) are documented as a contract at one call site, so Track A can wire in real session data without touching component internals.
   4. Every presentational component's data-only prop contract (no internal fetch, no hard-coded fallback) is documented, so Track C can audit DATA-01/DATA-03 against it directly.
   5. A small shared set of style tokens (spacing/color/typography) exists and is documented for Track A and Track C's own UI to adopt.
 
@@ -167,7 +175,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [x] 05-01-PLAN.md — Warm-kitchen design tokens, shelf-card inventory layout, and the phone-width breakpoint (DESIGN)
+- [x] 05-01-PLAN.md — Design tokens, shelf-card resource layout, and the phone-width breakpoint (DESIGN)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -176,48 +184,42 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Track A and Track B execute in parallel (independent tracks, one coordination point on `projectsDatabase.py`'s household document). Track C's and Track D's infra sub-tasks start alongside them; Track C's integration/verification sub-tasks and Track D's integration/verification/deploy sub-tasks complete last, after Track A, Track B, and (for Track D) Track C substantially land. Track E (Aaron's dual duty) starts once Track B's UI exists to design against; its harness items are consumed by Track A/Track C whenever those tracks build their own UI.
+Track A and Track B execute in parallel (independent tracks, one coordination point on `projectsDatabase.py`'s project document). Track C's and Track D's infra sub-tasks start alongside them; Track C's integration/verification sub-tasks and Track D's integration/verification/deploy sub-tasks complete last, after Track A, Track B, and (for Track D) Track C substantially land. Track E (Aaron's dual duty) starts once Track B's UI exists to design against; its harness items are consumed by Track A/Track C whenever those tracks build their own UI.
 
 | Track | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| A. Account & Household Management | 0/TBD | Not started | - |
-| B. Inventory Management | 4/4 | Complete | 2026-09-22 |
+| A. Account & Project Management | 0/TBD | Not started | - |
+| B. Hardware Resource Management | 4/4 | Complete | 2026-09-22 |
 | C. Data Integration & API | 0/TBD | Not started | - |
 | D. Deployment & Quality | 0/TBD | Not started | - |
 | E. UI Design | 0/2 | Planned | - |
 
 ### Phase 6 (Track E): Dashboard Redesign
 
-**Goal**: PantryTrack's inventory UI is rebuilt as a genuine dashboard — a distinct botanical/organic-serif visual language (warm alabaster/sage/terracotta palette, Playfair Display + Source Sans 3 typography, soft-shadow rounded surfaces) applied to a real dashboard information architecture (a single filterable data table with location tabs and a stats/filter strip, centered modal dialogs for Add Item and item-detail actions) — not a token-only polish pass over Phase 5's per-location card-list layout.
-**Depends on**: Phase 5 (Track E: UI Design). The underlying data contract, component prop shapes, and fetch/mutation behavior documented in `05-DESIGN.md` must not change — `InventoryView` still fetches the same way and takes the same props — but the presentational markup (per-location card sections, inline restock form, inline card-expansion) is deliberately replaced, not just re-skinned. This phase supersedes Phase 5's "hairline borders, no shadow, no gradient" elevation rule and its brown/teal/blue palette with the new botanical direction; 05-DESIGN.md's data-layer contract sections remain authoritative, its visual-token sections do not.
+**Goal**: The hardware-resource UI is rebuilt as a genuine dashboard — a distinct visual language (warm neutral palette, serif/sans type pairing, soft-shadow rounded surfaces) applied to a real dashboard information architecture (a single filterable data table of hardware sets, centered modal dialogs for Check-In and set-detail actions) — not a token-only polish pass over Phase 5's per-set card-list layout.
+**Depends on**: Phase 5 (Track E: UI Design). The underlying data contract, component prop shapes, and fetch/mutation behavior documented in `05-DESIGN.md` must not change — the top-level view component still fetches the same way and takes the same props — but the presentational markup (card sections, inline check-in form, inline card-expansion) is deliberately replaced, not just re-skinned. This phase supersedes Phase 5's "hairline borders, no shadow, no gradient" elevation rule and its original palette with the new direction; 05-DESIGN.md's data-layer contract sections remain authoritative, its visual-token sections do not.
 **Requirements**: None from REQUIREMENTS.md — additive quality work, same as Phase 5. Board items use `DESIGN` in place of a requirement ID.
 **Owner**: Aaron Phan, dual duty alongside Track B.
-**Scope note (locked via live in-browser preview, 2026-09-24 — see 06-UI-SPEC.md):** three prior directions were prototyped live and rejected before this one: (1) a token-only deepening of Phase 5's existing palette — too timid; (2) a botanical palette applied to Phase 5's existing 3-column card-board layout — the side-by-side columns read as a Kanban board implying drag-and-drop that doesn't exist (flagged by `ux-heuristics-review`); (3) the dashboard-table layout with right-side sliding drawers for Add Item and item-detail — functionally fine but visually inconsistent with the botanical direction's rounded, centered-modal-friendly aesthetic. The locked direction (4th iteration) keeps the table+filter-tabs+modal structure from (3) but replaces both drawers with centered rounded modals.
+**Domain-pivot note (2026-09-28):** this phase was originally designed and partially executed against the food-inventory domain (per-location card board, botanical/organic-serif palette named for a kitchen aesthetic). Following the project's revert to the generic HaaS domain, this phase's remaining work is being re-scoped in parallel: the underlying dashboard structure (single filterable table + centered modals, chosen after rejecting a Kanban-style card-board layout per `ux-heuristics-review`) is domain-agnostic and carries forward; the visual palette stays as a generic warm/neutral design language (no longer named or framed around a kitchen/pantry aesthetic); all remaining content (column headers, copy, filter dimensions) is generalized to hardware sets — no Location column/filter (hardware sets have no location dimension in the generic domain), Item → Hardware Set, Consume/Reserve/Release → Checkout/Request/Release.
 **Success Criteria** (what must be TRUE):
 
-  1. The app has a clear, consistent visual point of view (the botanical/organic-serif direction: warm neutral background, sage/terracotta/forest-green palette, Playfair Display display type + Source Sans 3 body type, heavily rounded soft-shadow surfaces, pill-shaped controls) applied across every screen state, not just the happy-path table.
-  2. The inventory list is a single filterable data table (Location/Item/Capacity/Available/Freshness columns) with location filter pills (All/Pantry/Fridge/Freezer) above it, replacing Phase 5's three stacked/side-by-side per-location card sections.
-  3. Clicking a table row opens a centered modal dialog showing that item's batch history and Consume/Reserve/Release controls; the "+ Add Item" header action opens the restock form in the same centered-modal pattern. Both modals share one consistent chrome (rounded corners, soft shadow, dimmed backdrop, explicit × close button, backdrop-click-to-close) — no sidebar/drawer pattern.
-  4. Every UI state a user can actually hit is designed, not just functionally present: loading, error/retry, and empty states are visually intentional and match the rest of the system (closing the Phase 5 UI-review gap on the unstyled Retry button and plain-text loading state).
-  5. The underlying data contract is unchanged: `InventoryView`'s props, `client/src/api/inventory.js`'s fetch/mutation calls, and every item/batch/reservation field consumed from the server are identical to Phase 5 — only the presentational markup and styling change. WCAG AA contrast is maintained under the new palette.
+  1. The app has a clear, consistent visual point of view (warm neutral background, a small deliberate accent palette, a serif/sans type pairing, heavily rounded soft-shadow surfaces, pill-shaped controls) applied across every screen state, not just the happy-path table.
+  2. The hardware-resource list is a single data table (Hardware Set/Capacity/Available columns) — no location filter/column, since the generic domain has no location dimension.
+  3. Clicking a table row opens a centered modal dialog showing that hardware set's detail and Checkout/Request/Release controls; a "+ Check In" header action opens the check-in form in the same centered-modal pattern. Both modals share one consistent chrome (rounded corners, soft shadow, dimmed backdrop, explicit × close button, backdrop-click-to-close) — no sidebar/drawer pattern.
+  4. Every UI state a user can actually hit is designed, not just functionally present: loading, error/retry, and empty states are visually intentional and match the rest of the system.
+  5. The underlying data contract matches the reverted generic backend: capacity/availability per named hardware set, no location/freshness/batch fields. WCAG AA contrast is maintained under the new palette.
   6. A follow-up 6-pillar UI audit scores meaningfully higher than Phase 5's 19/24, with Experience Design and Visuals specifically improved.
 
-**Plans**: 3 plans
+**Plans**: 3 plans (in progress — re-scoping to the generic domain in parallel with this roadmap update; see Track B/server and client rework)
 
 Plans:
 **Wave 1**
 
-- [ ] 06-01-PLAN.md — Dashboard tracer: botanical tokens, the flattened inventory table, and the shared modal chrome (DESIGN)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
+- [~] 06-01-PLAN.md — Dashboard tracer: tokens, the flattened hardware-set table, and the shared modal chrome (DESIGN) — tracer task committed against the food-inventory domain, being re-scoped to the generic domain
 - [ ] 06-02-PLAN.md — The palette proven against WCAG AA, the designed loading/error/empty states, and phone width (DESIGN)
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
 - [ ] 06-03-PLAN.md — Prop contracts for the new components and the 05-DESIGN.md supersession (DESIGN)
 
 ---
 *Roadmap created: 2026-09-14*
-*Last updated: 2026-09-24 after adding Phase 5 (Track E: UI Design), Aaron's dual duty alongside Track B*
+*Last updated: 2026-09-28 — reverted the food-inventory domain reframing (households/pantry/fridge/freezer/freshness) back to the assignment's generic HaaS/hardware-resource domain; phase numbers, tracks, and wave structure unchanged*
 *Granularity: standard | Phase ID convention: sequential*

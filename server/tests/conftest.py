@@ -18,7 +18,7 @@ def mongo():
     client = mongomock.MongoClient()
     db = client[hardwareDB.DB_NAME]
     db[hardwareDB.PROJECTS_COLLECTION].insert_one(
-        {"householdId": "H1", "users": ["alice", "bob"]}
+        {"projectId": "H1", "users": ["alice", "bob"]}
     )
     return client
 

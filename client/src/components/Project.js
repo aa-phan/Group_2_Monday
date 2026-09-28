@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchHardware } from '../api/hardware.js';
 import HardwareActions from './Checkout.js';
-import CheckinForm from './RestockForm.js';
+import CheckinForm from './CheckinForm.js';
 import Modal from './Modal.js';
 
 /**

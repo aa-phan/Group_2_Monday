@@ -23,7 +23,7 @@ def _seedOtherProject(mongo):
     """
     db = mongo[hardwareDB.DB_NAME]
     db[hardwareDB.PROJECTS_COLLECTION].insert_one(
-        {"householdId": "P2", "users": ["carol"]}
+        {"projectId": "P2", "users": ["carol"]}
     )
     db[hardwareDB.HARDWARE_SETS_COLLECTION].insert_one(
         {
@@ -227,7 +227,7 @@ def test_assert_project_member_rejects_dict_projectId(mongo):
     try:
         projectsDB.assertProjectMember(mongo, {"$ne": "nope"}, "alice")
         raised = False
-    except projectsDB.NotAHouseholdMemberError:
+    except projectsDB.NotAProjectMemberError:
         raised = True
     assert raised
 
@@ -236,7 +236,7 @@ def test_assert_project_member_rejects_dict_userId(mongo):
     try:
         projectsDB.assertProjectMember(mongo, "H1", {"$ne": "nope"})
         raised = False
-    except projectsDB.NotAHouseholdMemberError:
+    except projectsDB.NotAProjectMemberError:
         raised = True
     assert raised
 

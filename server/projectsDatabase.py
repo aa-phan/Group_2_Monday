@@ -55,15 +55,17 @@ def checkInHW(client, projectId, hwSetName, qty, userId):
 #
 # Hardware-set stock lives in the separate `HardwareSets` collection
 # (hardwareDatabase.py), keyed by projectId + hwSetKey. This section reads
-# the `Households` collection only to check membership (`users` list); it
+# the `Projects` collection only to check membership (`users` list); it
 # never reads or writes project document fields Track A owns (projectName,
-# etc. above). (The collection is still named `Households` on disk from an
-# earlier domain iteration -- see hardwareDB.PROJECTS_COLLECTION -- but every
-# field and function here is project/hardware vocabulary, not food/household.)
+# description, etc. above).
+#
+# The project document is identified by its `projectId` field. Track A's
+# createProject must write that field name when it lands, or this guard
+# will not find the document it just created.
 # ---------------------------------------------------------------------------
 
 
-class NotAHouseholdMemberError(Exception):
+class NotAProjectMemberError(Exception):
     """Raised when userId is not a member of the project. Maps to HTTP 403.
     (Class name kept for backward compatibility with existing callers/tests;
     semantically this is "not a project member".)
@@ -78,7 +80,7 @@ ReservationNotOwnedError = hardwareDB.ReservationNotOwnedError
 
 
 def assertProjectMember(client, projectId, userId):
-    """Trust-boundary guard: raise NotAHouseholdMemberError unless userId is
+    """Trust-boundary guard: raise NotAProjectMemberError unless userId is
     a member of the project identified by projectId. Every hardware route
     calls this first, before touching any stock.
 
@@ -90,17 +92,14 @@ def assertProjectMember(client, projectId, userId):
     downstream.
     """
     if not isinstance(projectId, str) or not isinstance(userId, str):
-        raise NotAHouseholdMemberError(userId)
+        raise NotAProjectMemberError(userId)
 
     db = client[hardwareDB.DB_NAME]
-    project = db[hardwareDB.PROJECTS_COLLECTION].find_one({"householdId": projectId})
+    project = db[hardwareDB.PROJECTS_COLLECTION].find_one({"projectId": projectId})
 
     if project is None or userId not in project.get("users", []):
-        raise NotAHouseholdMemberError(userId)
+        raise NotAProjectMemberError(userId)
 
-
-# Backward-compatible alias -- older call sites/tests may still import this name.
-assertHouseholdMember = assertProjectMember
 
 
 def checkinHardwareSet(client, projectId, userId, hwSetName, quantity):

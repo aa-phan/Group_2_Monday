@@ -1,7 +1,6 @@
 # Import necessary libraries and modules
-import os
-
 import projectsDatabase as projectsDB
+from config import DB_NAME
 from passwordSecurity import InvalidPasswordError, hashPassword, verifyPassword
 
 '''
@@ -14,7 +13,6 @@ User = {
 }
 '''
 
-DB_NAME = os.environ.get("MONGODB_DB", "PantryTrack")
 USERS_COLLECTION = "Users"
 
 

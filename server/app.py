@@ -187,7 +187,7 @@ def get_hardware_status():
     try:
         # Fetch hardware-set status using the projectsDB module
         hardwareSets = projectsDB.getProjectHardwareStatus(client, projectId, userId)
-    except projectsDB.NotAHouseholdMemberError:
+    except projectsDB.NotAProjectMemberError:
         return jsonify({"error": "not_a_project_member"}), 403
     except hardwareDB.ItemNotFoundError:
         return jsonify({"error": "hardware_set_not_found"}), 404
@@ -223,7 +223,7 @@ def checkin_hardware():
         hardwareSet = projectsDB.checkinHardwareSet(
             client, projectId, userId, hwSetName, quantity
         )
-    except projectsDB.NotAHouseholdMemberError:
+    except projectsDB.NotAProjectMemberError:
         return jsonify({"error": "not_a_project_member"}), 403
     except hardwareDB.InvalidInventoryInput as error:
         return jsonify({"error": "invalid_input", "field": str(error)}), 400
@@ -259,7 +259,7 @@ def checkout_hardware():
         hardwareSet = projectsDB.checkoutHardwareSet(
             client, projectId, userId, hwSetName, quantity
         )
-    except projectsDB.NotAHouseholdMemberError:
+    except projectsDB.NotAProjectMemberError:
         return jsonify({"error": "not_a_project_member"}), 403
     except hardwareDB.InvalidInventoryInput as error:
         return jsonify({"error": "invalid_input", "field": str(error)}), 400
@@ -304,7 +304,7 @@ def request_hardware():
         reservationId, hardwareSet = projectsDB.requestHardwareSet(
             client, projectId, userId, userName, hwSetName, quantity
         )
-    except projectsDB.NotAHouseholdMemberError:
+    except projectsDB.NotAProjectMemberError:
         return jsonify({"error": "not_a_project_member"}), 403
     except hardwareDB.InvalidInventoryInput as error:
         return jsonify({"error": "invalid_input", "field": str(error)}), 400
@@ -340,7 +340,7 @@ def release_hardware():
     try:
         # Attempt to release the reservation using the projectsDB module
         hardwareSet = projectsDB.releaseReservation(client, projectId, userId, reservationId)
-    except projectsDB.NotAHouseholdMemberError:
+    except projectsDB.NotAProjectMemberError:
         return jsonify({"error": "not_a_project_member"}), 403
     except projectsDB.ReservationNotOwnedError:
         return jsonify({"error": "not_your_reservation"}), 403

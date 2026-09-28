@@ -8,6 +8,8 @@ from bson.objectid import ObjectId
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 
+from config import DB_NAME
+
 '''
 Structure of a Hardware Set entry (collection `HardwareSets`, one document
 per project + hwSetKey):
@@ -34,8 +36,9 @@ HardwareSet = {
 This is the generic HaaS resource-management model from the assignment's
 Figure 3 mockup: a project owns any number of named hardware sets (e.g.
 HWSet1, HWSet2), each showing Capacity / Available, with Request (reserve),
-Checkout, and Checkin actions. There is no storage location, no freshness,
-and no per-restock batch history -- those were a prior domain-specific
+Checkout, and Checkin actions. A set is a flat count of units: there is no
+per-location split and no per-checkin history -- those belonged to a prior
+domain-specific
 extension that has been removed.
 
 `availability` (capacity - reservedQuantity, floored at 0) is derived on
@@ -47,9 +50,8 @@ reads nothing from it directly -- that is projectsDatabase's job via
 assertProjectMember.
 '''
 
-DB_NAME = os.environ.get("MONGODB_DB", "HaaSResourceManager")
 HARDWARE_SETS_COLLECTION = "HardwareSets"
-PROJECTS_COLLECTION = "Households"
+PROJECTS_COLLECTION = "Projects"
 
 _WHITESPACE_RUN = re.compile(r"\s+")
 
@@ -105,7 +107,7 @@ def normalizeHwSetName(rawName):
 
     Strips leading/trailing whitespace, lowercases, and collapses every
     internal whitespace run to a single space. Exact match only after
-    normalization -- no substring/fuzzy matching, unlike the old food-item
+    normalization -- no substring or fuzzy matching, which an earlier
     identity resolver. A generic hardware-set name (e.g. "HWSet1") does not
     need loose matching; requiring an exact (case/whitespace-insensitive)
     name keeps checkin/checkout unambiguous.

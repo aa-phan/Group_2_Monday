@@ -2,18 +2,19 @@
 
 ## Project
 
-**PantryTrack — Household Food Inventory PoC (Group 2 Monday — ECE 461L Team Project)**
+**HaaS Resource Manager PoC (Group 2 Monday — ECE 461L Team Project)**
 
-A Proof-of-Concept web application that lets members of a household track shared food inventory across the pantry, fridge, and freezer. Users create secure accounts, create or join a household, and use it to see what food is on hand, reserve items for themselves, log consumption, and log restocking — all backed by a live database, with the class's HaaS "hardware resource" concept reframed as **food item stock** (each item has a total capacity and a remaining availability, the same shape as the assignment's HWSet1/HWSet2 mockup). Built with a Flask/MongoDB backend and a React frontend (starter scaffold already exists in `server/` and `client/`).
+A Proof-of-Concept web application implementing the assignment's Hardware-as-a-Service (HaaS) system directly: users create secure accounts, create or join a project, and use it to view, request, check out, and check in named hardware sets (HWSet1, HWSet2, ... — any number of named sets, not hard-limited to two) — all backed by a live database. Each hardware set has a total `capacity` and a remaining `available` count, matching the assignment's Figure 3 mockup exactly. Built with a Flask/MongoDB backend and a React frontend (starter scaffold in `server/` and `client/`).
 
-**Core Value:** A household member can see what food the household has across pantry/fridge/freezer, reserve or consume items, and restock — all from live shared data, with no hard-coded values anywhere in the app.
+**Core Value:** A project member can see what hardware sets a project has, request/check out units they need, and check units back in — all from live shared data, with no hard-coded values anywhere in the app.
 
 ### Constraints
 
 - **Tech stack**: Flask + MongoDB + React — matches the existing scaffold (stack choice/toolchain is documented in the separate Project Plan)
 - **Process**: User stories must be ≤3 sentences (Mountain Goat Software style); issues (bugs/improvements) tracked separately from user-story board, not combined
 - **Security**: Userid and password must be encrypted at rest/in transit (SR3) — non-negotiable rubric item
-- **Domain simplification**: No physical sensors are available or in scope — all inventory capture (adding/removing/reserving items) is manual user input via the web UI, not automated detection
+- **Domain simplification**: No physical sensors are available or in scope — all hardware-set capture (checking in/out) is manual user input via the web UI, not automated detection
+- **Domain naming**: An earlier iteration reframed this as household food inventory and was reverted (TD-10). Do not reintroduce pantry/fridge/freezer, freshness, batch, or restock concepts.
 
 <!-- GSD:project-end -->
 

@@ -3,8 +3,9 @@ import os
 
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from pymongo import MongoClient
+from werkzeug.exceptions import NotFound
 
 # Import custom modules for database interactions
 import usersDatabase as usersDB
@@ -13,22 +14,59 @@ import hardwareDatabase as hardwareDB
 
 load_dotenv()
 
-# Initialize a new Flask web application
-app = Flask(__name__)
+# Directory holding the built React client (client/dist after `npm run
+# build`). In the Docker image the build is copied to a fixed path and
+# CLIENT_DIST points at it; locally the default resolves to the sibling
+# client/dist, so `npm run build` then `python app.py` serves the real UI
+# on one port with no proxy. During `npm run dev` this directory may not
+# exist at all -- Vite serves the client and proxies /api here instead.
+_SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
+CLIENT_DIST = os.environ.get(
+    "CLIENT_DIST",
+    os.path.normpath(os.path.join(_SERVER_DIR, "..", "client", "dist")),
+)
+
+# Initialize a new Flask web application.
+#
+# static_folder=None disables Flask's built-in static route on purpose.
+# That route would otherwise be registered at /<path:filename> and, being
+# registered first, would claim every path this app's own catch-all is
+# meant to handle -- returning an HTML 404 for unknown /api/... paths and
+# breaking the single-page-app fallback. serve_client below does the whole
+# job instead.
+app = Flask(__name__, static_folder=None)
+
+
+class MissingDatabaseConfig(RuntimeError):
+    """Raised when MONGODB_URI is absent. Maps to HTTP 503.
+
+    Its own class rather than a bare RuntimeError so the error handler
+    below can answer with actionable JSON without swallowing unrelated
+    RuntimeErrors raised deeper in the app.
+    """
+
+
+@app.errorhandler(MissingDatabaseConfig)
+def handleMissingDatabaseConfig(error):
+    # A deployed instance with no connection string set must say so in the
+    # response, not dump an HTML stack trace: this is the first thing seen
+    # when the host is live before MONGODB_URI has been filled in.
+    return jsonify({"error": "database_not_configured", "detail": str(error)}), 503
 
 
 def getMongoClient():
     """Build a MongoClient from the MONGODB_URI environment variable.
 
-    Raises RuntimeError with an actionable message when MONGODB_URI is
-    unset -- there is no default connection string anywhere in this file.
+    Raises MissingDatabaseConfig with an actionable message when
+    MONGODB_URI is unset -- there is no default connection string
+    anywhere in this file.
     """
     uri = os.environ.get("MONGODB_URI")
     if not uri:
-        raise RuntimeError(
-            "MONGODB_URI is not set. Create a server/.env file (see "
-            "server/requirements.txt for python-dotenv) with "
-            "MONGODB_URI=<your connection string>, or export it in your shell."
+        raise MissingDatabaseConfig(
+            "MONGODB_URI is not set. Locally, create a server/.env file with "
+            "MONGODB_URI=<your connection string> (see .env.example). In a "
+            "deployed environment, set it in the host's environment variables."
         )
     return MongoClient(uri)
 
@@ -314,6 +352,61 @@ def release_hardware():
 
     # Return a JSON response
     return jsonify({"hardwareSet": hardwareSet}), 200
+
+# ---------------------------------------------------------------------------
+# Static client + health check (OPS-01)
+#
+# The Flask process serves both the JSON API and the built React client, so
+# the deployed app is a single service on a single public URL. That is why
+# the client's fetch calls use root-relative paths (/api/...) and why no
+# CORS configuration is needed anywhere: in production the page and the API
+# share an origin.
+# ---------------------------------------------------------------------------
+
+
+# Liveness probe for the host's health check and for any keep-warm pinger.
+# Deliberately does NOT touch MongoDB: this must answer even when the
+# database is unreachable, otherwise the host restarts a process whose only
+# problem is a bad connection string.
+@app.route('/healthz')
+def healthz():
+    return jsonify({"status": "ok", "clientBuilt": os.path.isdir(CLIENT_DIST)}), 200
+
+
+# Catch-all serving the built client, including its hashed asset files.
+# Only matches what the API routes above did not claim -- Werkzeug prefers
+# a literal rule such as /api/hardware over this converter rule, so adding
+# a route never gets shadowed by this one.
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_client(path):
+    # Never let an unmatched /api/... path fall through to index.html: a
+    # 200 with an HTML body would make a typo'd endpoint look alive to the
+    # client and fail later as a JSON parse error.
+    if path.startswith('api/'):
+        return jsonify({"error": "not_found", "path": "/" + path}), 404
+
+    index = os.path.join(CLIENT_DIST, 'index.html')
+    if not os.path.isfile(index):
+        return jsonify({
+            "error": "client_not_built",
+            "detail": (
+                "No built client at {}. Run `npm run build` in client/, or set "
+                "CLIENT_DIST to the build output.".format(CLIENT_DIST)
+            ),
+        }), 503
+
+    # Serve a real build artifact when the path names one; otherwise fall
+    # through to index.html so client-side routes survive a page refresh.
+    # send_from_directory rejects traversal outside the directory.
+    if path:
+        try:
+            return send_from_directory(CLIENT_DIST, path)
+        except NotFound:
+            pass
+
+    return send_from_directory(CLIENT_DIST, 'index.html')
+
 
 # Main entry point for the application
 if __name__ == '__main__':

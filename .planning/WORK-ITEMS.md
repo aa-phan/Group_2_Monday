@@ -86,13 +86,13 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | TD-07 | Technical debt | Provision MongoDB Atlas | Stand up a MongoDB Atlas cluster and connection config via environment variables — no secrets committed to the repo. | DATA-01 | 2 |
 | US-14 | User story | Manage hardware-set types explicitly | As a project member, I want to create, rename, or deactivate a hardware-set type for my project directly, without needing to check something in first, so hardware-set definitions aren't just a side effect of a checkin. (The base model already supports any number of named sets, created implicitly on first checkin — this story is the explicit-management gap beyond that.) | STRETCH-02 | 2 |
 
-## 5. Deployment & Quality — Track D
+## 5. Quality Assurance & Deployment — Track D
 
-**Goal:** The PoC is reachable by the instructor/TAs, its core flows are covered by automated tests written incrementally as each track's routes land, CI runs on every PR from early in the project, and Track D delivers its own promoted stretch feature (password reset) as standalone work.
+**Goal:** The PoC is reachable by the instructor/TAs via a public URL, is covered by a comprehensive automated test suite wired into a CI pipeline that runs on every PR from early in the project, looks and works like one coherent product rather than four developers' separately-styled screens, and Track D delivers its own promoted stretch feature (password reset) as standalone work.
 
-**Rubric ownership:** R1-3 (High-level sketch) · R2-3 (Cloud deployment) · Stretch Feature (US-13) as additional work
+**Rubric ownership:** R1-3 (High-level sketch) · R2-3 (Cloud deployment) · Stretch Feature (US-13) as additional work. The former Track E (UI Design) design items below carry no numbered rubric item of their own (`Req: DESIGN`) — they're additive quality work, same as before the fold.
 
-**Rescope note (2026-09-28):** Track D was originally backloaded — thin Day-1 scaffolding, then idle until every other track finished enough to write real tests and deploy. Rescoped: CI/CD setup (TD-16) is genuine early standalone work; the test-harness item (TD-09) is now explicitly incremental/paired rather than one end-of-project batch; and Track D picks up US-13 (moved from Track C) as a real feature it can build mid-project once Track A's login exists.
+**Rescope note (2026-09-28, two passes):** Track D was originally backloaded — thin Day-1 scaffolding, then idle until every other track finished enough to write real tests and deploy. First pass added CI/CD (TD-16) as genuine early work and moved the password-reset stretch feature (US-13) here from Track C. Second pass: dropped TD-10 ("keep generic naming" isn't a real deliverable, just an implementation discipline to hold in mind while executing other items); reworked TD-09 from constant incremental pairing into a real, discrete deliverable — a comprehensive backend test suite, written as its own piece of work and wired into the CI pipeline; and **folded the former Track E (UI Design) entirely into Track D**, retiring Track E as a separate track. Track D's identity is now **Quality Assurance & Deployment** — test design and UI/UX are both quality-assurance disciplines, alongside the existing deployment ownership. Aaron Phan is no longer dual-duty on design work; Track D (a single developer) now owns QA + deploy as one coherent scope, restoring a clean 4-tracks-4-developers structure.
 
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
@@ -101,26 +101,14 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | TD-16 | Technical debt | Set up CI/CD early | Stand up a GitHub Actions workflow that runs the backend PyTest suite and the client build on every pull request, done in the first days of the project — not scaffolding for later, but real Day-1 infrastructure every track gets fast PR feedback from immediately. | OPS-02 | 1 |
 | US-12 | User story | Reachable, gradeable app | As an instructor or TA, I want to open a public URL and walk through the full account → project → request/checkout/checkin flow so I can grade the working PoC. | OPS-01 | 2 |
 | TD-08 | Technical debt | Deployment pipeline | Set up cloud hosting and deploy config so the app is reachable via a stable public URL. | OPS-01 | 2 |
-| TD-09 | Technical debt | Incremental backend test coverage | Write PyTest coverage for each backend route as its owning track ships it — pairing with Track A on login/project routes, Track B on request/checkout/checkin, Track C on the REST surface — rather than one batched pass after every route already exists. CI (TD-16) runs the growing suite on every PR throughout. | OPS-02 | 2 |
-| TD-10 | Technical debt | Keep generic domain naming | The scaffold's original "project"/"hardware set" language is the domain itself now — as implementation lands, keep code and UI naming aligned to it (reverted from an earlier food-domain renaming pass). | — | 2 |
+| TD-09 | Technical debt | Comprehensive backend test suite | Write a complete PyTest suite covering every core backend route — login, create/join project, request, checkout, checkin — as a discrete, deliberately-designed piece of work (not scattered incremental additions), then wire it into the CI pipeline (TD-16) so every future PR runs against the full suite. | OPS-02 | 2 |
 | US-13 | User story | Reset a forgotten password | As a user who forgot their password, I want to reset it via the existing Forgot Password flow so I can regain access to my project's hardware resources without contacting an admin. | STRETCH-01 | 2 |
-
-## 6. UI Design — Track E
-
-**Goal:** The app looks and works like one coherent product, not four developers' separately-styled screens — and each functional track gets a documented, prop-based contract to wire its real data into instead of touching presentation internals.
-
-**Owner:** Aaron Phan, dual duty alongside Track B (Hardware Resource Management). Not a PDF rubric-owning track — no `Req` line maps to a stakeholder need or system requirement; this is additive quality work.
-
-**Scope note:** Design stories start with Track B's UI, since it's the only track with a real screen to critique. As Track A and Track C build their own UI (login/project pages; stretch-feature UI), Track E's harness items (TD-13/TD-14/TD-15 below) are what those tracks wire into — add further Track E design stories once that UI exists, rather than designing speculatively against code that isn't written yet.
-
-| ID | Type | Title | Story / Description | Req | Phase |
-|----|------|-------|----------------------|-----|-------|
 | US-15 | User story | Clean, scannable resource layout | As a project member, I want the hardware-resource view laid out with clear visual grouping and spacing instead of bare HTML tables, so I can scan what's on hand without hunting through rows. | DESIGN | 2 |
 | US-16 | User story | Status cues readable at a glance | As a project member, I want availability/status indicators to use consistent color coding I can recognize instantly, not just read, so I know a set's state without stopping to read every label. | DESIGN | 2 |
 | US-17 | User story | Usable resource view on a phone | As a project member checking hardware status from my phone, I want the resource view and its checkin/request/checkout controls to work on a small screen, so I don't need a laptop to use the app day-to-day. | DESIGN | 2 |
 | TD-13 | Technical debt | Document the session-identity harness for Track A | Define and document the exact prop contract (`projectId`, `userId`, `userName`) the top-level resource-view component and its children expect — currently hardcoded as constants in `client/src/App.js` — so Track A can wire in real login/session data (ACCT-04) by replacing three values at one call site instead of tracing through component internals. | DESIGN | 2 |
 | TD-14 | Technical debt | Document the live-data contract for Track C's audit | Confirm and document that every presentational component receives all displayed data via props only, with no internal fetch or hard-coded fallback, so Track C can audit DATA-01/DATA-03 (no hard-coded data) against a documented contract instead of re-reading component internals. | DESIGN | 2 |
-| TD-15 | Technical debt | Shared design tokens for cross-track UI consistency | Extract a small shared set of style tokens (spacing scale, color palette, typography) from Track B's `client/src/App.css` into a reusable base other tracks' UI can adopt, so Track A's login/project pages and Track C's stretch-feature UI (password reset, arbitrary hardware sets) look like one app instead of three. | DESIGN | 2 |
+| TD-15 | Technical debt | Shared design tokens for cross-track UI consistency | Extract a small shared set of style tokens (spacing scale, color palette, typography) from Track B's `client/src/App.css` into a reusable base other tracks' UI can adopt, so Track A's login/project pages and Track C's stretch-feature UI (password reset, hardware-set type management) look like one app instead of three. | DESIGN | 2 |
 
 ## Future Vision — Research Backlog (not scheduled, v2)
 
@@ -137,14 +125,12 @@ Beyond this PoC's committed scope — each needs sensors, ML modeling, or third-
 
 ---
 
-**Totals:** 6 committed features · 18 user stories (3 with sub-stories) · 21 technical debt items (16 Phase 2 + 5 Phase 1 scope/schema/stories/CI items) · 6 research items · 19/19 v1 requirements covered (Track E's items are additive quality work, not mapped to a stakeholder requirement).
+**Totals:** 5 committed features · 18 user stories (3 with sub-stories) · 20 technical debt items (15 Phase 2 + 5 Phase 1 scope/schema/stories/CI items) · 6 research items · 19/19 v1 requirements covered (the former Track E's design items are additive quality work, not mapped to a stakeholder requirement).
 
-**4 tracks, 4 developers:** Track A, Track B, Track C, and Track D each own exactly one Phase 1 rubric item (US-R1-A/B/C/D → R1-1/R1-2/R1-4/R1-3 respectively) plus either one Phase 2 rubric item or, for Track C, a promoted stretch-feature scope (US-14) in place of a numbered R2 item. Track D additionally carries a second stretch feature (US-13, moved from Track C 2026-09-28) alongside its own R2-3, plus early CI/CD ownership (TD-16) and incremental (not batched) test-writing (TD-09) — a workload rebalance so its developer has substantive, continuous work across the whole project instead of being idle until every other track finishes.
-
-**Plus Track E (UI Design), dual duty:** Aaron Phan owns Track E alongside Track B. Track E isn't a rubric-owning track — it's cross-cutting design/polish work, starting with Track B's UI (the only screen that exists) and leaving documented component contracts (TD-13/TD-14/TD-15) for Track A and Track C to wire their real data into once their own UI lands.
+**4 tracks, 4 developers:** Track A, Track B, Track C, and Track D each own exactly one Phase 1 rubric item (US-R1-A/B/C/D → R1-1/R1-2/R1-4/R1-3 respectively) plus either one Phase 2 rubric item or, for Track C, a promoted stretch-feature scope (US-14) in place of a numbered R2 item. Track D — now **Quality Assurance & Deployment** — additionally carries a second stretch feature (US-13, moved from Track C), owns the comprehensive backend test suite and the CI pipeline it feeds, and absorbed the former Track E's UI/UX design scope entirely (US-15/16/17, TD-13/14/15): test design and UI/UX are both quality-assurance disciplines, so they now live under one track alongside deployment, restoring a clean 4-tracks-4-developers structure with no dual duty.
 
 **Out of scope reminder:** The Project Plan (team members, sprint cadence, collaboration tools, methodology, toolchain — R1-1) is now represented on this board via US-R1-A, owned by Track A.
 
 ---
 *Board created: 2026-09-14*
-*Last updated: 2026-09-28 — reverted food-inventory domain stories back to the assignment's generic hardware-resource domain, then rescoped Track D (added CI/CD as Day-1 work, made test-writing incremental, moved the password-reset stretch feature from Track C) so its developer isn't idle for most of the project*
+*Last updated: 2026-09-28 — reverted food-inventory domain stories back to the assignment's generic hardware-resource domain; rescoped Track D (added CI/CD as Day-1 work, moved the password-reset stretch feature from Track C); then folded Track E (UI Design) entirely into Track D, retired Track E, dropped the no-op TD-10, and turned TD-09 into a real comprehensive-test-suite deliverable wired into CI — Track D is now "Quality Assurance & Deployment" and Aaron Phan is single-duty on Track B*

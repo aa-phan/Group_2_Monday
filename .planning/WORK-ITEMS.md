@@ -72,7 +72,9 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 
 **Goal:** Everything on screen comes from a live database through a real API — nothing is hard-coded.
 
-**Rubric ownership:** R1-4 (Tool choice & approach) · Stretch Features (US-13, US-14) in place of a numbered R2 item
+**Rubric ownership:** R1-4 (Tool choice & approach) · Stretch Feature (US-14) in place of a numbered R2 item
+
+**Rescope note (2026-09-28):** US-13 (password reset) moved to Track D so Track D has standalone feature work spread through the project instead of only infra/testing/deploy. US-14's scope was narrowed to the part not already covered by Track B's base data model — see its row below.
 
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
@@ -82,23 +84,26 @@ Each user story is ≤3 sentences per the Mountain Goat Software convention refe
 | TD-05 | Technical debt | Wire REST endpoints | Implement the stubbed Flask routes in `app.py` against real DB module logic — routes currently exist but do nothing. | DATA-02 | 2 |
 | TD-06 | Technical debt | Remove hard-coded frontend data | Replace placeholder/sample values in React components with live API calls. | DATA-01 | 2 |
 | TD-07 | Technical debt | Provision MongoDB Atlas | Stand up a MongoDB Atlas cluster and connection config via environment variables — no secrets committed to the repo. | DATA-01 | 2 |
-| US-13 | User story | Reset a forgotten password | As a user who forgot their password, I want to reset it via the existing Forgot Password flow so I can regain access to my project's hardware resources without contacting an admin. | STRETCH-01 | 2 |
-| US-14 | User story | Define arbitrary hardware sets | As a project member, I want to define any number of named hardware sets for my project, not just a fixed pair, so the app fits projects with more than two kinds of hardware. | STRETCH-02 | 2 |
+| US-14 | User story | Manage hardware-set types explicitly | As a project member, I want to create, rename, or deactivate a hardware-set type for my project directly, without needing to check something in first, so hardware-set definitions aren't just a side effect of a checkin. (The base model already supports any number of named sets, created implicitly on first checkin — this story is the explicit-management gap beyond that.) | STRETCH-02 | 2 |
 
 ## 5. Deployment & Quality — Track D
 
-**Goal:** The PoC is reachable by the instructor/TAs and its core flows are covered by automated tests.
+**Goal:** The PoC is reachable by the instructor/TAs, its core flows are covered by automated tests written incrementally as each track's routes land, CI runs on every PR from early in the project, and Track D delivers its own promoted stretch feature (password reset) as standalone work.
 
-**Rubric ownership:** R1-3 (High-level sketch) · R2-3 (Cloud deployment)
+**Rubric ownership:** R1-3 (High-level sketch) · R2-3 (Cloud deployment) · Stretch Feature (US-13) as additional work
+
+**Rescope note (2026-09-28):** Track D was originally backloaded — thin Day-1 scaffolding, then idle until every other track finished enough to write real tests and deploy. Rescoped: CI/CD setup (TD-16) is genuine early standalone work; the test-harness item (TD-09) is now explicitly incremental/paired rather than one end-of-project batch; and Track D picks up US-13 (moved from Track C) as a real feature it can build mid-project once Track A's login exists.
 
 | ID | Type | Title | Story / Description | Req | Phase |
 |----|------|-------|----------------------|-----|-------|
 | TD-DOC-D | Technical debt | Define Track D scope, schema, and initial stories | Define the deployment pipeline and test-coverage plan covering OPS-01/OPS-02, and write Track D's initial user stories (US-12) for the feature board. | OPS | 1 |
 | US-R1-D | User story | Sketch the application architecture | As the instructor, I want a high-level sketch of the application's architecture and user flow so I can quickly understand the system's design before reviewing the code. | R1-3 | 1 |
+| TD-16 | Technical debt | Set up CI/CD early | Stand up a GitHub Actions workflow that runs the backend PyTest suite and the client build on every pull request, done in the first days of the project — not scaffolding for later, but real Day-1 infrastructure every track gets fast PR feedback from immediately. | OPS-02 | 1 |
 | US-12 | User story | Reachable, gradeable app | As an instructor or TA, I want to open a public URL and walk through the full account → project → request/checkout/checkin flow so I can grade the working PoC. | OPS-01 | 2 |
 | TD-08 | Technical debt | Deployment pipeline | Set up cloud hosting and deploy config so the app is reachable via a stable public URL. | OPS-01 | 2 |
-| TD-09 | Technical debt | Backend test harness | Set up PyTest and write coverage for login, create/join project, request, checkout, and checkin routes. | OPS-02 | 2 |
+| TD-09 | Technical debt | Incremental backend test coverage | Write PyTest coverage for each backend route as its owning track ships it — pairing with Track A on login/project routes, Track B on request/checkout/checkin, Track C on the REST surface — rather than one batched pass after every route already exists. CI (TD-16) runs the growing suite on every PR throughout. | OPS-02 | 2 |
 | TD-10 | Technical debt | Keep generic domain naming | The scaffold's original "project"/"hardware set" language is the domain itself now — as implementation lands, keep code and UI naming aligned to it (reverted from an earlier food-domain renaming pass). | — | 2 |
+| US-13 | User story | Reset a forgotten password | As a user who forgot their password, I want to reset it via the existing Forgot Password flow so I can regain access to my project's hardware resources without contacting an admin. | STRETCH-01 | 2 |
 
 ## 6. UI Design — Track E
 
@@ -132,9 +137,9 @@ Beyond this PoC's committed scope — each needs sensors, ML modeling, or third-
 
 ---
 
-**Totals:** 6 committed features · 18 user stories (3 with sub-stories) · 20 technical debt items (16 Phase 2 + 4 Phase 1 scope/schema/stories items) · 6 research items · 19/19 v1 requirements covered (Track E's items are additive quality work, not mapped to a stakeholder requirement).
+**Totals:** 6 committed features · 18 user stories (3 with sub-stories) · 21 technical debt items (16 Phase 2 + 5 Phase 1 scope/schema/stories/CI items) · 6 research items · 19/19 v1 requirements covered (Track E's items are additive quality work, not mapped to a stakeholder requirement).
 
-**4 tracks, 4 developers:** Track A, Track B, Track C, and Track D each own exactly one Phase 1 rubric item (US-R1-A/B/C/D → R1-1/R1-2/R1-4/R1-3 respectively) plus either one Phase 2 rubric item or, for Track C, a promoted stretch-feature scope (US-13, US-14) in place of a numbered R2 item.
+**4 tracks, 4 developers:** Track A, Track B, Track C, and Track D each own exactly one Phase 1 rubric item (US-R1-A/B/C/D → R1-1/R1-2/R1-4/R1-3 respectively) plus either one Phase 2 rubric item or, for Track C, a promoted stretch-feature scope (US-14) in place of a numbered R2 item. Track D additionally carries a second stretch feature (US-13, moved from Track C 2026-09-28) alongside its own R2-3, plus early CI/CD ownership (TD-16) and incremental (not batched) test-writing (TD-09) — a workload rebalance so its developer has substantive, continuous work across the whole project instead of being idle until every other track finishes.
 
 **Plus Track E (UI Design), dual duty:** Aaron Phan owns Track E alongside Track B. Track E isn't a rubric-owning track — it's cross-cutting design/polish work, starting with Track B's UI (the only screen that exists) and leaving documented component contracts (TD-13/TD-14/TD-15) for Track A and Track C to wire their real data into once their own UI lands.
 
@@ -142,4 +147,4 @@ Beyond this PoC's committed scope — each needs sensors, ML modeling, or third-
 
 ---
 *Board created: 2026-09-14*
-*Last updated: 2026-09-28 — reverted food-inventory domain stories (pantry/fridge/freezer, freshness, batch history, item-name fuzzy matching) back to the assignment's generic hardware-resource domain*
+*Last updated: 2026-09-28 — reverted food-inventory domain stories back to the assignment's generic hardware-resource domain, then rescoped Track D (added CI/CD as Day-1 work, made test-writing incremental, moved the password-reset stretch feature from Track C) so its developer isn't idle for most of the project*

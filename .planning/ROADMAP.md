@@ -121,15 +121,16 @@ Plans:
 
 ### Phase 3 (Track C): Data Integration & API
 
-**Goal**: The full application runs against a live MongoDB-backed REST API with zero hard-coded data anywhere, and Track C's own promoted stretch features (password reset, arbitrary named hardware sets) are delivered as its Phase 2 scope.
+**Goal**: The full application runs against a live MongoDB-backed REST API with zero hard-coded data anywhere, and Track C's own promoted stretch feature (explicit hardware-set-type management) is delivered as its Phase 2 scope.
 **Depends on**: Track A and Track B for final integration and verification (needs both feature sets substantially implemented to confirm no hard-coded data remains and exercise the full REST surface). Infra sub-tasks (MongoDB Atlas provisioning, API response conventions) can start on day one in parallel with Track A and Track B.
-**Requirements**: DATA-01, DATA-02, DATA-03, STRETCH-01, STRETCH-02
+**Requirements**: DATA-01, DATA-02, DATA-03, STRETCH-02
 **Success Criteria** (what must be TRUE):
 
   1. All user, project, and hardware-set data lives in MongoDB collections, and every CRUD operation for each goes through a REST endpoint (no other data path exists).
   2. Every page in the app (login, project portal/list, hardware-resource view, request/checkout/checkin) renders its data — capacity, availability, project list, hardware-set details — from a live REST API call, with no hard-coded or mock values remaining in any component.
-  3. A user who forgot their password can reset it via the existing Forgot Password flow and regain access to their project's hardware resources.
-  4. A project member can define an arbitrary number of named hardware sets beyond a fixed pair.
+  3. A project member can explicitly create, rename, or deactivate a hardware-set *type* for their project (not just have one appear implicitly the first time someone checks something in under a new name) — this is real, distinct scope beyond the base data model, which already accepts any number of named sets automatically.
+
+**Rescope note (2026-09-28):** the base hardware-set data model built in Track B already supports an arbitrary number of named sets per project (RES-05) — sets are created implicitly on first checkin under a new name. STRETCH-02 originally described that same capability and has been reframed to the distinct remaining gap: *explicit* hardware-set-type management (create/rename/deactivate a type without needing to check something in first). STRETCH-01 (password reset) moved to Track D — see Phase 4's rescope note.
 
 **Plans**: TBD
 **UI hint**: yes
@@ -140,13 +141,17 @@ Plans:
 
 ### Phase 4 (Track D): Deployment & Quality
 
-**Goal**: The PoC is reachable by the instructor/TAs via a public URL and its core flows are covered by automated tests.
-**Depends on**: Track A, Track B, and Track C for final integration, verification, and deploy (needs the feature sets substantially implemented to write meaningful route tests and confirm the deployed app is fully functional). Infra sub-tasks (deployment config skeleton, PyTest harness scaffolding) can start on day one in parallel with the other tracks.
-**Requirements**: OPS-01, OPS-02
+**Goal**: The PoC is reachable by the instructor/TAs via a public URL, its core flows are covered by automated tests written incrementally as each track's routes land (not batched at the end), CI runs on every PR from early in the project, and Track D delivers its own promoted stretch feature (password reset) as standalone work that doesn't wait on deploy readiness.
+**Depends on**: Track A, Track B, and Track C for final integration, verification, and deploy — but this now gates only the *last* mile (the actual public deploy and the final end-to-end route tests), not Track D's whole workload. CI/CD pipeline setup and incremental test-writing are real Day-1-onward work: CI can run against whatever routes exist at any point, and each track's routes get their tests as soon as that track lands them, not in one batched pass at the end. The password-reset stretch feature can start once Track A's login/session flow exists (early-to-mid project, not end-loaded).
+**Requirements**: OPS-01, OPS-02, STRETCH-01
 **Success Criteria** (what must be TRUE):
 
-  1. Automated PyTest tests exist and pass for the core backend routes: login, create project, join project, request, checkout, checkin.
-  2. The deployed app is reachable at a public URL, and the instructor/TAs can complete the full account → project → request/checkout/checkin flow against the hosted instance.
+  1. A CI pipeline (GitHub Actions) runs the backend test suite and the client build on every pull request, set up in the first days of the project — not as a late add-on — so every track gets fast feedback on its own PRs from day one.
+  2. Automated PyTest tests exist and pass for the core backend routes (login, create project, join project, request, checkout, checkin), written incrementally as each route lands rather than in one end-of-project pass — Track D pairs with whichever track just shipped a route to write its test alongside it.
+  3. A user who forgot their password can reset it via the existing Forgot Password flow and regain access to their project's hardware resources.
+  4. The deployed app is reachable at a public URL, and the instructor/TAs can complete the full account → project → request/checkout/checkin flow against the hosted instance.
+
+**Rescope note (2026-09-28):** Track D was originally backloaded — its only Day-1 work was thin pipeline/harness scaffolding, with the bulk of its real work (meaningful tests, actual deploy) gated on every other track finishing. Rescoped so Track D's CI/CD setup is genuine early standalone work (not scaffolding for later), its test-writing happens continuously alongside each track's route work instead of batched at the end, and it picks up the password-reset stretch feature (moved from Track C) as a real feature deliverable it can build mid-project once Track A's login exists — so the Track D developer has substantive work throughout the timeline, not just at the start and the very end.
 
 **Plans**: TBD
 **UI hint**: no

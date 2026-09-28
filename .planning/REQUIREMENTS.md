@@ -40,10 +40,10 @@ Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirement
 - [ ] **OPS-01**: App is deployed to a cloud host and reachable via a public URL for TAs/instructor
 - [ ] **OPS-02**: Automated tests (PyTest) cover core backend routes (login, create/join project, request, checkout, checkin)
 
-### Track C Stretch Features (not from PDF rubric — promoted backlog, Track C's Phase 2 scope)
+### Stretch Features (not from PDF rubric — promoted backlog)
 
-- [ ] **STRETCH-01**: User can reset a forgotten password via the existing Forgot Password flow
-- [ ] **STRETCH-02**: User can define an arbitrary number of named hardware sets for a project, not limited to a fixed HWSet1/HWSet2 pair
+- [ ] **STRETCH-01**: User can reset a forgotten password via the existing Forgot Password flow — **owned by Track D** (moved from Track C 2026-09-28, so Track D has standalone feature work spread through the project instead of only infra/testing/deploy — see Phase 4's rescope note in ROADMAP.md)
+- [ ] **STRETCH-02**: User can explicitly create, rename, or deactivate a hardware-set *type* for a project, independent of checking something in — **owned by Track C**. The base data model already supports any number of named sets (RES-05, created implicitly on first checkin); this stretch item is the remaining distinct gap, explicit type management without needing a checkin first.
 
 > Note: R1-1 (Project Plan — team members, sprint cadence, collaboration tools, methodology, toolchain) is now owned by Track A.
 
@@ -59,7 +59,7 @@ Source: `Team Project_Fa26.pdf` (Stakeholder Needs SN0–SN6, System Requirement
 | R2-2 | User/project info live in the app, no hard-coded data | Track A |
 | R2-3 | Cloud deployment reachable via public URL | Track D |
 
-> Track C has no numbered R2 rubric item (only 3 exist for 4 tracks). Its Phase 2 contribution is instead the Stretch Features group above (STRETCH-01, STRETCH-02), promoted from the v2 backlog.
+> Track C has no numbered R2 rubric item (only 3 exist for 4 tracks). Its Phase 2 contribution is instead the Stretch Features group above (STRETCH-02 only, as of the 2026-09-28 rescope — STRETCH-01 moved to Track D as additional work on top of its own R2-3, to spread Track D's workload across the whole project instead of backloading it onto deploy).
 
 ## v2 Requirements
 
@@ -82,8 +82,8 @@ Deferred — acknowledged as valuable but out of committed scope for this PoC.
 
 ### Enhancements (from prior scoping pass, still applicable)
 
-- **ENH-01**: Password reset / "Forgot Password" flow (scaffold page `ForgotMyPassword.js` exists but not required by stakeholder needs) — **promoted to v1 committed scope as STRETCH-01 under Track C**
-- **ENH-02**: Admin view to define new named hardware sets beyond a fixed pair — **promoted to v1 committed scope as STRETCH-02 under Track C**
+- **ENH-01**: Password reset / "Forgot Password" flow (scaffold page `ForgotMyPassword.js` exists but not required by stakeholder needs) — **promoted to v1 committed scope as STRETCH-01 under Track D**
+- **ENH-02**: Admin view to explicitly manage named hardware-set types — **promoted to v1 committed scope as STRETCH-02 under Track C**
 - **ENH-03**: Partial/fractional quantity tracking within a unit — raised during Track B's discuss-phase; deferred, v1 uses whole-unit integer quantities only.
 
 ## Out of Scope
@@ -120,13 +120,13 @@ Which tracks cover which requirements. Populated during roadmap creation.
 | DATA-03 | Track C | Pending |
 | OPS-01 | Track D | Pending |
 | OPS-02 | Track D | Pending |
-| STRETCH-01 | Track C | Pending |
+| STRETCH-01 | Track D | Pending |
 | STRETCH-02 | Track C | Pending |
 
 **Coverage:**
 
 - v1 requirements: 19 total
-- Mapped to tracks: 19 (Track A: 7, Track B: 5, Track C: 5, Track D: 2)
+- Mapped to tracks: 19 (Track A: 7, Track B: 5, Track C: 4, Track D: 3)
 - Unmapped: 0 ✓
 
 ---

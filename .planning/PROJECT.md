@@ -30,7 +30,7 @@ app.
 - **Revenue model**: N/A — academic PoC, not monetized
 - **Success metric**: Phase 1 (5 pts) and Phase 2 (10 pts) rubric criteria fully met; app hosted and reachable via URL by end of Phase 2
 - **Strategy notes**: See `Team Project_Fa26.pdf` in repo root for the full assignment spec. POWDER (cited in the PDF) is inspiration for the general HaaS shape only — nothing wireless/RF-specific applies here.
-- **Team structure**: The team has 4 developers on 4 tracks (Track A: Account & Project Management, Track B: Hardware Resource Management, Track C: Data Integration & API, Track D: Deployment & Quality). Each track owns exactly one Phase 1 rubric item and one Phase 2 rubric item, except Track C, whose Phase 2 scope is a promoted stretch-feature set (STRETCH-01, STRETCH-02) instead of a numbered R2 item.
+- **Team structure**: The team has 4 developers on 4 tracks (Track A: Account & Project Management, Track B: Hardware Resource Management, Track C: Data Integration & API, Track D: Deployment & Quality). Each track owns exactly one Phase 1 rubric item and one Phase 2 rubric item, except Track C, whose Phase 2 scope is a promoted stretch feature (STRETCH-02) instead of a numbered R2 item. **Rescoped 2026-09-28:** Track D was originally backloaded — real work (meaningful tests, actual deploy) mostly gated on every other track finishing first, leaving its developer largely idle mid-project. Rebalanced: Track D now also owns early CI/CD setup (real Day-1 work, not scaffolding), writes backend tests incrementally alongside each track's route work instead of in one end-of-project batch, and picks up the password-reset stretch feature (STRETCH-01, moved from Track C) as standalone feature work buildable once Track A's login lands.
 
 ## Requirements
 
@@ -58,8 +58,9 @@ app.
 - [ ] Cloud hosting reachable via URL for TAs/instructor (R2-3)
 - [ ] Project board with all features + initial work items (user stories, tech debt, research items) (R1-2)
 - [ ] High-level architecture sketch (R1-3)
-- [ ] Password reset via the existing Forgot Password flow (STRETCH-01)
-- [ ] Support for an arbitrary number of named hardware sets beyond a fixed HWSet1/HWSet2 pair (STRETCH-02)
+- [ ] Password reset via the existing Forgot Password flow (STRETCH-01, Track D)
+- [ ] Explicit hardware-set-type management — create/rename/deactivate a type without checking something in first (STRETCH-02, Track C; the base model already supports any number of named sets created implicitly on checkin — see RES-05, already validated)
+- [ ] CI/CD pipeline running tests + client build on every PR, set up early rather than as a late add-on (part of Track D's rescoped Phase 2 work)
 
 ### Backlog / Research Items (explicitly NOT in this PoC's committed scope)
 
@@ -105,6 +106,8 @@ app.
 | A hardware set's `available` count is a plain running total (capacity minus checked-out units), no per-checkin batch history | The generic domain has no need for FIFO/expiration ordering — that was a food-specific requirement (best-by dates) that doesn't apply to reusable hardware | ✓ Good |
 | Track B's tracer plan (02-01) bootstrapped the React client (`package.json`, Vite) and fixed Flask's broken imports, since neither existed/worked before this phase | The scaffold could not run at all — no track could proceed without this; flagged as a cross-track coordination point so other tracks build into the same shell | ✓ Good |
 | Phase 05/06 (Track E: UI Design) established a design-token system (color/spacing/typography) and a table-based resource-management layout for the frontend | Applies generically to any tabular resource-status view; only the food-specific *content* it originally carried needed to be dropped in the domain revert, not the underlying visual system or layout approach | ✓ Good |
+| Rescoped Track D's workload — added early CI/CD ownership (TD-16), made backend test-writing incremental/paired with each track instead of one end-of-project batch (TD-09), and moved the password-reset stretch feature (STRETCH-01) from Track C to Track D | Track D's original scope was backloaded: thin Day-1 scaffolding, then real work (meaningful tests, actual deploy) gated on every other track finishing — leaving its developer largely idle for a class project with graded individual contribution expectations. STRETCH-01 gives it standalone feature work buildable once Track A's login exists (mid-project, not end-loaded) | — Pending |
+| Narrowed STRETCH-02 (Track C's remaining stretch feature) from "arbitrary hardware sets" to "explicit hardware-set-type management" | The base data model built in Track B already supports any number of named sets, created implicitly on first checkin (RES-05) — the original stretch description was redundant with core scope already shipped; the real remaining gap is explicit type management (create/rename/deactivate without a checkin) | — Pending |
 
 ## Evolution
 
@@ -124,4 +127,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-28 — reverted the food-inventory domain reframing back to the assignment's generic HaaS/hardware-resource domain (HWSet1/HWSet2-style named hardware sets, no location/freshness/batch concepts)*
+*Last updated: 2026-09-28 — reverted the food-inventory domain reframing back to the assignment's generic HaaS/hardware-resource domain, then rescoped Track D's workload (early CI/CD, incremental testing, moved password-reset stretch feature from Track C) so it isn't idle for most of the project*

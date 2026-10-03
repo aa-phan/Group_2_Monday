@@ -11,3 +11,6 @@ client/dist/
 
 # Exported PDF versions of planning docs (source docs are what matter, not their PDF exports)
 .planning/*.pdf
+
+server/venv/
+server/.mongo-data/

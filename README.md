@@ -1,5 +1,41 @@
 # AppDevProjectTemplate
 Template for MIS385N (Advanced Programming and App Development) Team Project
+# Running Locally
+
+You need three processes: MongoDB, the Flask backend, and the React client. From the repo root:
+
+```bash
+# 1. MongoDB (leave running; port 27117)
+mkdir -p server/.mongo-data
+mongod --dbpath server/.mongo-data --port 27117 --bind_ip 127.0.0.1
+
+# 2. Flask backend (new terminal; port 5050)
+cd server
+python3 -m venv venv && source venv/bin/activate   # first time only
+pip install -r requirements.txt                      # first time only
+MONGODB_URI="mongodb://127.0.0.1:27117/" python app.py
+
+# 3. React client (new terminal; port 5173, proxies /api to 5050)
+cd client
+npm install                                          # first time only
+npm run dev
+```
+
+Then open http://localhost:5173.
+
+- **Configuration:** the server reads `MONGODB_URI` from the environment. Alternatively, put `MONGODB_URI=...` in `server/.env` (gitignored).
+- **Seed data:** login and project management are not built yet, so the client hardcodes project `P1` and user `alice` (`client/src/App.js`). A fresh database shows `not_a_project_member` until you seed that project:
+  ```bash
+  cd server && source venv/bin/activate && python3 -c "
+  from pymongo import MongoClient
+  MongoClient('mongodb://127.0.0.1:27117/')['HaaSResourceManager']['Households'].update_one(
+      {'householdId':'P1'},
+      {'\$setOnInsert':{'householdId':'P1','projectName':'Demo','users':['alice']}}, upsert=True)"
+  ```
+  The collection is still named `Households` with a `householdId` field, left over from an earlier iteration of the project.
+- **Port already in use:** check what is running with `lsof -i :27117 -i :5050 -i :5173`.
+- **Tests:** `cd server && source venv/bin/activate && pytest`.
+
 # Project Overview
 
 This project is a web application built using Flask and MongoDB, and React. The application manages users, projects, and hardware sets, allowing users to log in, join projects, and request hardware. The backend consists of four main Python files that handle different aspects of the application's functionality.

@@ -191,12 +191,20 @@ def checkin_hardware():
         return jsonify({"error": "invalid_input", "field": str(error)}), 400
     except hardwareDB.ItemNotFoundError:
         return jsonify({"error": "hardware_set_not_found"}), 404
+    except hardwareDB.CheckinExceedsCheckedOutError as error:
+        return jsonify({
+            "error": "checkin_exceeds_checked_out",
+            "checkedOut": error.checkedOut,
+            "requested": error.requested,
+        }), 409
+    except hardwareDB.ConcurrentModificationError:
+        return jsonify({"error": "concurrent_modification"}), 409
     finally:
         # Close the MongoDB connection
         client.close()
 
     # Return a JSON response
-    return jsonify({"hardwareSet": hardwareSet}), 201
+    return jsonify({"hardwareSet": hardwareSet}), 200
 
 # Route for checking out units of a hardware set
 @app.route('/api/hardware/checkout', methods=['POST'])

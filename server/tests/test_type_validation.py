@@ -244,16 +244,8 @@ def test_assert_project_member_rejects_dict_userId(mongo):
 # --- userName injection (addReservation) ------------------------------------
 
 
-def test_request_rejects_dict_userName_and_writes_nothing(api, mongo):
-    api.post(
-        "/api/hardware/checkin",
-        json={
-            "projectId": "H1",
-            "userId": "alice",
-            "hwSetName": "HWSet1",
-            "quantity": 5,
-        },
-    )
+def test_request_rejects_dict_userName_and_writes_nothing(api, mongo, seed_set):
+    seed_set("H1", "HWSet1", 5)
 
     response = api.post(
         "/api/hardware/request",

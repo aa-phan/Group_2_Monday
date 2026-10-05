@@ -11,11 +11,14 @@ async function throwForErrorResponse(response) {
   const body = await parseErrorBody(response);
   const message = body.error ? body.error : `Request failed with status ${response.status}`;
   const error = new Error(message);
-  // Carried through only when present -- the insufficient-availability case
-  // (409) is the one caller that needs these to say how many units are
-  // actually on hand.
+  // Carried through only when present -- the 409 over-checkout and
+  // over-checkin cases need these to say how many units are on hand or
+  // checked out.
   if (typeof body.onHand === 'number') {
     error.onHand = body.onHand;
+  }
+  if (typeof body.checkedOut === 'number') {
+    error.checkedOut = body.checkedOut;
   }
   if (typeof body.requested === 'number') {
     error.requested = body.requested;

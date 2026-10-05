@@ -24,15 +24,19 @@ npm run dev
 Then open http://localhost:5173.
 
 - **Configuration:** the server reads `MONGODB_URI` from the environment. Alternatively, put `MONGODB_URI=...` in `server/.env` (gitignored).
-- **Seed data:** login and project management are not built yet, so the client hardcodes project `P1` and user `alice` (`client/src/App.js`). A fresh database shows `not_a_project_member` until you seed that project:
+- **Seed data:** login and project management are not built yet, so the client hardcodes project `P1` and user `alice` (`client/src/App.js`). Hardware sets are no longer created by checking in, so a fresh database needs the project and its sets seeded:
   ```bash
   cd server && source venv/bin/activate && python3 -c "
   from pymongo import MongoClient
-  MongoClient('mongodb://127.0.0.1:27117/')['HaaSResourceManager']['Households'].update_one(
+  import hardwareDatabase as h
+  c = MongoClient('mongodb://127.0.0.1:27117/')
+  c[h.DB_NAME][h.PROJECTS_COLLECTION].update_one(
       {'householdId':'P1'},
-      {'\$setOnInsert':{'householdId':'P1','projectName':'Demo','users':['alice']}}, upsert=True)"
+      {'\$setOnInsert':{'householdId':'P1','projectName':'Demo','users':['alice']}}, upsert=True)
+  h.createHardwareSet(c, 'P1', 'HWSet1', 10)
+  h.createHardwareSet(c, 'P1', 'HWSet2', 20)"
   ```
-  The collection is still named `Households` with a `householdId` field, left over from an earlier iteration of the project.
+  Each set has a fixed capacity; Check Out and Check In only change availability. The projects collection is still named `Households` with a `householdId` field, left over from an earlier iteration of the project.
 - **Port already in use:** check what is running with `lsof -i :27117 -i :5050 -i :5173`.
 - **Tests:** `cd server && source venv/bin/activate && pytest`.
 

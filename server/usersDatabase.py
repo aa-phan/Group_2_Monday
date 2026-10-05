@@ -1,6 +1,5 @@
 # Import necessary libraries and modules
-import os
-
+import hardwareDatabase as hardwareDB
 import projectsDatabase as projectsDB
 from passwordSecurity import InvalidPasswordError, hashPassword, verifyPassword
 
@@ -14,7 +13,10 @@ User = {
 }
 '''
 
-DB_NAME = os.environ.get("MONGODB_DB", "PantryTrack")
+# Reuse hardwareDatabase's DB_NAME (same convention as projectsDatabase.py)
+# rather than defining a second MONGODB_DB default here -- users, projects,
+# and hardware sets must all land in the same database.
+DB_NAME = hardwareDB.DB_NAME
 USERS_COLLECTION = "Users"
 
 

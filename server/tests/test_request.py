@@ -47,6 +47,7 @@ def test_request_adds_reservation_without_reducing_capacity_or_availability(api)
     assert hwSet["available"] == 10
     assert len(hwSet["requests"]) == 1
     assert hwSet["requests"][0]["userId"] == "alice"
+    assert hwSet["requests"][0]["userName"] == "Alice"
     assert hwSet["requests"][0]["quantity"] == 4
 
 

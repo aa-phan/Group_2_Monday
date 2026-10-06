@@ -197,8 +197,6 @@ def checkin_hardware():
             "checkedOut": error.checkedOut,
             "requested": error.requested,
         }), 409
-    except hardwareDB.ConcurrentModificationError:
-        return jsonify({"error": "concurrent_modification"}), 409
     finally:
         # Close the MongoDB connection
         client.close()
@@ -241,8 +239,6 @@ def checkout_hardware():
             "onHand": error.onHand,
             "requested": error.requested,
         }), 409
-    except hardwareDB.ConcurrentModificationError:
-        return jsonify({"error": "concurrent_modification"}), 409
     finally:
         # Close the MongoDB connection
         client.close()

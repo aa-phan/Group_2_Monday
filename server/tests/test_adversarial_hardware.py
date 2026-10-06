@@ -16,36 +16,44 @@ import hardwareDatabase as hardwareDB
 
 
 class _RacingCollection:
-    def __init__(self, inner, hook):
+    def __init__(self, inner, hook, after):
         self._inner = inner
         self._hook = hook
+        self._after = after
 
     def __getattr__(self, name):
         return getattr(self._inner, name)
 
     def find_one_and_update(self, *args, **kwargs):
         self._hook(self._inner)
-        return self._inner.find_one_and_update(*args, **kwargs)
+        result = self._inner.find_one_and_update(*args, **kwargs)
+        if result is None and self._after is not None:
+            self._after(self._inner)
+        return result
 
 
 class _RacingDatabase:
-    def __init__(self, inner, hook):
+    def __init__(self, inner, hook, after):
         self._inner = inner
         self._hook = hook
+        self._after = after
 
     def __getitem__(self, name):
-        return _RacingCollection(self._inner[name], self._hook)
+        return _RacingCollection(self._inner[name], self._hook, self._after)
 
 
 class RacingClient:
-    """Calls `hook(collection)` immediately before every find_one_and_update."""
+    """Calls `hook(collection)` immediately before every find_one_and_update,
+    and `after(collection)` when that update matched no document.
+    """
 
-    def __init__(self, inner, hook):
+    def __init__(self, inner, hook, after=None):
         self._inner = inner
         self._hook = hook
+        self._after = after
 
     def __getitem__(self, name):
-        return _RacingDatabase(self._inner[name], self._hook)
+        return _RacingDatabase(self._inner[name], self._hook, self._after)
 
     def close(self):
         pass
@@ -92,37 +100,67 @@ def test_checkout_write_is_pinned_to_the_count_it_read(mongo, seed_set):
     assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 8
 
 
-def test_checkout_retries_up_to_three_attempts_then_succeeds(mongo, seed_set):
+def test_checkout_succeeds_in_one_attempt_despite_unrelated_competing_writes(mongo, seed_set):
+    """Ample stock: another writer's concurrent change must not fail or retry the call."""
     seed_set("H1", "HWSet1", 20)
     attempts = []
 
-    def competitor_twice(collection):
-        attempts.append(1)
-        if len(attempts) <= 2:
-            _bump_checked_out(1)(collection)
-
-    racing = RacingClient(mongo, competitor_twice)
-    result = hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3)
-
-    assert len(attempts) == 3
-    assert result["available"] == 15
-    assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 5
-
-
-def test_checkout_gives_up_after_exactly_three_lost_races(mongo, seed_set):
-    seed_set("H1", "HWSet1", 20)
-    attempts = []
-
-    def always_compete(collection):
+    def competitor_every_time(collection):
         attempts.append(1)
         _bump_checked_out(1)(collection)
 
-    racing = RacingClient(mongo, always_compete)
-    with pytest.raises(hardwareDB.ConcurrentModificationError):
+    racing = RacingClient(mongo, competitor_every_time)
+    result = hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3)
+
+    assert len(attempts) == 1
+    assert result["available"] == 16
+    assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 4
+
+
+def test_checkout_is_rejected_when_a_competitor_takes_the_units_between_read_and_write(mongo, seed_set):
+    seed_set("H1", "HWSet1", 5)
+    racing = RacingClient(mongo, _bump_checked_out(5))
+
+    with pytest.raises(hardwareDB.InsufficientStockError) as caught:
         hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3)
 
-    assert len(attempts) == 3
-    assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 3  # only the competitor's writes
+    assert (caught.value.onHand, caught.value.requested) == (0, 3)
+    assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 5  # our write was not applied
+
+
+def test_checkout_is_retried_when_units_are_freed_after_the_guard_rejected_it(mongo, seed_set):
+    seed_set("H1", "HWSet1", 10)
+    state = {"first": True}
+
+    def fill_up_once(collection):
+        if state["first"]:
+            state["first"] = False
+            collection.update_one(
+                {"projectId": "H1", "hwSetKey": "hwset1"}, {"$set": {"checkedOut": 10}}
+            )
+
+    def free_up_after_rejection(collection):
+        collection.update_one(
+            {"projectId": "H1", "hwSetKey": "hwset1"}, {"$set": {"checkedOut": 0}}
+        )
+
+    racing = RacingClient(mongo, fill_up_once, after=free_up_after_rejection)
+    result = hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3)
+
+    assert result["available"] == 7
+    assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 3
+
+
+def test_checkin_is_rejected_when_a_competitor_returns_the_units_between_read_and_write(mongo, seed_set):
+    seed_set("H1", "HWSet1", 10)
+    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 6)
+    racing = RacingClient(mongo, _bump_checked_out(-5))
+
+    with pytest.raises(hardwareDB.CheckinExceedsCheckedOutError) as caught:
+        hardwareDB.checkinHardware(racing, "H1", "HWSet1", 3)
+
+    assert (caught.value.checkedOut, caught.value.requested) == (1, 3)
+    assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 1
 
 
 def test_checkin_write_is_pinned_to_the_count_it_read(mongo, seed_set):
@@ -139,19 +177,6 @@ def test_checkin_write_is_pinned_to_the_count_it_read(mongo, seed_set):
     hardwareDB.checkinHardware(racing, "H1", "HWSet1", 1)
 
     assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 3
-
-
-def test_route_reports_409_concurrent_modification_when_races_keep_being_lost(
-    api, mongo, seed_set, monkeypatch
-):
-    seed_set("H1", "HWSet1", 20)
-    racing = RacingClient(mongo, _bump_checked_out(1))
-    monkeypatch.setattr(flask_app_module, "getMongoClient", lambda: racing)
-
-    for path in ("/api/hardware/checkout", "/api/hardware/checkin"):
-        response = _post(api, path, quantity=1)
-        assert response.status_code == 409
-        assert response.get_json() == {"error": "concurrent_modification"}
 
 
 def test_release_write_is_pinned_to_the_entry_still_being_present(mongo, seed_set):
@@ -190,7 +215,10 @@ def test_blank_or_non_string_hardware_set_name_is_rejected_with_400(api, seed_se
 
 
 @pytest.mark.parametrize("path", ["/api/hardware/checkin", "/api/hardware/checkout", "/api/hardware/request"])
-@pytest.mark.parametrize("badQuantity", [True, False, 0, -1, 1.5, "2", None])
+@pytest.mark.parametrize(
+    "badQuantity",
+    [True, False, 0, -1, 1.5, "2", None, 2**31, hardwareDB.MAX_QUANTITY + 1, 2**63, 2**70],
+)
 def test_non_positive_non_integer_and_boolean_quantities_are_rejected_with_400(
     api, mongo, seed_set, path, badQuantity
 ):
@@ -205,7 +233,7 @@ def test_non_positive_non_integer_and_boolean_quantities_are_rejected_with_400(
     assert raw["reservedQuantity"] == 0
 
 
-@pytest.mark.parametrize("badCapacity", [0, -1, True, 2.5, "3", None])
+@pytest.mark.parametrize("badCapacity", [0, -1, True, 2.5, "3", None, hardwareDB.MAX_QUANTITY + 1, 2**70])
 def test_create_hardware_set_rejects_invalid_capacity(mongo, badCapacity):
     with pytest.raises(hardwareDB.InvalidInventoryInput) as caught:
         hardwareDB.createHardwareSet(mongo, "H1", "HWSet1", badCapacity)
@@ -306,3 +334,15 @@ def test_release_is_scoped_to_the_project_named_in_the_request(api, mongo, seed_
     raw = _raw(mongo, "H2", "hwset1")
     assert raw["reservedQuantity"] == 3
     assert len(raw["reservations"]) == 1
+
+
+def test_the_largest_allowed_quantity_is_accepted_everywhere_and_never_overflows(api, mongo, seed_set):
+    maximum = hardwareDB.MAX_QUANTITY
+    assert maximum == 2**31 - 1  # small enough that summed reservations cannot overflow BSON int64
+    seed_set("H1", "HWSet1", maximum)
+
+    assert _post(api, "/api/hardware/request", userName="Alice", quantity=maximum).status_code == 201
+    assert _post(api, "/api/hardware/request", userName="Alice", quantity=maximum).status_code == 201
+    assert _post(api, "/api/hardware/checkout", quantity=maximum).status_code == 200
+    assert _post(api, "/api/hardware/checkin", quantity=maximum).status_code == 200
+    assert _raw(mongo, "H1", "hwset1")["reservedQuantity"] == 2 * maximum

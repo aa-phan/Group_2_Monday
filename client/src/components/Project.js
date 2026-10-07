@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchHardware } from '../api/hardware.js';
 import HardwareSet from './HardwareSet.js';
 
@@ -24,16 +24,27 @@ export default function ResourceView({ projectId, userId }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Only the most recently started load may update state; a slower, older
+  // response must not overwrite newer data.
+  const latestLoad = useRef(0);
+
   const loadHardware = useCallback(async () => {
+    const thisLoad = ++latestLoad.current;
     setLoading(true);
     setError(null);
     try {
       const data = await fetchHardware(projectId, userId);
-      setHardware(data);
+      if (thisLoad === latestLoad.current) {
+        setHardware(data);
+      }
     } catch (fetchError) {
-      setError(fetchError.message);
+      if (thisLoad === latestLoad.current) {
+        setError(fetchError.message);
+      }
     } finally {
-      setLoading(false);
+      if (thisLoad === latestLoad.current) {
+        setLoading(false);
+      }
     }
   }, [projectId, userId]);
 

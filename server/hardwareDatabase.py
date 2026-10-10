@@ -17,7 +17,8 @@ HardwareSet = {
     'projectId': projectId,
     'hwSetKey': normalizeHwSetName(hwSetName),
     'hwSetName': hwSetName,             # display name, first spelling used
-    'capacity': int,                    # units currently in the pool
+    'capacity': int,                    # fixed total units; never changed by checkin/checkout
+    'checkedOut': int,                  # units currently checked out (0..capacity)
     'reservations': [
         {
             'reservationId': str,       # uuid4 hex
@@ -38,8 +39,8 @@ Checkout, and Checkin actions. There is no storage location, no freshness,
 and no per-restock batch history -- those were a prior domain-specific
 extension that has been removed.
 
-`availability` (capacity - reservedQuantity, floored at 0) is derived on
-read and never stored.
+`available` (capacity - checkedOut) is derived on read and never stored.
+Requests (reservations) are a coordination signal only and never reduce it.
 
 This module holds ONLY the hardware-set store. Project membership lives in
 the separate `Projects` collection (Track A owns writes to it); this module
@@ -51,7 +52,17 @@ DB_NAME = os.environ.get("MONGODB_DB", "HaaSResourceManager")
 HARDWARE_SETS_COLLECTION = "HardwareSets"
 PROJECTS_COLLECTION = "Households"
 
+# Upper bound on any single quantity or capacity. MongoDB stores integers as
+# at most 64 bits, so an unbounded value (or a running reservedQuantity sum
+# of unbounded values) overflows inside the driver and surfaces as a 500.
+MAX_QUANTITY = 2**31 - 1
+
 _WHITESPACE_RUN = re.compile(r"\s+")
+
+
+def _isValidQuantity(value):
+    """True for a whole number from 1 to MAX_QUANTITY (booleans excluded)."""
+    return not isinstance(value, bool) and isinstance(value, int) and 1 <= value <= MAX_QUANTITY
 
 
 class InvalidInventoryInput(Exception):
@@ -76,11 +87,17 @@ class InsufficientStockError(Exception):
         )
 
 
-class ConcurrentModificationError(Exception):
-    """Raised when checkoutHardware loses the optimistic-concurrency race
-    three times in a row -- another writer kept winning the conditional
-    update. Maps to HTTP 409.
+class CheckinExceedsCheckedOutError(Exception):
+    """Raised when a checkin would return more units than are currently
+    checked out. Maps to HTTP 409. Carries checkedOut and requested.
     """
+
+    def __init__(self, checkedOut, requested):
+        self.checkedOut = checkedOut
+        self.requested = requested
+        super().__init__(
+            "checkin exceeds checked out: checkedOut={} requested={}".format(checkedOut, requested)
+        )
 
 
 class ReservationNotFoundError(Exception):
@@ -144,60 +161,45 @@ def _ensureHwSetUniqueIndex(collection):
     )
 
 
-def checkinHardware(client, projectId, rawName, quantity):
-    """Check in `quantity` units of a hardware set, creating it if it does
-    not already exist for this project. Increments the stored `capacity`
-    by `quantity` in the same update as the upsert.
-
-    Resolution: an exact (normalized) name match merges into the existing
-    hardware set and its stored hwSetName is left untouched, so the
-    project keeps the display name it first chose. No match creates a new
-    hardware set; hwSetKey is the normalized name and hwSetName is the raw
-    name as typed.
+def createHardwareSet(client, projectId, rawName, capacity):
+    """Create a hardware set with a fixed `capacity` and nothing checked
+    out. Idempotent: if the set already exists it is returned unchanged
+    (capacity is never overwritten).
     """
-    if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
-        raise InvalidInventoryInput("quantity")
+    if not _isValidQuantity(capacity):
+        raise InvalidInventoryInput("capacity")
 
     try:
         normalizedName = normalizeHwSetName(rawName)
     except ValueError:
         raise InvalidInventoryInput("hwSetName")
 
-    db = client[DB_NAME]
-    collection = db[HARDWARE_SETS_COLLECTION]
+    collection = client[DB_NAME][HARDWARE_SETS_COLLECTION]
     _ensureHwSetUniqueIndex(collection)
 
-    upsertFilter = {"projectId": projectId, "hwSetKey": normalizedName}
-    upsertUpdate = {
-        "$inc": {"capacity": quantity},
+    filter_ = {"projectId": projectId, "hwSetKey": normalizedName}
+    update = {
         "$setOnInsert": {
             "projectId": projectId,
             "hwSetKey": normalizedName,
             "hwSetName": rawName,
+            "capacity": capacity,
+            "checkedOut": 0,
             "reservations": [],
             "reservedQuantity": 0,
         },
     }
 
     try:
-        updated = collection.find_one_and_update(
-            upsertFilter, upsertUpdate, upsert=True, return_document=ReturnDocument.AFTER
+        doc = collection.find_one_and_update(
+            filter_, update, upsert=True, return_document=ReturnDocument.AFTER
         )
     except DuplicateKeyError:
-        # Another concurrent check-in of the same brand-new hardware-set
-        # name won the race and inserted first; the unique index caught
-        # our upsert attempting a duplicate insert. The document now
-        # exists, so the identical filter/update retried here matches it
-        # and becomes a plain read-merge-write ($inc), no insert attempted
-        # this time.
-        updated = collection.find_one_and_update(
-            upsertFilter, upsertUpdate, upsert=True, return_document=ReturnDocument.AFTER
+        doc = collection.find_one_and_update(
+            filter_, update, upsert=True, return_document=ReturnDocument.AFTER
         )
 
-    return _serializeHardwareSet(updated)
-
-
-_MAX_CONCURRENCY_ATTEMPTS = 3
+    return _serializeHardwareSet(doc)
 
 
 def _resolveExistingHwSetKey(collection, projectId, rawName):
@@ -217,57 +219,64 @@ def _resolveExistingHwSetKey(collection, projectId, rawName):
     return normalizedName
 
 
-def checkoutHardware(client, projectId, rawName, quantity):
-    """Check out `quantity` units of a hardware set, decrementing its
-    `capacity`.
+def _adjustCheckedOut(client, projectId, rawName, quantity, direction):
+    """Shared checkin/checkout write. direction=+1 checks out, -1 checks in.
 
-    Raises InsufficientStockError (carrying onHand/requested) when
-    quantity exceeds the hardware set's `capacity` -- read, not
-    `availability`, matching the prior inventory model's overbooking rule:
-    checkout draws from total stock regardless of outstanding requests. A
-    rejected or lost checkout never writes anything; the write itself is a
-    single find_one_and_update pinned to the exact `capacity` that was
-    read (reservedQuantity is deliberately NOT pinned -- checkout never
-    reads or writes it, so pinning on it would spuriously fail this
-    conditional update on any unrelated concurrent request/release),
-    retried up to _MAX_CONCURRENCY_ATTEMPTS times on a lost race before
-    raising ConcurrentModificationError.
+    `capacity` is never touched. The limit check and the write are one atomic
+    conditional update on `checkedOut`, so concurrent callers can never push
+    it outside 0..capacity and never need to retry against each other's
+    unrelated writes. When the guard rejects, the set is re-read: if the
+    request is still unsatisfiable it is reported with the fresh figures and
+    nothing is written; if another writer has since made it satisfiable it is
+    simply attempted again.
     """
-    if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
+    if not _isValidQuantity(quantity):
         raise InvalidInventoryInput("quantity")
 
-    db = client[DB_NAME]
-    collection = db[HARDWARE_SETS_COLLECTION]
-
+    collection = client[DB_NAME][HARDWARE_SETS_COLLECTION]
     targetKey = _resolveExistingHwSetKey(collection, projectId, rawName)
 
-    for _attempt in range(_MAX_CONCURRENCY_ATTEMPTS):
+    while True:
         doc = collection.find_one({"projectId": projectId, "hwSetKey": targetKey})
         if doc is None:
             raise ItemNotFoundError(rawName)
 
+        # capacity never changes after creation, so a stale read of it is safe.
         capacity = doc.get("capacity", 0)
+        checkedOut = doc.get("checkedOut", 0)
 
-        if quantity > capacity:
-            raise InsufficientStockError(onHand=capacity, requested=quantity)
+        if direction > 0:
+            if quantity > capacity - checkedOut:
+                raise InsufficientStockError(onHand=capacity - checkedOut, requested=quantity)
+            guard = {"$lte": capacity - quantity}
+        else:
+            if quantity > checkedOut:
+                raise CheckinExceedsCheckedOutError(checkedOut=checkedOut, requested=quantity)
+            guard = {"$gte": quantity}
 
         updated = collection.find_one_and_update(
-            {
-                "_id": doc["_id"],
-                "capacity": capacity,
-            },
-            {
-                "$set": {"capacity": capacity - quantity},
-            },
+            {"_id": doc["_id"], "checkedOut": guard},
+            {"$inc": {"checkedOut": direction * quantity}},
             return_document=ReturnDocument.AFTER,
         )
 
         if updated is not None:
             return _serializeHardwareSet(updated)
 
-    raise ConcurrentModificationError(
-        "lost the checkout race after {} attempts".format(_MAX_CONCURRENCY_ATTEMPTS)
-    )
+
+def checkinHardware(client, projectId, rawName, quantity):
+    """Check in (return) `quantity` units, raising availability. Raises
+    CheckinExceedsCheckedOutError if more than are checked out.
+    """
+    return _adjustCheckedOut(client, projectId, rawName, quantity, -1)
+
+
+def checkoutHardware(client, projectId, rawName, quantity):
+    """Check out `quantity` units, lowering availability. Raises
+    InsufficientStockError (onHand = current availability) if more than are
+    available. Outstanding requests never gate checkout.
+    """
+    return _adjustCheckedOut(client, projectId, rawName, quantity, +1)
 
 
 def addReservation(client, projectId, rawName, quantity, userId, userName):
@@ -280,7 +289,7 @@ def addReservation(client, projectId, rawName, quantity, userId, userName):
     update so two simultaneous requests both survive rather than one
     overwriting the other.
     """
-    if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
+    if not _isValidQuantity(quantity):
         raise InvalidInventoryInput("quantity")
 
     # userName is stored directly into the reservation entry and echoed
@@ -413,6 +422,7 @@ def _serializeHardwareSet(doc):
     repo-wide rename of the underlying reservation machinery.
     """
     capacity = doc.get("capacity", 0)
+    checkedOut = doc.get("checkedOut", 0)
     reservedQuantity = doc.get("reservedQuantity", 0)
     requests = [
         {
@@ -433,5 +443,5 @@ def _serializeHardwareSet(doc):
         "capacity": capacity,
         "requests": requests,
         "requestedQuantity": reservedQuantity,
-        "available": max(capacity - reservedQuantity, 0),
+        "available": max(capacity - checkedOut, 0),
     }

@@ -1,57 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchHardware } from '../api/hardware.js';
-import HardwareActions from './Checkout.js';
-import CheckinForm from './RestockForm.js';
-import Modal from './Modal.js';
-
-/**
- * HardwareTable renders one row per hardware set in the project, matching
- * the assignment's Figure 3 Resource Management mockup: a flat list showing
- * each set's name, capacity, and availability -- a hardware set is just a
- * named, countable resource, with no other dimension to it.
- *
- * Data source: props only
- * No hard-coded fallback: this component renders nothing it was not given or told.
- *
- * @component
- * @param {Object} props
- * @param {Array} props.hardwareSets - The project's hardware sets, each
- *   `{ hwSetName, capacity, available }`, in the order received.
- * @param {Function} props.onRowClick - Called with the clicked hardware set
- *   when a project member wants to check it out, request it, or check it in.
- */
-function HardwareTable({ hardwareSets, onRowClick }) {
-  return (
-    <div className="hardware-table-wrap">
-      <table className="hardware-table">
-        <thead>
-          <tr>
-            <th>Hardware Set</th>
-            <th>Capacity</th>
-            <th>Available</th>
-          </tr>
-        </thead>
-        <tbody>
-          {hardwareSets.map((hwSet) => (
-            <tr
-              key={hwSet.hwSetName}
-              className="hardware-table__row"
-              onClick={() => onRowClick(hwSet)}
-            >
-              <td>
-                <button type="button" className="hardware-table__open" aria-haspopup="dialog">
-                  {hwSet.hwSetName}
-                </button>
-              </td>
-              <td className="hardware-table__num">{hwSet.capacity}</td>
-              <td className="hardware-table__num">{hwSet.available}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+import HardwareSet from './HardwareSet.js';
 
 /**
  * ResourceView is the top-level presentational component for a project's
@@ -67,27 +16,35 @@ function HardwareTable({ hardwareSets, onRowClick }) {
  * @param {Object} props
  * @param {string} props.projectId - The project whose hardware sets to load.
  *   No fallback/default; a real session must supply this.
- * @param {string} props.userId - The acting user's id, used for request/
- *   checkout/release calls. No fallback/default.
- * @param {string} props.userName - Display name shown on request entries
- *   this user creates. No fallback/default.
+ * @param {string} props.userId - The acting user's id, used for checkin/
+ *   checkout calls. No fallback/default.
  */
-export default function ResourceView({ projectId, userId, userName }) {
+export default function ResourceView({ projectId, userId }) {
   const [hardware, setHardware] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [openModal, setOpenModal] = useState(null);
+
+  // Only the most recently started load may update state; a slower, older
+  // response must not overwrite newer data.
+  const latestLoad = useRef(0);
 
   const loadHardware = useCallback(async () => {
+    const thisLoad = ++latestLoad.current;
     setLoading(true);
     setError(null);
     try {
       const data = await fetchHardware(projectId, userId);
-      setHardware(data);
+      if (thisLoad === latestLoad.current) {
+        setHardware(data);
+      }
     } catch (fetchError) {
-      setError(fetchError.message);
+      if (thisLoad === latestLoad.current) {
+        setError(fetchError.message);
+      }
     } finally {
-      setLoading(false);
+      if (thisLoad === latestLoad.current) {
+        setLoading(false);
+      }
     }
   }, [projectId, userId]);
 
@@ -95,11 +52,7 @@ export default function ResourceView({ projectId, userId, userName }) {
     loadHardware();
   }, [loadHardware]);
 
-  const handleCheckedIn = useCallback(async () => {
-    await loadHardware();
-  }, [loadHardware]);
-
-  if (loading) {
+  if (loading && hardware === null) {
     return <p>Loading hardware resources...</p>;
   }
 
@@ -116,27 +69,21 @@ export default function ResourceView({ projectId, userId, userName }) {
 
   const hardwareSets = hardware ? hardware.hardwareSets : [];
 
+  if (hardwareSets.length === 0) {
+    return <p className="muted-text">No hardware sets in this project yet.</p>;
+  }
+
   return (
-    <div>
-      <HardwareTable
-        hardwareSets={hardwareSets}
-        onRowClick={(hwSet) => setOpenModal({ kind: 'detail', hwSet })}
-      />
-      <CheckinForm projectId={projectId} userId={userId} onCheckedIn={handleCheckedIn} />
-      {openModal && openModal.kind === 'detail' && (
-        <Modal title={openModal.hwSet.hwSetName} onClose={() => setOpenModal(null)}>
-          <p className="hw-detail__summary">
-            Capacity {openModal.hwSet.capacity} &middot; Available {openModal.hwSet.available}
-          </p>
-          <HardwareActions
-            projectId={projectId}
-            hwSet={openModal.hwSet}
-            userId={userId}
-            userName={userName}
-            onChanged={loadHardware}
-          />
-        </Modal>
-      )}
+    <div className="hw-set-list">
+      {hardwareSets.map((hwSet) => (
+        <HardwareSet
+          key={hwSet.hwSetName}
+          projectId={projectId}
+          userId={userId}
+          hwSet={hwSet}
+          onChanged={loadHardware}
+        />
+      ))}
     </div>
   );
 }

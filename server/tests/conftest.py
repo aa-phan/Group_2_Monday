@@ -31,3 +31,11 @@ def api(mongo, monkeypatch):
     monkeypatch.setattr(flask_app_module, "getMongoClient", lambda: mongo)
     flask_app_module.app.testing = True
     return flask_app_module.app.test_client()
+
+
+@pytest.fixture
+def seed_set(mongo):
+    """seed_set(projectId, hwSetName, capacity) -> serialized hardware set."""
+    def _seed(projectId, hwSetName, capacity):
+        return hardwareDB.createHardwareSet(mongo, projectId, hwSetName, capacity)
+    return _seed

@@ -103,6 +103,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 | 260914-g9c | 2026-09-14 | Rename internal Phase 1/2/3 work-breakdown to Track A/B/C to avoid clashing with assignment's grading phases | `.planning/quick/260914-g9c-rename-internal-phase1-2-3-work-breakdow/SUMMARY.md` |
 | 260914-glw | 2026-09-14 | Add Phase column (assignment grading Phase 1/2) to all WORK-ITEMS.md tables and insert one new Phase-1 scope/schema/stories technical-debt item per track | `.planning/quick/260914-glw-add-phase-column-to-work-items-md-and-3-/SUMMARY.md` |
 | 260914-pzo | 2026-09-14 | Restructure from 3 tracks to 4 tracks (4 developers), split Track C into Track C + Track D, add 4 rubric-story items and 2 promoted stretch-feature stories | `.planning/quick/260914-pzo-restructure-3-tracks-into-4-tracks-4-dev/SUMMARY.md` |
+| 261005-q3t | 2026-10-05 | Per-hardware-set Availability/Capacity/Check In/Check Out components; capacity fixed, over-checkout/over-checkin rejected | `.planning/quick/261005-q3t-per-hwset-checkout-components-and-fix-ca/261005-q3t-SUMMARY.md` |
 
 ## Session Continuity
 

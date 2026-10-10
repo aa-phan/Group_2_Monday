@@ -10,12 +10,9 @@ import hardwareDatabase as hardwareDB
 
 
 def _checkin(api, projectId, userId, hwSetName, quantity):
-    response = api.post(
-        "/api/hardware/checkin",
-        json={"projectId": projectId, "userId": userId, "hwSetName": hwSetName, "quantity": quantity},
-    )
-    assert response.status_code == 201, response.get_json()
-    return response.get_json()["hardwareSet"]
+    """Create a hardware set with the given capacity (test seeding)."""
+    import app as flask_app_module
+    return hardwareDB.createHardwareSet(flask_app_module.getMongoClient(), projectId, hwSetName, quantity)
 
 
 def _request(api, projectId, userId, userName, hwSetName, quantity):
@@ -38,7 +35,7 @@ def _release(api, projectId, userId, reservationId):
     )
 
 
-def test_request_adds_reservation_without_reducing_capacity(api):
+def test_request_adds_reservation_without_reducing_capacity_or_availability(api):
     _checkin(api, "H1", "alice", "HWSet1", 10)
 
     response = _request(api, "H1", "alice", "Alice", "HWSet1", 4)
@@ -47,9 +44,10 @@ def test_request_adds_reservation_without_reducing_capacity(api):
     hwSet = body["hardwareSet"]
     assert hwSet["capacity"] == 10
     assert hwSet["requestedQuantity"] == 4
-    assert hwSet["available"] == 6
+    assert hwSet["available"] == 10
     assert len(hwSet["requests"]) == 1
     assert hwSet["requests"][0]["userId"] == "alice"
+    assert hwSet["requests"][0]["userName"] == "Alice"
     assert hwSet["requests"][0]["quantity"] == 4
 
 

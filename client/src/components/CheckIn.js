@@ -21,9 +21,12 @@ function describeCheckinError(error) {
  * @param {string} props.projectId - The project the set belongs to.
  * @param {string} props.userId - The acting member's id.
  * @param {string} props.hwSetName - The hardware set to check in.
+ * @param {number} props.checkedOut - Units of this set currently checked
+ *   out (capacity - available) -- the most that can be checked back in
+ *   right now. No fallback/default.
  * @param {Function} props.onChanged - Async reload callback.
  */
-export default function CheckIn({ projectId, userId, hwSetName, onChanged }) {
+export default function CheckIn({ projectId, userId, hwSetName, checkedOut, onChanged }) {
   return (
     <QuantityAction
       label="Check In"
@@ -31,6 +34,7 @@ export default function CheckIn({ projectId, userId, hwSetName, onChanged }) {
       action={(quantity) => checkinHardware({ projectId, userId, hwSetName, quantity })}
       describeError={describeCheckinError}
       onChanged={onChanged}
+      max={checkedOut}
     />
   );
 }

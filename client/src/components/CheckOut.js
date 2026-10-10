@@ -22,9 +22,12 @@ function describeCheckoutError(error) {
  * @param {string} props.projectId - The project the set belongs to.
  * @param {string} props.userId - The acting member's id.
  * @param {string} props.hwSetName - The hardware set to check out.
+ * @param {number} props.available - Units of this set currently
+ *   available -- the most that can be checked out right now. No
+ *   fallback/default.
  * @param {Function} props.onChanged - Async reload callback.
  */
-export default function CheckOut({ projectId, userId, hwSetName, onChanged }) {
+export default function CheckOut({ projectId, userId, hwSetName, available, onChanged }) {
   return (
     <QuantityAction
       label="Check Out"
@@ -32,6 +35,7 @@ export default function CheckOut({ projectId, userId, hwSetName, onChanged }) {
       action={(quantity) => checkoutHardware({ projectId, userId, hwSetName, quantity })}
       describeError={describeCheckoutError}
       onChanged={onChanged}
+      max={available}
     />
   );
 }

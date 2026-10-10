@@ -28,6 +28,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:5050',
+      // Sign-up/sign-in (US-01/US-02) live at the bare paths the scaffold
+      // already used (server/app.py's /add_user and /login), not under
+      // /api -- proxy them explicitly too, or the dev server swallows
+      // these calls instead of forwarding them to Flask.
+      '/add_user': 'http://localhost:5050',
+      '/login': 'http://localhost:5050',
     },
   },
 });

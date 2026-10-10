@@ -65,3 +65,34 @@ it('renders the resource view with the created userId after a successful sign-up
 
   expect(await screen.findByTestId('resource-view')).toHaveTextContent('P1:bob1');
 });
+
+it('returns to the sign-in form after signing out, clearing the session', async () => {
+  signIn.mockResolvedValue({ username: 'alice', userId: 'alice1' });
+  render(<App />);
+
+  await userEvent.type(screen.getByLabelText('Username'), 'alice');
+  await userEvent.type(screen.getByLabelText('User ID'), 'alice1');
+  await userEvent.type(screen.getByLabelText('Password'), 'correct horse battery');
+  await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  await screen.findByTestId('resource-view');
+
+  await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+
+  expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  expect(screen.queryByTestId('resource-view')).not.toBeInTheDocument();
+  expect(screen.queryByText('Signed in as alice')).not.toBeInTheDocument();
+});
+
+it('signing back in after a sign-out starts a fresh username/password field', async () => {
+  signIn.mockResolvedValue({ username: 'alice', userId: 'alice1' });
+  render(<App />);
+
+  await userEvent.type(screen.getByLabelText('Username'), 'alice');
+  await userEvent.type(screen.getByLabelText('User ID'), 'alice1');
+  await userEvent.type(screen.getByLabelText('Password'), 'correct horse battery');
+  await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  await screen.findByTestId('resource-view');
+  await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+
+  expect(screen.getByLabelText('Username')).toHaveValue('');
+});

@@ -29,10 +29,20 @@ export default function App() {
     );
   }
 
+  function handleSignOut() {
+    setAccount(null);
+    setAuthView('signIn');
+  }
+
   return (
     <div className="app-container">
       <h1 className="app-heading">Project {PROJECT_ID} — Hardware Resources</h1>
-      <p className="muted-text">Signed in as {account.username}</p>
+      <p className="app-session">
+        <span className="muted-text">Signed in as {account.username}</span>
+        <button type="button" className="app-session__sign-out" onClick={handleSignOut}>
+          Sign out
+        </button>
+      </p>
       <ResourceView projectId={PROJECT_ID} userId={account.userId} />
     </div>
   );

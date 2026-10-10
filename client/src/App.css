@@ -203,6 +203,24 @@ h3 {
   cursor: pointer;
 }
 
+.app-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.app-session__sign-out {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-ink);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 @media (max-width: 599px) {
   .app-container {
     padding-left: var(--space-lg);

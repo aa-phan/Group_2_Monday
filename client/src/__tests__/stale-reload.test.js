@@ -15,23 +15,28 @@ const snapshot = (available) => ({ hardwareSets: [{ hwSetName: 'HWSet1', capacit
 it('ignores a slower, older reload response that arrives after a newer one', async () => {
   let resolveFirstReload;
   fetchHardware
-    .mockResolvedValueOnce(snapshot(10)) // initial load
+    // initial load: available 9 of 10 (1 already checked out), so Check In
+    // has something valid to check back in from the start -- an
+    // all-available fixture would leave Check In correctly disabled and
+    // its click below a no-op, under-draining this mock queue and
+    // bleeding into the next test.
+    .mockResolvedValueOnce(snapshot(9))
     .mockImplementationOnce(() => new Promise((resolve) => { resolveFirstReload = resolve; })) // reload after checkout (slow)
-    .mockResolvedValueOnce(snapshot(8)); // reload after check in (fast, newest state)
+    .mockResolvedValueOnce(snapshot(7)); // reload after check in (fast, newest state)
   checkoutHardware.mockResolvedValue({});
   checkinHardware.mockResolvedValue({});
 
   render(<ResourceView projectId="P1" userId="alice" />);
   const region = await screen.findByRole('region', { name: 'HWSet1' });
 
-  await userEvent.click(screen.getByRole('button', { name: 'Check Out' })); // server state: 9, response pending
-  await userEvent.click(screen.getByRole('button', { name: 'Check In' })); // server state: 8? newest snapshot = 8
-  await waitFor(() => expect(region).toHaveTextContent('8'));
+  await userEvent.click(screen.getByRole('button', { name: 'Check Out' })); // server state: 8, response pending
+  await userEvent.click(screen.getByRole('button', { name: 'Check In' })); // server state: 7, newest snapshot = 7
+  await waitFor(() => expect(region).toHaveTextContent('7'));
 
-  resolveFirstReload(snapshot(9)); // the OLDER response arrives last
+  resolveFirstReload(snapshot(8)); // the OLDER response arrives last
   await new Promise((resolve) => setTimeout(resolve, 20));
 
-  expect(region).toHaveTextContent('8'); // newest data should win
+  expect(region).toHaveTextContent('7'); // newest data should win
 });
 
 function deferred() {

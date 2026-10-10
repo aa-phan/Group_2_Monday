@@ -16,11 +16,20 @@ import { useState } from 'react';
  *   message for a failed action.
  * @param {Function} props.onChanged - Async reload callback, awaited after
  *   every successful action.
+ * @param {number} [props.max] - The largest quantity this action can
+ *   legitimately take right now (e.g. units available for Check Out,
+ *   units checked out for Check In). Caps the input's spinner arrows;
+ *   with no cap to apply (undefined), the input is left unbounded. When
+ *   max is below 1, there is nothing valid to submit, so the control is
+ *   disabled outright rather than left stuck between an unreachable
+ *   min="1" and max.
  */
-export default function QuantityAction({ label, busyLabel, action, describeError, onChanged }) {
+export default function QuantityAction({ label, busyLabel, action, describeError, onChanged, max }) {
   const [quantity, setQuantity] = useState('1');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  const nothingToDo = typeof max === 'number' && max < 1;
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -43,12 +52,14 @@ export default function QuantityAction({ label, busyLabel, action, describeError
         <input
           type="number"
           min="1"
+          max={max}
           step="1"
           value={quantity}
           onChange={(event) => setQuantity(event.target.value)}
+          disabled={nothingToDo}
         />
       </label>
-      <button type="submit" disabled={busy}>
+      <button type="submit" disabled={busy || nothingToDo}>
         {busy ? busyLabel : label}
       </button>
       {error && (

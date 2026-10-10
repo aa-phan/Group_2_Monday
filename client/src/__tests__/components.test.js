@@ -88,6 +88,22 @@ describe('QuantityAction', () => {
     expect(screen.getByRole('button', { name: 'Do It' })).toBeEnabled();
   });
 
+  it('caps the input at max when given', () => {
+    setup({ max: 5 });
+    expect(screen.getByLabelText('Do It')).toHaveAttribute('max', '5');
+  });
+
+  it('leaves the input uncapped when no max is given', () => {
+    setup();
+    expect(screen.getByLabelText('Do It')).not.toHaveAttribute('max');
+  });
+
+  it('disables the input and button outright when max is below 1', () => {
+    setup({ max: 0 });
+    expect(screen.getByLabelText('Do It')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Do It' })).toBeDisabled();
+  });
+
   it('clears a previous error when the next attempt succeeds', async () => {
     const action = vi
       .fn()
@@ -185,6 +201,16 @@ describe('CheckOut', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('not_a_project_member');
   });
+
+  it('caps the quantity input at the units available, not a fixed number', () => {
+    render(<CheckOut {...props} available={4} onChanged={vi.fn()} />);
+    expect(screen.getByLabelText('Check Out')).toHaveAttribute('max', '4');
+  });
+
+  it('disables checkout when nothing is available', () => {
+    render(<CheckOut {...props} available={0} onChanged={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeDisabled();
+  });
 });
 
 describe('CheckIn', () => {
@@ -247,6 +273,16 @@ describe('CheckIn', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('hardware_set_not_found');
   });
+
+  it('caps the quantity input at the units checked out, not a fixed number', () => {
+    render(<CheckIn {...props} checkedOut={5} onChanged={vi.fn()} />);
+    expect(screen.getByLabelText('Check In')).toHaveAttribute('max', '5');
+  });
+
+  it('disables check-in when nothing is checked out', () => {
+    render(<CheckIn {...props} checkedOut={0} onChanged={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Check In' })).toBeDisabled();
+  });
 });
 
 describe('HardwareSet', () => {
@@ -267,7 +303,11 @@ describe('HardwareSet', () => {
   it('wires both actions to this set, project, and user', async () => {
     checkinHardware.mockResolvedValue({});
     checkoutHardware.mockResolvedValue({});
-    const hwSet = { hwSetName: 'HWSet2', capacity: 5, available: 5 };
+    // available < capacity so both actions have something valid to do --
+    // Check In is capped at (and disabled below) checkedOut = capacity -
+    // available, so an all-available fixture would leave nothing to
+    // check in.
+    const hwSet = { hwSetName: 'HWSet2', capacity: 5, available: 3 };
     render(<HardwareSet projectId="P9" userId="bob" hwSet={hwSet} onChanged={vi.fn().mockResolvedValue()} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Check In' }));
@@ -276,6 +316,14 @@ describe('HardwareSet', () => {
     const expected = { projectId: 'P9', userId: 'bob', hwSetName: 'HWSet2', quantity: 1 };
     expect(checkinHardware).toHaveBeenCalledWith(expected);
     expect(checkoutHardware).toHaveBeenCalledWith(expected);
+  });
+
+  it('derives checkedOut (capacity - available) for the Check In cap, not a fixed number', () => {
+    const hwSet = { hwSetName: 'HWSet3', capacity: 10, available: 5 };
+    render(<HardwareSet projectId="P1" userId="alice" hwSet={hwSet} onChanged={vi.fn()} />);
+
+    expect(screen.getByLabelText('Check In')).toHaveAttribute('max', '5');
+    expect(screen.getByLabelText('Check Out')).toHaveAttribute('max', '5');
   });
 });
 

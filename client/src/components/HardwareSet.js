@@ -27,12 +27,14 @@ export default function HardwareSet({ projectId, userId, hwSet, onChanged }) {
           projectId={projectId}
           userId={userId}
           hwSetName={hwSet.hwSetName}
+          checkedOut={hwSet.capacity - hwSet.available}
           onChanged={onChanged}
         />
         <CheckOut
           projectId={projectId}
           userId={userId}
           hwSetName={hwSet.hwSetName}
+          available={hwSet.available}
           onChanged={onChanged}
         />
       </div>

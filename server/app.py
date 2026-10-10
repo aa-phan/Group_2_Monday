@@ -37,15 +37,36 @@ def getMongoClient():
 @app.route('/login', methods=['POST'])
 def login():
     # Extract data from request
+    body = request.get_json(silent=True) or {}
+    username = body.get('username')
+    userId = body.get('userId')
+    password = body.get('password')
+
+    if not username:
+        return jsonify({"error": "invalid_input", "field": "username"}), 400
+    if not userId:
+        return jsonify({"error": "invalid_input", "field": "userId"}), 400
+    if not password:
+        return jsonify({"error": "invalid_input", "field": "password"}), 400
 
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Attempt to log in the user using the usersDB module
+    try:
+        # Attempt to log in the user using the usersDB module
+        authenticated = usersDB.login(client, username, userId, password)
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
-    # Close the MongoDB connection
+    if not authenticated:
+        # Deliberately the same error for "wrong password" and "no such
+        # user" -- usersDB.login already blurs this at the timing level
+        # (ACCT-03); the response must not re-leak it.
+        return jsonify({"error": "invalid_credentials"}), 401
 
     # Return a JSON response
-    return jsonify({})
+    return jsonify({"username": username, "userId": userId}), 200
 
 # Route for the main page (Work in progress)
 @app.route('/main')
@@ -79,15 +100,34 @@ def join_project():
 @app.route('/add_user', methods=['POST'])
 def add_user():
     # Extract data from request
+    body = request.get_json(silent=True) or {}
+    username = body.get('username')
+    userId = body.get('userId')
+    password = body.get('password')
+
+    if not username:
+        return jsonify({"error": "invalid_input", "field": "username"}), 400
+    if not userId:
+        return jsonify({"error": "invalid_input", "field": "userId"}), 400
+    if not password:
+        return jsonify({"error": "invalid_input", "field": "password"}), 400
 
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Attempt to add the user using the usersDB module
+    try:
+        # Attempt to add the user using the usersDB module
+        usersDB.addUser(client, username, userId, password)
+    except usersDB.InvalidPasswordError as error:
+        return jsonify({"error": "invalid_input", "field": "password", "detail": str(error)}), 400
+    except usersDB.UserAlreadyExistsError:
+        return jsonify({"error": "user_already_exists", "field": "userId"}), 409
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
-    # Close the MongoDB connection
-
-    # Return a JSON response
-    return jsonify({})
+    # Return a JSON response (never echo the password back, hashed or not)
+    return jsonify({"username": username, "userId": userId}), 201
 
 # Route for getting the list of user projects
 @app.route('/get_user_projects_list', methods=['POST'])

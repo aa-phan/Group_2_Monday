@@ -1,5 +1,10 @@
 # AppDevProjectTemplate
 Template for MIS385N (Advanced Programming and App Development) Team Project
+
+[![CI](https://github.com/aa-phan/Group_2_Monday/actions/workflows/ci.yml/badge.svg)](https://github.com/aa-phan/Group_2_Monday/actions/workflows/ci.yml)
+
+Every pull request runs the backend and client test suites, a client build, and a build and boot of the deploy image ([ci.yml](.github/workflows/ci.yml)). See [TESTING.md](TESTING.md) and [DEPLOY.md](DEPLOY.md).
+
 # Running Locally
 
 You need three processes: MongoDB, the Flask backend, and the React client. From the repo root:

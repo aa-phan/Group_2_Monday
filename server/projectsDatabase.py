@@ -4,13 +4,18 @@ from pymongo import MongoClient
 import hardwareDatabase as hardwareDB
 
 '''
-Structure of Project entry:
+Structure of Project entry (as the API sees it):
 Project = {
     'projectName': projectName,
     'projectId': projectId,
     'description': description,
     'users': [user1, user2, ...]
 }
+
+On disk the project key field is named `householdId` (a leftover from an
+earlier domain iteration, kept so assertProjectMember and the hardware
+routes keep working). The API name is always `projectId`; the translation
+happens only inside this module.
 
 Hardware-set stock (Track B) is superseded by hardwareDatabase's own
 docstring: it now lives in the separate `HardwareSets` collection
@@ -19,20 +24,83 @@ docstring: it now lives in the separate `HardwareSets` collection
 assertProjectMember below.
 '''
 
+class ProjectAlreadyExistsError(Exception):
+    """Raised by createProject when projectId is already taken."""
+
+
+class ProjectNotFoundError(Exception):
+    """Raised when a project does not exist."""
+
+
+def _projects(client):
+    return client[hardwareDB.DB_NAME][hardwareDB.PROJECTS_COLLECTION]
+
+
+def _summary(project):
+    return {
+        "projectId": project["householdId"],
+        "projectName": project.get("projectName", ""),
+        "description": project.get("description", ""),
+    }
+
+
 # Function to query a project by its ID
 def queryProject(client, projectId):
-    # Query and return a project from the database
-    pass
+    """Return the project (projectId, projectName, description, users) or
+    None. A non-str projectId returns None without reaching Mongo, so a
+    dict such as {"$ne": ""} can never act as a query operator.
+    """
+    if not isinstance(projectId, str):
+        return None
+
+    project = _projects(client).find_one({"householdId": projectId})
+    if project is None:
+        return None
+
+    result = _summary(project)
+    result["users"] = list(project.get("users", []))
+    return result
+
 
 # Function to create a new project
 def createProject(client, projectName, projectId, description):
-    # Create a new project in the database
-    pass
+    """Create an empty project. Raises ProjectAlreadyExistsError if
+    projectId is taken (including by a project created outside this module).
+    """
+    collection = _projects(client)
+
+    if collection.find_one({"householdId": projectId}) is not None:
+        raise ProjectAlreadyExistsError(projectId)
+
+    collection.insert_one({
+        "householdId": projectId,
+        "projectName": projectName,
+        "description": description,
+        "users": [],
+    })
+
 
 # Function to add a user to a project
 def addUser(client, projectId, userId):
-    # Add a user to the specified project
-    pass
+    """Add userId to the project's users, at most once. Raises
+    ProjectNotFoundError if the project does not exist.
+    """
+    result = _projects(client).update_one(
+        {"householdId": projectId}, {"$addToSet": {"users": userId}}
+    )
+    if result.matched_count == 0:
+        raise ProjectNotFoundError(projectId)
+
+
+def listProjectsForUser(client, userId):
+    """Return summaries of every project whose users contains userId,
+    sorted by projectId.
+    """
+    if not isinstance(userId, str):
+        return []
+
+    projects = _projects(client).find({"users": userId})
+    return sorted((_summary(p) for p in projects), key=lambda s: s["projectId"])
 
 # Function to update hardware usage in a project
 def updateUsage(client, projectId, hwSetName):

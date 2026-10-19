@@ -9,7 +9,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: compile the React client to static files
 # ---------------------------------------------------------------------------
-FROM node:20-slim AS client-build
+FROM node:22-slim AS client-build
 
 WORKDIR /client
 

@@ -77,12 +77,55 @@ def login(client, username, userId, password):
     return verifyPassword(password, user["password"])
 
 
+class UserNotFoundError(Exception):
+    """Raised when a userId does not exist."""
+
+
+def getUser(client, userId):
+    """Return {username, userId, projects} for userId, or None. Never
+    includes the password hash. A non-str userId returns None without
+    reaching Mongo (operator-injection guard).
+    """
+    if not isinstance(userId, str):
+        return None
+
+    user = client[DB_NAME][USERS_COLLECTION].find_one({"userId": userId})
+    if user is None:
+        return None
+
+    return {
+        "username": user["username"],
+        "userId": user["userId"],
+        "projects": list(user.get("projects", [])),
+    }
+
+
 # Function to add a user to a project
 def joinProject(client, userId, projectId):
-    # Add a user to a specified project
-    pass
+    """Add userId to the project and the project to the user (both
+    idempotent). Returns the project summary.
+
+    Raises UserNotFoundError, or projectsDB.ProjectNotFoundError before any
+    write to the user document.
+    """
+    if getUser(client, userId) is None:
+        raise UserNotFoundError(userId)
+
+    projectsDB.addUser(client, projectId, userId)
+
+    client[DB_NAME][USERS_COLLECTION].update_one(
+        {"userId": userId}, {"$addToSet": {"projects": projectId}}
+    )
+
+    return projectsDB.queryProject(client, projectId)
+
 
 # Function to get the list of projects for a user
 def getUserProjectsList(client, userId):
-    # Get and return the list of projects a user is part of
-    pass
+    """Return summaries of the user's projects. Membership is read from the
+    projects' users lists (the source of truth).
+    """
+    if getUser(client, userId) is None:
+        raise UserNotFoundError(userId)
+
+    return projectsDB.listProjectsForUser(client, userId)

@@ -106,33 +106,80 @@ def login():
     # Return a JSON response
     return jsonify({"username": username, "userId": userId}), 200
 
-# Route for the main page (Work in progress)
+def _isNonBlankString(value):
+    """True for a str with something other than whitespace in it. Anything
+    else (dicts such as {"$ne": ""}, numbers, null) is rejected before it
+    can reach a Mongo filter.
+    """
+    return isinstance(value, str) and value.strip() != ""
+
+
+def _firstInvalidField(body, fields):
+    """Name of the first of `fields` that is not a non-blank str, or None."""
+    for field in fields:
+        if not _isNonBlankString(body.get(field)):
+            return field
+    return None
+
+
+# Route for the main page: the signed-in user's portal summary
 @app.route('/main')
 def mainPage():
     # Extract data from request
+    userId = request.args.get('userId')
+
+    if not _isNonBlankString(userId):
+        return jsonify({"error": "missing_parameter", "field": "userId"}), 400
 
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Fetch user projects using the usersDB module
+    try:
+        # Fetch user projects using the usersDB module
+        user = usersDB.getUser(client, userId)
+        if user is None:
+            return jsonify({"error": "user_not_found", "field": "userId"}), 404
+        projects = usersDB.getUserProjectsList(client, userId)
+    except usersDB.UserNotFoundError:
+        return jsonify({"error": "user_not_found", "field": "userId"}), 404
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
-    # Close the MongoDB connection
-
-    # Return a JSON response
-    return jsonify({})
+    # Return a JSON response (never includes the password hash)
+    return jsonify({
+        "username": user["username"],
+        "userId": user["userId"],
+        "projects": projects,
+    }), 200
 
 # Route for joining a project
 @app.route('/join_project', methods=['POST'])
 def join_project():
     # Extract data from request
+    body = request.get_json(silent=True) or {}
+    field = _firstInvalidField(body, ["userId", "projectId"])
+    if field:
+        return jsonify({"error": "invalid_input", "field": field}), 400
+    userId = body['userId']
+    projectId = body['projectId']
 
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Attempt to join the project using the usersDB module
-
-    # Close the MongoDB connection
+    try:
+        # Attempt to join the project using the usersDB module
+        project = usersDB.joinProject(client, userId, projectId)
+    except usersDB.UserNotFoundError:
+        return jsonify({"error": "user_not_found", "field": "userId"}), 404
+    except projectsDB.ProjectNotFoundError:
+        return jsonify({"error": "project_not_found", "field": "projectId"}), 404
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
     # Return a JSON response
-    return jsonify({})
+    return jsonify({"project": project}), 200
 
 # Route for adding a new user
 @app.route('/add_user', methods=['POST'])
@@ -171,43 +218,92 @@ def add_user():
 @app.route('/get_user_projects_list', methods=['POST'])
 def get_user_projects_list():
     # Extract data from request
+    body = request.get_json(silent=True) or {}
+    field = _firstInvalidField(body, ["userId"])
+    if field:
+        return jsonify({"error": "invalid_input", "field": field}), 400
+    userId = body['userId']
 
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Fetch the user's projects using the usersDB module
-
-    # Close the MongoDB connection
+    try:
+        # Fetch the user's projects using the usersDB module
+        projects = usersDB.getUserProjectsList(client, userId)
+    except usersDB.UserNotFoundError:
+        return jsonify({"error": "user_not_found", "field": "userId"}), 404
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
     # Return a JSON response
-    return jsonify({})
+    return jsonify({"userId": userId, "projects": projects}), 200
 
 # Route for creating a new project
 @app.route('/create_project', methods=['POST'])
 def create_project():
     # Extract data from request
+    body = request.get_json(silent=True) or {}
+    field = _firstInvalidField(body, ["userId", "projectId", "projectName"])
+    if field:
+        return jsonify({"error": "invalid_input", "field": field}), 400
+    userId = body['userId']
+    projectId = body['projectId']
+    projectName = body['projectName']
+
+    description = body.get('description', "")
+    if not isinstance(description, str):
+        return jsonify({"error": "invalid_input", "field": "description"}), 400
 
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Attempt to create the project using the projectsDB module
+    try:
+        # The creator must be a real user, and becomes the first member
+        if usersDB.getUser(client, userId) is None:
+            return jsonify({"error": "user_not_found", "field": "userId"}), 404
 
-    # Close the MongoDB connection
+        # Attempt to create the project using the projectsDB module
+        projectsDB.createProject(client, projectName, projectId, description)
+        project = usersDB.joinProject(client, userId, projectId)
+    except usersDB.UserNotFoundError:
+        return jsonify({"error": "user_not_found", "field": "userId"}), 404
+    except projectsDB.ProjectAlreadyExistsError:
+        return jsonify({"error": "project_already_exists", "field": "projectId"}), 409
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
     # Return a JSON response
-    return jsonify({})
+    return jsonify({"project": project}), 201
 
 # Route for getting project information
 @app.route('/get_project_info', methods=['POST'])
 def get_project_info():
     # Extract data from request
+    body = request.get_json(silent=True) or {}
+    field = _firstInvalidField(body, ["userId", "projectId"])
+    if field:
+        return jsonify({"error": "invalid_input", "field": field}), 400
+    userId = body['userId']
+    projectId = body['projectId']
 
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Fetch project information using the projectsDB module
-
-    # Close the MongoDB connection
+    try:
+        # Members only; a missing project answers the same as a non-member
+        projectsDB.assertProjectMember(client, projectId, userId)
+        # Fetch project information using the projectsDB module
+        project = projectsDB.queryProject(client, projectId)
+    except projectsDB.NotAHouseholdMemberError:
+        return jsonify({"error": "not_a_project_member"}), 403
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
     # Return a JSON response
-    return jsonify({})
+    return jsonify({"project": project}), 200
 
 # Route for viewing a project's hardware-set status (capacity/availability)
 @app.route('/api/hardware', methods=['GET'])

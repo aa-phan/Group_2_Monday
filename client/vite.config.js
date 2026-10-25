@@ -34,6 +34,7 @@ export default defineConfig({
       // these calls instead of forwarding them to Flask.
       '/add_user': 'http://localhost:5050',
       '/login': 'http://localhost:5050',
+      '/join_project': 'http://localhost:5050',
     },
   },
 });

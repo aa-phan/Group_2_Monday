@@ -2,12 +2,13 @@ import { useState } from 'react';
 import ResourceView from './components/Project.js';
 import MyLoginPage from './pages/MyLoginPage.js';
 import MyRegistrationPage from './pages/MyRegistrationPage.js';
+import { joinProject } from './api/projects.js';
 import './App.css';
 
-// Hardware sets live under a project (PROJ-01/02/03, Track A), and that
-// create/join flow has not landed yet, so there is no real project to
-// source this from. Placeholder for this tracer slice only; Track A
-// wires a real projectId in here once project creation/joining lands.
+// Project creation and multi-project selection (US-03/US-05) haven't
+// landed -- there is only ever this one seeded project. Every signed-in
+// user is joined to it automatically (see handleAuthenticated below,
+// US-04) rather than picking from a list that doesn't exist yet.
 const PROJECT_ID = 'P1';
 
 export default function App() {
@@ -16,14 +17,33 @@ export default function App() {
   // refresh signs the user back out; that is expected until TD-02 lands.
   const [account, setAccount] = useState(null);
   const [authView, setAuthView] = useState('signIn');
+  const [joinError, setJoinError] = useState(null);
+
+  // Runs after both sign-in and sign-up (US-01/US-02 -> US-04). Joining is
+  // idempotent server-side -- joining a project you're already in is a
+  // no-op, not an error -- so calling it unconditionally here also
+  // self-heals any account that existed before this was wired up, not
+  // just brand-new sign-ups.
+  async function handleAuthenticated(newAccount) {
+    setJoinError(null);
+    try {
+      await joinProject({ projectId: PROJECT_ID, userId: newAccount.userId });
+    } catch (error) {
+      // Not fatal to signing in -- surfaced so it's not silently
+      // swallowed, but ResourceView's own not_a_project_member handling
+      // is the real fallback if membership genuinely never took.
+      setJoinError(error.message);
+    }
+    setAccount(newAccount);
+  }
 
   if (!account) {
     return (
       <div className="app-container">
         {authView === 'signIn' ? (
-          <MyLoginPage onSignedIn={setAccount} onSwitchToSignUp={() => setAuthView('signUp')} />
+          <MyLoginPage onSignedIn={handleAuthenticated} onSwitchToSignUp={() => setAuthView('signUp')} />
         ) : (
-          <MyRegistrationPage onSignedUp={setAccount} onSwitchToSignIn={() => setAuthView('signIn')} />
+          <MyRegistrationPage onSignedUp={handleAuthenticated} onSwitchToSignIn={() => setAuthView('signIn')} />
         )}
       </div>
     );
@@ -43,6 +63,11 @@ export default function App() {
           Sign out
         </button>
       </p>
+      {joinError && (
+        <p role="alert" className="error-text app-session__join-error">
+          Couldn't confirm project membership: {joinError}
+        </p>
+      )}
       <ResourceView projectId={PROJECT_ID} userId={account.userId} />
     </div>
   );

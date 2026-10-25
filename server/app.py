@@ -86,15 +86,29 @@ def mainPage():
 @app.route('/join_project', methods=['POST'])
 def join_project():
     # Extract data from request
+    body = request.get_json(silent=True) or {}
+    userId = body.get('userId')
+    projectId = body.get('projectId')
+
+    if not userId:
+        return jsonify({"error": "invalid_input", "field": "userId"}), 400
+    if not projectId:
+        return jsonify({"error": "invalid_input", "field": "projectId"}), 400
 
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Attempt to join the project using the usersDB module
-
-    # Close the MongoDB connection
+    try:
+        # Attempt to join the project using the usersDB module
+        usersDB.joinProject(client, userId, projectId)
+    except projectsDB.ProjectNotFoundError:
+        return jsonify({"error": "project_not_found", "field": "projectId"}), 404
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
     # Return a JSON response
-    return jsonify({})
+    return jsonify({"userId": userId, "projectId": projectId}), 200
 
 # Route for adding a new user
 @app.route('/add_user', methods=['POST'])

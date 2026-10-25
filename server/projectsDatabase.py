@@ -29,10 +29,38 @@ def createProject(client, projectName, projectId, description):
     # Create a new project in the database
     pass
 
+class ProjectNotFoundError(Exception):
+    """Raised when projectId does not match any existing project. Maps to
+    HTTP 404.
+    """
+
+
 # Function to add a user to a project
 def addUser(client, projectId, userId):
-    # Add a user to the specified project
-    pass
+    """Add userId to the project's membership list (US-04).
+
+    Idempotent -- joining a project you're already in is a no-op, not an
+    error, so this is safe to call on every sign-in as a self-healing
+    step, not just once at sign-up.
+
+    Raises ProjectNotFoundError if projectId does not match any existing
+    project.
+
+    projectId and userId must be plain strings, for the same injection
+    reason assertProjectMember below validates them -- request.get_json()
+    decodes arbitrary JSON, and an unvalidated dict value here could be
+    interpreted by Mongo as a query operator instead of a literal match.
+    """
+    if not isinstance(projectId, str) or not isinstance(userId, str):
+        raise ProjectNotFoundError(projectId)
+
+    db = client[hardwareDB.DB_NAME]
+    result = db[hardwareDB.PROJECTS_COLLECTION].update_one(
+        {"householdId": projectId},
+        {"$addToSet": {"users": userId}},
+    )
+    if result.matched_count == 0:
+        raise ProjectNotFoundError(projectId)
 
 # Function to update hardware usage in a project
 def updateUsage(client, projectId, hwSetName):

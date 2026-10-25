@@ -221,6 +221,11 @@ h3 {
   cursor: pointer;
 }
 
+.app-session__join-error {
+  margin: 0 0 var(--space-xl);
+  font-size: var(--text-sm);
+}
+
 @media (max-width: 599px) {
   .app-container {
     padding-left: var(--space-lg);

@@ -18,7 +18,14 @@ HardwareSet = {
     'hwSetKey': normalizeHwSetName(hwSetName),
     'hwSetName': hwSetName,             # display name, first spelling used
     'capacity': int,                    # fixed total units; never changed by checkin/checkout
-    'checkedOut': int,                  # units currently checked out (0..capacity)
+    'checkedOut': int,                  # units currently checked out, project-wide (0..capacity)
+    'checkedOutBy': [
+        {
+            'userId': userId,
+            'quantity': int,            # this user's own running total currently checked out
+        },
+        ...
+    ],                                   # at most one entry per userId
     'reservations': [
         {
             'reservationId': str,       # uuid4 hex
@@ -41,6 +48,20 @@ extension that has been removed.
 
 `available` (capacity - checkedOut) is derived on read and never stored.
 Requests (reservations) are a coordination signal only and never reduce it.
+
+`checkedOutBy` is a per-user accountability ledger: Checkout is still drawn
+from the shared pool (gated by `checkedOut` against `capacity`, exactly as
+before), but Checkin is now gated by what the CALLING user personally holds
+in `checkedOutBy`, not the project-wide `checkedOut` total. Without this, any
+project member could check in units a completely different member checked
+out, which is what the current `checkedOut`-only design actually allowed --
+the aggregate guard only prevented checking in more than was checked out
+project-wide, never who did the checking out. An array of records (not a
+dynamic object keyed by userId) on purpose: userId is arbitrary user input,
+and a `.` or a leading `$` in a Mongo field key has special meaning --
+exactly the kind of value-vs-key injection risk `reservations` above and
+`assertProjectMember` elsewhere in this codebase already avoid by storing
+userId as a field *value*, never as a key.
 
 This module holds ONLY the hardware-set store. Project membership lives in
 the separate `Projects` collection (Track A owns writes to it); this module
@@ -185,6 +206,7 @@ def createHardwareSet(client, projectId, rawName, capacity):
             "hwSetName": rawName,
             "capacity": capacity,
             "checkedOut": 0,
+            "checkedOutBy": [],
             "reservations": [],
             "reservedQuantity": 0,
         },
@@ -219,19 +241,33 @@ def _resolveExistingHwSetKey(collection, projectId, rawName):
     return normalizedName
 
 
-def _adjustCheckedOut(client, projectId, rawName, quantity, direction):
+def _adjustCheckedOut(client, projectId, rawName, quantity, userId, direction):
     """Shared checkin/checkout write. direction=+1 checks out, -1 checks in.
 
-    `capacity` is never touched. The limit check and the write are one atomic
-    conditional update on `checkedOut`, so concurrent callers can never push
-    it outside 0..capacity and never need to retry against each other's
-    unrelated writes. When the guard rejects, the set is re-read: if the
-    request is still unsatisfiable it is reported with the fresh figures and
-    nothing is written; if another writer has since made it satisfiable it is
-    simply attempted again.
+    `capacity` is never touched. Checkout is still gated by the project-wide
+    `checkedOut` against `capacity`, as before -- anyone can draw from the
+    shared pool. Checkin is gated by what userId personally holds in
+    `checkedOutBy`, NOT the project-wide total -- checking in more than you
+    personally checked out raises CheckinExceedsCheckedOutError even if the
+    project-wide total would allow it (i.e. even if someone else checked out
+    enough to cover the difference).
+
+    Every guard is re-applied inside the atomic find_one_and_update's filter
+    itself, evaluated against the live document at write time -- not just
+    the stale snapshot read at the top of the loop -- so two concurrent
+    calls (checkout vs. checkout, checkin vs. checkin, same user or
+    different users) can never push `checkedOut` outside 0..capacity or a
+    single user's own `checkedOutBy` entry negative. When a write's filter
+    doesn't match (another writer changed the live state first), the loop
+    re-reads and retries against fresh data rather than failing outright.
     """
     if not _isValidQuantity(quantity):
         raise InvalidInventoryInput("quantity")
+    if not isinstance(userId, str):
+        # Same injection-safety reasoning as assertProjectMember/
+        # removeReservation: userId lands in a Mongo filter below, and
+        # request.get_json() can hand this function anything JSON allows.
+        raise InvalidInventoryInput("userId")
 
     collection = client[DB_NAME][HARDWARE_SETS_COLLECTION]
     targetKey = _resolveExistingHwSetKey(collection, projectId, rawName)
@@ -244,39 +280,104 @@ def _adjustCheckedOut(client, projectId, rawName, quantity, direction):
         # capacity never changes after creation, so a stale read of it is safe.
         capacity = doc.get("capacity", 0)
         checkedOut = doc.get("checkedOut", 0)
+        myEntry = next(
+            (entry for entry in doc.get("checkedOutBy", []) if entry.get("userId") == userId),
+            None,
+        )
+        myHolding = myEntry.get("quantity", 0) if myEntry is not None else 0
 
         if direction > 0:
             if quantity > capacity - checkedOut:
                 raise InsufficientStockError(onHand=capacity - checkedOut, requested=quantity)
-            guard = {"$lte": capacity - quantity}
+            aggregateGuard = {"$lte": capacity - quantity}
         else:
-            if quantity > checkedOut:
-                raise CheckinExceedsCheckedOutError(checkedOut=checkedOut, requested=quantity)
-            guard = {"$gte": quantity}
+            # Gated by what THIS user holds -- not the project-wide total.
+            if quantity > myHolding:
+                raise CheckinExceedsCheckedOutError(checkedOut=myHolding, requested=quantity)
 
-        updated = collection.find_one_and_update(
-            {"_id": doc["_id"], "checkedOut": guard},
-            {"$inc": {"checkedOut": direction * quantity}},
-            return_document=ReturnDocument.AFTER,
-        )
+        if myEntry is not None:
+            # This user already has a checkedOutBy entry -- increment it
+            # (checkout) or decrement it (checkin) in place.
+            if direction > 0:
+                # Checkout still needs the live capacity guard -- that's a
+                # real, user-independent limit.
+                filter_ = {
+                    "_id": doc["_id"],
+                    "checkedOut": aggregateGuard,
+                    "checkedOutBy.userId": userId,
+                }
+            else:
+                # Checkin needs no live check on the project-wide
+                # `checkedOut` at all -- it can never fall below any one
+                # user's own entry, since every write updates both
+                # together, so re-checking the LIVE checkedOutBy entry
+                # here is already necessary and sufficient. $elemMatch
+                # (not just arrayFilters on the update) is what makes this
+                # atomic against a second concurrent checkin by the same
+                # user: it re-evaluates "quantity currently held >=
+                # quantity requested" against the live array element at
+                # write time, not the stale myHolding read above. Without
+                # it, two concurrent checkins could both pass that stale
+                # read and both apply, driving this one user's entry
+                # negative.
+                filter_ = {
+                    "_id": doc["_id"],
+                    "checkedOutBy": {
+                        "$elemMatch": {"userId": userId, "quantity": {"$gte": quantity}}
+                    },
+                }
+            # The classic single positional operator ($, not $[elem]/
+            # arrayFilters) updates whichever array element matched the
+            # filter above -- same atomicity guarantee, older and more
+            # widely supported syntax (arrayFilters trips a bug in the
+            # mongomock version this project tests against).
+            updated = collection.find_one_and_update(
+                filter_,
+                {
+                    "$inc": {
+                        "checkedOut": direction * quantity,
+                        "checkedOutBy.$.quantity": direction * quantity,
+                    },
+                },
+                return_document=ReturnDocument.AFTER,
+            )
+        else:
+            # No existing entry for this user -- only reachable for
+            # direction > 0 (checkout): a checkin with myHolding == 0
+            # already raised above, since quantity is always >= 1.
+            updated = collection.find_one_and_update(
+                {
+                    "_id": doc["_id"],
+                    "checkedOut": aggregateGuard,
+                    "checkedOutBy.userId": {"$ne": userId},
+                },
+                {
+                    "$inc": {"checkedOut": direction * quantity},
+                    "$push": {"checkedOutBy": {"userId": userId, "quantity": quantity}},
+                },
+                return_document=ReturnDocument.AFTER,
+            )
 
         if updated is not None:
-            return _serializeHardwareSet(updated)
+            return _serializeHardwareSet(updated, userId)
 
 
-def checkinHardware(client, projectId, rawName, quantity):
-    """Check in (return) `quantity` units, raising availability. Raises
-    CheckinExceedsCheckedOutError if more than are checked out.
+def checkinHardware(client, projectId, rawName, quantity, userId):
+    """Check in (return) `quantity` units userId personally checked out,
+    raising availability. Raises CheckinExceedsCheckedOutError if userId
+    doesn't personally hold that many units -- even if the project-wide
+    total checked out would otherwise allow it.
     """
-    return _adjustCheckedOut(client, projectId, rawName, quantity, -1)
+    return _adjustCheckedOut(client, projectId, rawName, quantity, userId, -1)
 
 
-def checkoutHardware(client, projectId, rawName, quantity):
-    """Check out `quantity` units, lowering availability. Raises
-    InsufficientStockError (onHand = current availability) if more than are
-    available. Outstanding requests never gate checkout.
+def checkoutHardware(client, projectId, rawName, quantity, userId):
+    """Check out `quantity` units, lowering availability and crediting them
+    to userId's own `checkedOutBy` entry. Raises InsufficientStockError
+    (onHand = current availability) if more than are available. Outstanding
+    requests never gate checkout.
     """
-    return _adjustCheckedOut(client, projectId, rawName, quantity, +1)
+    return _adjustCheckedOut(client, projectId, rawName, quantity, userId, +1)
 
 
 def addReservation(client, projectId, rawName, quantity, userId, userName):
@@ -325,7 +426,7 @@ def addReservation(client, projectId, rawName, quantity, userId, userName):
     if updated is None:
         raise ItemNotFoundError(rawName)
 
-    return reservationId, _serializeHardwareSet(updated)
+    return reservationId, _serializeHardwareSet(updated, userId)
 
 
 def removeReservation(client, projectId, reservationId, userId):
@@ -394,24 +495,30 @@ def removeReservation(client, projectId, reservationId, userId):
         # existing sequential double-release contract.
         raise ReservationNotFoundError(reservationId)
 
-    return _serializeHardwareSet(updated)
+    return _serializeHardwareSet(updated, userId)
 
 
-def getHardwareStatus(client, projectId):
+def getHardwareStatus(client, projectId, userId=None):
     """Return a list of hardware-set dicts for the project, sorted by
     display name for deterministic, repeatable ordering.
+
+    userId, when given, is whose personal `myCheckedOut` figure to include
+    in each dict -- see _serializeHardwareSet. None (e.g. no acting user in
+    context) simply omits it.
     """
     db = client[DB_NAME]
     collection = db[HARDWARE_SETS_COLLECTION]
 
-    items = [_serializeHardwareSet(doc) for doc in collection.find({"projectId": projectId})]
+    items = [
+        _serializeHardwareSet(doc, userId) for doc in collection.find({"projectId": projectId})
+    ]
     items.sort(key=lambda item: item.get("hwSetKey", ""))
     return items
 
 
-def _serializeHardwareSet(doc):
+def _serializeHardwareSet(doc, userId=None):
     """Convert a raw Mongo document into a JSON-serializable hardware-set
-    dict with `available` derived.
+    dict with `available` and `myCheckedOut` derived.
 
     The API boundary uses "request"/"requestId"/"requestedQuantity"/
     "available" (the assignment mockup's own Figure 3 vocabulary) even
@@ -420,6 +527,11 @@ def _serializeHardwareSet(doc):
     and the /api/hardware/request+release routes in app.py know about the
     translation, so client and server agree on the wire format without a
     repo-wide rename of the underlying reservation machinery.
+
+    `myCheckedOut` is userId's own entry in `checkedOutBy` (0 if userId is
+    None, or has no entry) -- the number the client should actually cap a
+    Check In control at, not the project-wide `available`/`checkedOut`
+    figures, which say nothing about who personally holds what.
     """
     capacity = doc.get("capacity", 0)
     checkedOut = doc.get("checkedOut", 0)
@@ -434,6 +546,10 @@ def _serializeHardwareSet(doc):
         }
         for reservation in doc.get("reservations", [])
     ]
+    myEntry = next(
+        (entry for entry in doc.get("checkedOutBy", []) if entry.get("userId") == userId),
+        None,
+    )
 
     return {
         "_id": str(doc["_id"]) if isinstance(doc.get("_id"), ObjectId) else doc.get("_id"),
@@ -444,4 +560,5 @@ def _serializeHardwareSet(doc):
         "requests": requests,
         "requestedQuantity": reservedQuantity,
         "available": max(capacity - checkedOut, 0),
+        "myCheckedOut": myEntry.get("quantity", 0) if myEntry is not None else 0,
     }

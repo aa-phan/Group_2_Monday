@@ -79,8 +79,12 @@ def login(client, username, userId, password):
 
 # Function to add a user to a project
 def joinProject(client, userId, projectId):
-    # Add a user to a specified project
-    pass
+    """Add userId to the given project's membership list (US-04).
+
+    Delegates to projectsDatabase.addUser for the actual write; see there
+    for the idempotency note and ProjectNotFoundError.
+    """
+    projectsDB.addUser(client, projectId, userId)
 
 # Function to get the list of projects for a user
 def getUserProjectsList(client, userId):

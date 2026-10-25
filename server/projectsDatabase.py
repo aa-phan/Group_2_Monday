@@ -29,10 +29,38 @@ def createProject(client, projectName, projectId, description):
     # Create a new project in the database
     pass
 
+class ProjectNotFoundError(Exception):
+    """Raised when projectId does not match any existing project. Maps to
+    HTTP 404.
+    """
+
+
 # Function to add a user to a project
 def addUser(client, projectId, userId):
-    # Add a user to the specified project
-    pass
+    """Add userId to the project's membership list (US-04).
+
+    Idempotent -- joining a project you're already in is a no-op, not an
+    error, so this is safe to call on every sign-in as a self-healing
+    step, not just once at sign-up.
+
+    Raises ProjectNotFoundError if projectId does not match any existing
+    project.
+
+    projectId and userId must be plain strings, for the same injection
+    reason assertProjectMember below validates them -- request.get_json()
+    decodes arbitrary JSON, and an unvalidated dict value here could be
+    interpreted by Mongo as a query operator instead of a literal match.
+    """
+    if not isinstance(projectId, str) or not isinstance(userId, str):
+        raise ProjectNotFoundError(projectId)
+
+    db = client[hardwareDB.DB_NAME]
+    result = db[hardwareDB.PROJECTS_COLLECTION].update_one(
+        {"householdId": projectId},
+        {"$addToSet": {"users": userId}},
+    )
+    if result.matched_count == 0:
+        raise ProjectNotFoundError(projectId)
 
 # Function to update hardware usage in a project
 def updateUsage(client, projectId, hwSetName):
@@ -104,27 +132,33 @@ assertHouseholdMember = assertProjectMember
 
 
 def checkinHardwareSet(client, projectId, userId, hwSetName, quantity):
-    """Check in units of a hardware set after verifying project membership."""
+    """Check in units of a hardware set after verifying project membership.
+
+    Gated by what userId personally checked out (hardwareDB.checkinHardware),
+    not the project-wide total -- see hardwareDatabase.py's module docstring.
+    """
     assertProjectMember(client, projectId, userId)
-    return hardwareDB.checkinHardware(client, projectId, hwSetName, quantity)
+    return hardwareDB.checkinHardware(client, projectId, hwSetName, quantity, userId)
 
 
 def getProjectHardwareStatus(client, projectId, userId):
     """Return the project's hardware-set status list after verifying
-    project membership.
+    project membership. Each item's `myCheckedOut` reflects userId's own
+    holdings specifically, not the project-wide total.
     """
     assertProjectMember(client, projectId, userId)
-    return hardwareDB.getHardwareStatus(client, projectId)
+    return hardwareDB.getHardwareStatus(client, projectId, userId)
 
 
 def checkoutHardwareSet(client, projectId, userId, hwSetName, quantity):
     """Check out units of a hardware set after verifying project
     membership. Requests (reservations) never gate this call -- the guard
     hardwareDB.checkoutHardware applies compares the requested quantity
-    against capacity alone.
+    against capacity alone. Credits the checked-out units to userId's own
+    `checkedOutBy` entry.
     """
     assertProjectMember(client, projectId, userId)
-    return hardwareDB.checkoutHardware(client, projectId, hwSetName, quantity)
+    return hardwareDB.checkoutHardware(client, projectId, hwSetName, quantity, userId)
 
 
 def requestHardwareSet(client, projectId, userId, userName, hwSetName, quantity):

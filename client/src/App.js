@@ -1,37 +1,98 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ResourceView from './components/Project.js';
 import MyLoginPage from './pages/MyLoginPage.js';
 import MyRegistrationPage from './pages/MyRegistrationPage.js';
+import { getCurrentSession, signOut } from './api/auth.js';
+import { joinProject } from './api/projects.js';
 import './App.css';
 
-// Hardware sets live under a project (PROJ-01/02/03, Track A), and that
-// create/join flow has not landed yet, so there is no real project to
-// source this from. Placeholder for this tracer slice only; Track A
-// wires a real projectId in here once project creation/joining lands.
+// Project creation and multi-project selection (US-03/US-05) haven't
+// landed -- there is only ever this one seeded project. Every signed-in
+// user is joined to it automatically (see handleAuthenticated below,
+// US-04) rather than picking from a list that doesn't exist yet.
 const PROJECT_ID = 'P1';
 
 export default function App() {
-  // ACCT-04 (session persistence, TD-02) has not landed yet -- this only
-  // holds the signed-in identity in memory for the current page load. A
-  // refresh signs the user back out; that is expected until TD-02 lands.
   const [account, setAccount] = useState(null);
   const [authView, setAuthView] = useState('signIn');
+  const [joinError, setJoinError] = useState(null);
+  // TD-02 -- true only for the brief GET /me round-trip on first mount.
+  // Without this, the sign-in form would flash on screen for a moment
+  // even when a valid session is about to restore the resource view.
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // TD-02 -- on first mount, ask the server (not localStorage -- the
+  // session is a signed, httpOnly cookie the browser already attached to
+  // this request) whether we're still signed in from before. A refresh,
+  // or even a server restart (the signing key is stable across restarts
+  // via server/.env's SECRET_KEY), restores the same signed-in view
+  // instead of asking to sign in again.
+  useEffect(() => {
+    let isCurrent = true;
+    getCurrentSession()
+      .then((session) => {
+        if (isCurrent) setAccount(session);
+      })
+      .catch(() => {
+        // No session (401) or a network hiccup -- either way, nothing to
+        // restore. Fall through to the sign-in form below.
+      })
+      .finally(() => {
+        if (isCurrent) setCheckingSession(false);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  // Runs after both sign-in and sign-up (US-01/US-02 -> US-04). Joining is
+  // idempotent server-side -- joining a project you're already in is a
+  // no-op, not an error -- so calling it unconditionally here also
+  // self-heals any account that existed before this was wired up, not
+  // just brand-new sign-ups.
+  async function handleAuthenticated(newAccount) {
+    setJoinError(null);
+    try {
+      await joinProject({ projectId: PROJECT_ID, userId: newAccount.userId });
+    } catch (error) {
+      // Not fatal to signing in -- surfaced so it's not silently
+      // swallowed, but ResourceView's own not_a_project_member handling
+      // is the real fallback if membership genuinely never took.
+      setJoinError(error.message);
+    }
+    setAccount(newAccount);
+  }
+
+  async function handleSignOut() {
+    try {
+      await signOut();
+    } catch (error) {
+      // Non-fatal -- clear local state regardless so sign-out never gets
+      // stuck on a network error; worst case the old session cookie
+      // lingers until it's overwritten by the next sign-in.
+    }
+    setAccount(null);
+    setAuthView('signIn');
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="app-container">
+        <p className="muted-text">Checking session...</p>
+      </div>
+    );
+  }
 
   if (!account) {
     return (
       <div className="app-container">
         {authView === 'signIn' ? (
-          <MyLoginPage onSignedIn={setAccount} onSwitchToSignUp={() => setAuthView('signUp')} />
+          <MyLoginPage onSignedIn={handleAuthenticated} onSwitchToSignUp={() => setAuthView('signUp')} />
         ) : (
-          <MyRegistrationPage onSignedUp={setAccount} onSwitchToSignIn={() => setAuthView('signIn')} />
+          <MyRegistrationPage onSignedUp={handleAuthenticated} onSwitchToSignIn={() => setAuthView('signIn')} />
         )}
       </div>
     );
-  }
-
-  function handleSignOut() {
-    setAccount(null);
-    setAuthView('signIn');
   }
 
   return (
@@ -43,6 +104,11 @@ export default function App() {
           Sign out
         </button>
       </p>
+      {joinError && (
+        <p role="alert" className="error-text app-session__join-error">
+          Couldn't confirm project membership: {joinError}
+        </p>
+      )}
       <ResourceView projectId={PROJECT_ID} userId={account.userId} />
     </div>
   );

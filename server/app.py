@@ -1,9 +1,10 @@
 # Import necessary libraries and modules
 import os
+import secrets
 
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session
 from pymongo import MongoClient
 from werkzeug.exceptions import NotFound
 
@@ -52,6 +53,23 @@ def handleMissingDatabaseConfig(error):
     # response, not dump an HTML stack trace: this is the first thing seen
     # when the host is live before MONGODB_URI has been filled in.
     return jsonify({"error": "database_not_configured", "detail": str(error)}), 503
+
+# SECRET_KEY signs the session cookie (TD-02) -- Flask's session is a
+# signed cookie, not an opaque token, so without a key no one could trust
+# it. Read from the environment (server/.env, same place as MONGODB_URI)
+# so it's stable across restarts, meaning existing sessions survive a
+# server restart too, not just a page refresh. Falling back to a random
+# per-process key rather than raising, unlike MONGODB_URI, because this
+# only degrades session persistence (everyone signed in gets signed out
+# on the next restart) rather than breaking the app outright.
+app.secret_key = os.environ.get("SECRET_KEY")
+if not app.secret_key:
+    app.secret_key = secrets.token_hex(32)
+    print(
+        "WARNING: SECRET_KEY is not set -- using a random per-process key. "
+        "Existing sessions will not survive a server restart. Set "
+        "SECRET_KEY in server/.env for stable sessions."
+    )
 
 
 def getMongoClient():
@@ -103,8 +121,36 @@ def login():
         # (ACCT-03); the response must not re-leak it.
         return jsonify({"error": "invalid_credentials"}), 401
 
+    # Establish the session (TD-02) -- a signed, httpOnly cookie the
+    # browser sends back automatically. GET /me reads this to restore the
+    # signed-in view across a page refresh or a server restart.
+    session['userId'] = userId
+    session['username'] = username
+
     # Return a JSON response
     return jsonify({"username": username, "userId": userId}), 200
+
+# Route for restoring a signed-in session (TD-02). The frontend calls
+# this once on page load -- before showing anything -- to decide between
+# the sign-in form and the resource view, instead of re-prompting for
+# credentials on every refresh.
+@app.route('/me')
+def me():
+    userId = session.get('userId')
+    username = session.get('username')
+
+    if not userId or not username:
+        return jsonify({"error": "not_signed_in"}), 401
+
+    return jsonify({"username": username, "userId": userId}), 200
+
+# Route for signing out (TD-02). Clears the session server-side, so the
+# cookie the browser holds is no longer honored by GET /me even if it's
+# still sent.
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return jsonify({}), 200
 
 # Route for the main page (Work in progress)
 @app.route('/main')
@@ -124,15 +170,29 @@ def mainPage():
 @app.route('/join_project', methods=['POST'])
 def join_project():
     # Extract data from request
+    body = request.get_json(silent=True) or {}
+    userId = body.get('userId')
+    projectId = body.get('projectId')
+
+    if not userId:
+        return jsonify({"error": "invalid_input", "field": "userId"}), 400
+    if not projectId:
+        return jsonify({"error": "invalid_input", "field": "projectId"}), 400
 
     # Connect to MongoDB
+    client = getMongoClient()
 
-    # Attempt to join the project using the usersDB module
-
-    # Close the MongoDB connection
+    try:
+        # Attempt to join the project using the usersDB module
+        usersDB.joinProject(client, userId, projectId)
+    except projectsDB.ProjectNotFoundError:
+        return jsonify({"error": "project_not_found", "field": "projectId"}), 404
+    finally:
+        # Close the MongoDB connection
+        client.close()
 
     # Return a JSON response
-    return jsonify({})
+    return jsonify({"userId": userId, "projectId": projectId}), 200
 
 # Route for adding a new user
 @app.route('/add_user', methods=['POST'])
@@ -163,6 +223,12 @@ def add_user():
     finally:
         # Close the MongoDB connection
         client.close()
+
+    # Signing up signs you in too (TD-02) -- same session the /login
+    # route establishes, so a fresh account doesn't need a separate
+    # sign-in immediately after.
+    session['userId'] = userId
+    session['username'] = username
 
     # Return a JSON response (never echo the password back, hashed or not)
     return jsonify({"username": username, "userId": userId}), 201

@@ -31,10 +31,21 @@ async function postJson(path, payload) {
   return response.json();
 }
 
+async function getJson(path) {
+  const response = await fetch(path);
+
+  if (!response.ok) {
+    await throwForErrorResponse(response);
+  }
+
+  return response.json();
+}
+
 // US-01 -- create an account. Resolves with { username, userId } on
 // success; rejects (error.field set) on invalid input, a taken userId
 // (error.message === 'user_already_exists'), or a rejected password
-// (error.message === 'invalid_input').
+// (error.message === 'invalid_input'). Also establishes a session
+// server-side (TD-02), same as signIn.
 export async function signUp({ username, userId, password }) {
   return postJson('/add_user', { username, userId, password });
 }
@@ -45,4 +56,20 @@ export async function signUp({ username, userId, password }) {
 // which, see server/app.py's /login route).
 export async function signIn({ username, userId, password }) {
   return postJson('/login', { username, userId, password });
+}
+
+// TD-02 -- check whether a session cookie from a previous sign-in/up is
+// still valid (e.g. right after a page refresh). Resolves with
+// { username, userId } if so; rejects (error.message === 'not_signed_in',
+// or a network error) otherwise -- the caller treats any rejection the
+// same way: show the sign-in form.
+export async function getCurrentSession() {
+  return getJson('/me');
+}
+
+// TD-02 -- clears the server-side session. The caller should clear its
+// own local signed-in state regardless of whether this call succeeds, so
+// sign-out never gets stuck on a network error.
+export async function signOut() {
+  return postJson('/logout', {});
 }

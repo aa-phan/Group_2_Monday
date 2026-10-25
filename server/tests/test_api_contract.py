@@ -73,7 +73,7 @@ def stocked(mongo, seed_set):
     have wrongly changed.
     """
     seed_set("H1", "HWSet1", 10)
-    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 3)
+    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 3, "alice")
     return mongo
 
 

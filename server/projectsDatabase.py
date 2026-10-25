@@ -132,27 +132,33 @@ assertHouseholdMember = assertProjectMember
 
 
 def checkinHardwareSet(client, projectId, userId, hwSetName, quantity):
-    """Check in units of a hardware set after verifying project membership."""
+    """Check in units of a hardware set after verifying project membership.
+
+    Gated by what userId personally checked out (hardwareDB.checkinHardware),
+    not the project-wide total -- see hardwareDatabase.py's module docstring.
+    """
     assertProjectMember(client, projectId, userId)
-    return hardwareDB.checkinHardware(client, projectId, hwSetName, quantity)
+    return hardwareDB.checkinHardware(client, projectId, hwSetName, quantity, userId)
 
 
 def getProjectHardwareStatus(client, projectId, userId):
     """Return the project's hardware-set status list after verifying
-    project membership.
+    project membership. Each item's `myCheckedOut` reflects userId's own
+    holdings specifically, not the project-wide total.
     """
     assertProjectMember(client, projectId, userId)
-    return hardwareDB.getHardwareStatus(client, projectId)
+    return hardwareDB.getHardwareStatus(client, projectId, userId)
 
 
 def checkoutHardwareSet(client, projectId, userId, hwSetName, quantity):
     """Check out units of a hardware set after verifying project
     membership. Requests (reservations) never gate this call -- the guard
     hardwareDB.checkoutHardware applies compares the requested quantity
-    against capacity alone.
+    against capacity alone. Credits the checked-out units to userId's own
+    `checkedOutBy` entry.
     """
     assertProjectMember(client, projectId, userId)
-    return hardwareDB.checkoutHardware(client, projectId, hwSetName, quantity)
+    return hardwareDB.checkoutHardware(client, projectId, hwSetName, quantity, userId)
 
 
 def requestHardwareSet(client, projectId, userId, userName, hwSetName, quantity):

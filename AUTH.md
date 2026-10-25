@@ -191,7 +191,25 @@ any input, so longer passwords are rejected rather than silently truncated).
 
 ## A note on scope
 
-`QuantityAction.js`/`CheckIn.js`/`CheckOut.js`/`HardwareSet.js` belong to
-Track B (hardware resource management), not Track A. That fix was made at
-the user's direct request while testing this branch -- worth flagging to
-whoever owns Track B before merging, so it's not a surprise.
+`QuantityAction.js`/`CheckIn.js`/`CheckOut.js`/`HardwareSet.js`/
+`MyCheckedOut.js` (new) and `hardwareDatabase.py`/`projectsDatabase.py`
+belong to Track B (hardware resource management), not Track A. Both
+changes were made at the user's direct request while testing this branch:
+
+1. Capping Check In/Check Out at real numbers instead of an unbounded field.
+2. **Per-user checkout accountability** -- found while testing: any project
+   member could check in units a *different* member checked out, because
+   `checkedOut` was only ever a project-wide aggregate with no record of
+   who personally held what. Now `hardwareDatabase.py` tracks a
+   `checkedOutBy` ledger (array of `{userId, quantity}`, one entry per
+   user) alongside the existing aggregate; checkout still draws from the
+   shared pool, but checkin is gated by what the calling user personally
+   holds. The API now returns `myCheckedOut` on each hardware set (the
+   asking user's own holding), and the UI shows it as a new "You've
+   Checked Out" cell. See `hardwareDatabase.py`'s module docstring and
+   `server/tests/test_per_user_checkout.py` for the full reasoning and
+   coverage, including the exact before/after of the reported bug.
+
+Both are real changes to Track B's data model and logic, not cosmetic --
+worth a direct conversation with whoever owns Track B before merging, not
+just a note in this doc.

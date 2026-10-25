@@ -11,6 +11,7 @@ vi.mock('../api/hardware.js', () => ({
 import { checkinHardware, checkoutHardware, fetchHardware } from '../api/hardware.js';
 import Availability from '../components/Availability.js';
 import Capacity from '../components/Capacity.js';
+import MyCheckedOut from '../components/MyCheckedOut.js';
 import CheckIn from '../components/CheckIn.js';
 import CheckOut from '../components/CheckOut.js';
 import HardwareSet from '../components/HardwareSet.js';
@@ -21,7 +22,7 @@ beforeEach(() => {
   vi.resetAllMocks();
 });
 
-describe('Availability and Capacity', () => {
+describe('Availability, Capacity, and MyCheckedOut', () => {
   it('Availability shows its label and value, including zero', () => {
     render(<Availability available={0} />);
     expect(screen.getByText('Available')).toBeInTheDocument();
@@ -32,6 +33,12 @@ describe('Availability and Capacity', () => {
     render(<Capacity capacity={12} />);
     expect(screen.getByText('Capacity')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
+  });
+
+  it('MyCheckedOut shows its label and value, including zero', () => {
+    render(<MyCheckedOut myCheckedOut={0} />);
+    expect(screen.getByText("You've Checked Out")).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
   });
 });
 
@@ -286,8 +293,8 @@ describe('CheckIn', () => {
 });
 
 describe('HardwareSet', () => {
-  it('shows the set name and its four components in order', () => {
-    const hwSet = { hwSetName: 'HWSet1', capacity: 10, available: 6 };
+  it('shows the set name and its five components in order', () => {
+    const hwSet = { hwSetName: 'HWSet1', capacity: 10, available: 6, myCheckedOut: 4 };
     render(<HardwareSet projectId="P1" userId="alice" hwSet={hwSet} onChanged={vi.fn()} />);
 
     const region = screen.getByRole('region', { name: 'HWSet1' });
@@ -295,19 +302,19 @@ describe('HardwareSet', () => {
     const labels = Array.from(region.querySelectorAll('.hw-cell__label')).map((node) =>
       node.textContent.replace(/\d+$/, '').trim()
     );
-    expect(labels).toEqual(['Available', 'Capacity', 'Check In', 'Check Out']);
+    expect(labels).toEqual(['Available', 'Capacity', "You've Checked Out", 'Check In', 'Check Out']);
     expect(region).toHaveTextContent('6');
     expect(region).toHaveTextContent('10');
+    expect(region).toHaveTextContent('4');
   });
 
   it('wires both actions to this set, project, and user', async () => {
     checkinHardware.mockResolvedValue({});
     checkoutHardware.mockResolvedValue({});
-    // available < capacity so both actions have something valid to do --
-    // Check In is capped at (and disabled below) checkedOut = capacity -
-    // available, so an all-available fixture would leave nothing to
-    // check in.
-    const hwSet = { hwSetName: 'HWSet2', capacity: 5, available: 3 };
+    // available > 0 and myCheckedOut > 0 so both actions have something
+    // valid to do -- each control disables itself at 0, per
+    // QuantityAction's own tests.
+    const hwSet = { hwSetName: 'HWSet2', capacity: 5, available: 3, myCheckedOut: 2 };
     render(<HardwareSet projectId="P9" userId="bob" hwSet={hwSet} onChanged={vi.fn().mockResolvedValue()} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Check In' }));
@@ -318,12 +325,27 @@ describe('HardwareSet', () => {
     expect(checkoutHardware).toHaveBeenCalledWith(expected);
   });
 
-  it('derives checkedOut (capacity - available) for the Check In cap, not a fixed number', () => {
-    const hwSet = { hwSetName: 'HWSet3', capacity: 10, available: 5 };
+  it("caps Check In at myCheckedOut (this user's own holding), not capacity - available", () => {
+    // Someone ELSE holds most of what's checked out -- capacity(10) -
+    // available(2) = 8 checked out project-wide, but THIS user only
+    // personally holds 3. The old (buggy) behavior would have capped
+    // Check In at 8, letting this user check in units they never checked
+    // out themselves.
+    const hwSet = { hwSetName: 'HWSet3', capacity: 10, available: 2, myCheckedOut: 3 };
     render(<HardwareSet projectId="P1" userId="alice" hwSet={hwSet} onChanged={vi.fn()} />);
 
-    expect(screen.getByLabelText('Check In')).toHaveAttribute('max', '5');
-    expect(screen.getByLabelText('Check Out')).toHaveAttribute('max', '5');
+    expect(screen.getByLabelText('Check In')).toHaveAttribute('max', '3');
+    expect(screen.getByLabelText('Check Out')).toHaveAttribute('max', '2');
+  });
+
+  it("shows a different user's own checked-out figure, not the project-wide total", () => {
+    const hwSet = { hwSetName: 'HWSet4', capacity: 10, available: 2, myCheckedOut: 0 };
+    render(<HardwareSet projectId="P1" userId="bob" hwSet={hwSet} onChanged={vi.fn()} />);
+
+    // bob holds none of the 8 checked out project-wide -- Check In is
+    // correctly disabled for him, even though plenty is checked out
+    // overall (by someone else).
+    expect(screen.getByRole('button', { name: 'Check In' })).toBeDisabled();
   });
 });
 

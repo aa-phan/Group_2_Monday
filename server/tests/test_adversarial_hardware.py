@@ -94,7 +94,7 @@ def test_checkout_write_is_pinned_to_the_count_it_read(mongo, seed_set):
             _bump_checked_out(5)(collection)
 
     racing = RacingClient(mongo, competitor_once)
-    result = hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3)
+    result = hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3, "alice")
 
     assert result["available"] == 2
     assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 8
@@ -110,7 +110,7 @@ def test_checkout_succeeds_in_one_attempt_despite_unrelated_competing_writes(mon
         _bump_checked_out(1)(collection)
 
     racing = RacingClient(mongo, competitor_every_time)
-    result = hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3)
+    result = hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3, "alice")
 
     assert len(attempts) == 1
     assert result["available"] == 16
@@ -122,7 +122,7 @@ def test_checkout_is_rejected_when_a_competitor_takes_the_units_between_read_and
     racing = RacingClient(mongo, _bump_checked_out(5))
 
     with pytest.raises(hardwareDB.InsufficientStockError) as caught:
-        hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3)
+        hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3, "alice")
 
     assert (caught.value.onHand, caught.value.requested) == (0, 3)
     assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 5  # our write was not applied
@@ -145,27 +145,38 @@ def test_checkout_is_retried_when_units_are_freed_after_the_guard_rejected_it(mo
         )
 
     racing = RacingClient(mongo, fill_up_once, after=free_up_after_rejection)
-    result = hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3)
+    result = hardwareDB.checkoutHardware(racing, "H1", "HWSet1", 3, "alice")
 
     assert result["available"] == 7
     assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 3
 
 
-def test_checkin_is_rejected_when_a_competitor_returns_the_units_between_read_and_write(mongo, seed_set):
+def test_checkin_is_unaffected_by_a_competitor_changing_the_project_wide_aggregate(mongo, seed_set):
+    """A checkin is gated by what the CALLING user personally holds, not
+    the project-wide `checkedOut` total -- so a competing write that only
+    touches the aggregate (never this user's own checkedOutBy entry) must
+    not block or corrupt this user's legitimate checkin. This replaces a
+    prior version of this test that asserted the opposite (an aggregate-
+    only race blocking checkin) -- that was pinning the exact bug being
+    fixed here: anyone could check in units someone else checked out.
+    """
     seed_set("H1", "HWSet1", 10)
-    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 6)
+    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 6, "alice")
     racing = RacingClient(mongo, _bump_checked_out(-5))
 
-    with pytest.raises(hardwareDB.CheckinExceedsCheckedOutError) as caught:
-        hardwareDB.checkinHardware(racing, "H1", "HWSet1", 3)
+    result = hardwareDB.checkinHardware(racing, "H1", "HWSet1", 3, "alice")
 
-    assert (caught.value.checkedOut, caught.value.requested) == (1, 3)
-    assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 1
+    assert result["myCheckedOut"] == 3  # alice: 6 checked out, 3 checked back in
+    raw = _raw(mongo, "H1", "hwset1")
+    # aggregate: 6 (alice's checkout) - 5 (competitor's phantom bump,
+    # unrelated to any real checkedOutBy entry) - 3 (alice's real checkin)
+    assert raw["checkedOut"] == -2
+    assert next(e for e in raw["checkedOutBy"] if e["userId"] == "alice")["quantity"] == 3
 
 
 def test_checkin_write_is_pinned_to_the_count_it_read(mongo, seed_set):
     seed_set("H1", "HWSet1", 10)
-    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 6)
+    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 6, "alice")
     fired = []
 
     def competitor_once(collection):
@@ -174,9 +185,37 @@ def test_checkin_write_is_pinned_to_the_count_it_read(mongo, seed_set):
             _bump_checked_out(-2)(collection)
 
     racing = RacingClient(mongo, competitor_once)
-    hardwareDB.checkinHardware(racing, "H1", "HWSet1", 1)
+    hardwareDB.checkinHardware(racing, "H1", "HWSet1", 1, "alice")
 
     assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 3
+
+
+def test_two_concurrent_checkins_by_the_same_user_cannot_drive_their_holding_negative(mongo, seed_set):
+    """The race this module's own docstring calls out: two concurrent
+    checkins by the SAME user, both reading the same stale `myHolding`,
+    must not both apply -- only one may succeed; the other must see the
+    live (already-reduced) holding and fail with CheckinExceedsCheckedOutError,
+    not silently push this user's entry below zero.
+    """
+    seed_set("H1", "HWSet1", 10)
+    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 5, "alice")
+
+    def concurrent_checkin_lands_first(collection):
+        # Simulates a second request for the SAME user's checkin-5 winning
+        # the race, landing right before this call's own write attempt.
+        collection.update_one(
+            {"projectId": "H1", "hwSetKey": "hwset1", "checkedOutBy.userId": "alice"},
+            {"$inc": {"checkedOut": -5, "checkedOutBy.$.quantity": -5}},
+        )
+
+    racing = RacingClient(mongo, concurrent_checkin_lands_first)
+    with pytest.raises(hardwareDB.CheckinExceedsCheckedOutError) as caught:
+        hardwareDB.checkinHardware(racing, "H1", "HWSet1", 5, "alice")
+
+    assert (caught.value.checkedOut, caught.value.requested) == (0, 5)
+    raw = _raw(mongo, "H1", "hwset1")
+    assert next(e for e in raw["checkedOutBy"] if e["userId"] == "alice")["quantity"] == 0
+    assert raw["checkedOut"] == 0
 
 
 def test_release_write_is_pinned_to_the_entry_still_being_present(mongo, seed_set):

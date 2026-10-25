@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ResourceView from './components/Project.js';
 import MyLoginPage from './pages/MyLoginPage.js';
 import MyRegistrationPage from './pages/MyRegistrationPage.js';
+import { getCurrentSession, signOut } from './api/auth.js';
 import { joinProject } from './api/projects.js';
 import './App.css';
 
@@ -12,12 +13,37 @@ import './App.css';
 const PROJECT_ID = 'P1';
 
 export default function App() {
-  // ACCT-04 (session persistence, TD-02) has not landed yet -- this only
-  // holds the signed-in identity in memory for the current page load. A
-  // refresh signs the user back out; that is expected until TD-02 lands.
   const [account, setAccount] = useState(null);
   const [authView, setAuthView] = useState('signIn');
   const [joinError, setJoinError] = useState(null);
+  // TD-02 -- true only for the brief GET /me round-trip on first mount.
+  // Without this, the sign-in form would flash on screen for a moment
+  // even when a valid session is about to restore the resource view.
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // TD-02 -- on first mount, ask the server (not localStorage -- the
+  // session is a signed, httpOnly cookie the browser already attached to
+  // this request) whether we're still signed in from before. A refresh,
+  // or even a server restart (the signing key is stable across restarts
+  // via server/.env's SECRET_KEY), restores the same signed-in view
+  // instead of asking to sign in again.
+  useEffect(() => {
+    let isCurrent = true;
+    getCurrentSession()
+      .then((session) => {
+        if (isCurrent) setAccount(session);
+      })
+      .catch(() => {
+        // No session (401) or a network hiccup -- either way, nothing to
+        // restore. Fall through to the sign-in form below.
+      })
+      .finally(() => {
+        if (isCurrent) setCheckingSession(false);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   // Runs after both sign-in and sign-up (US-01/US-02 -> US-04). Joining is
   // idempotent server-side -- joining a project you're already in is a
@@ -37,6 +63,26 @@ export default function App() {
     setAccount(newAccount);
   }
 
+  async function handleSignOut() {
+    try {
+      await signOut();
+    } catch (error) {
+      // Non-fatal -- clear local state regardless so sign-out never gets
+      // stuck on a network error; worst case the old session cookie
+      // lingers until it's overwritten by the next sign-in.
+    }
+    setAccount(null);
+    setAuthView('signIn');
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="app-container">
+        <p className="muted-text">Checking session...</p>
+      </div>
+    );
+  }
+
   if (!account) {
     return (
       <div className="app-container">
@@ -47,11 +93,6 @@ export default function App() {
         )}
       </div>
     );
-  }
-
-  function handleSignOut() {
-    setAccount(null);
-    setAuthView('signIn');
   }
 
   return (

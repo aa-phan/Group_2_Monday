@@ -26,10 +26,13 @@ Render's free tier needs no credit card.
 2. In Render, choose **New > Blueprint** and point it at the repository.
    It reads `render.yaml` and proposes one web service.
    (If the blueprint gives trouble, **New > Web Service**, pick the repo,
-   choose **Docker**, and leave the rest at the defaults. Same result.)
+   choose **Docker**, and leave the rest at the defaults. Then add the
+   environment variables yourself, including `SECRET_KEY`: the blueprint
+   generates that one for you, a hand-made service doesn't.)
 3. When prompted for `MONGODB_URI`, paste the Atlas connection string.
    It is marked `sync: false` in `render.yaml`, so it is stored as a
-   secret and never committed.
+   secret and never committed. `SECRET_KEY` needs no input; Render
+   generates it.
 4. In Atlas, under **Network Access**, allow `0.0.0.0/0`. Render's free
    tier has no fixed outbound IP to allow-list instead.
 5. Wait for the first build, then open the service URL.
@@ -61,6 +64,7 @@ If the service was created by hand rather than from the blueprint, set its
 |---|---|---|
 | `MONGODB_URI` | yes | Atlas connection string. No default exists anywhere in the code. |
 | `MONGODB_DB` | no | Database name. Defaults to `HaaSResourceManager`. |
+| `SECRET_KEY` | yes | Signs the login session cookie. `render.yaml` has Render generate it once and keep it. Without it, each of the two gunicorn workers makes up its own key, so a signed-in user is randomly treated as signed out (about half of all requests) and everyone is signed out on every restart. |
 | `PORT` | no | Set by the host. Defaults to 8000 in the image. |
 | `CLIENT_DIST` | no | Path to the compiled client. Set inside the image. |
 

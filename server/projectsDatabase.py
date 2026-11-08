@@ -17,8 +17,9 @@ Project = {
 }
 
 Hardware-set stock (Track B) is superseded by hardwareDatabase's own
-docstring: it now lives in the separate `HardwareSets` collection
-(projectId + hwSetKey), not nested in this document. This document's
+docstring: it lives in the separate `HardwareSets` collection, keyed by
+hwSetKey ALONE -- a single global catalog shared by every project, not
+nested in this document and not partitioned per project. This document's
 `users` list remains the source of truth for project membership; see
 assertProjectMember below.
 '''
@@ -189,12 +190,22 @@ def checkInHW(client, projectId, hwSetName, qty, userId):
 # Track B — hardware resource management (generic HaaS domain)
 #
 # Hardware-set stock lives in the separate `HardwareSets` collection
-# (hardwareDatabase.py), keyed by projectId + hwSetKey. This section reads
-# the `Households` collection only to check membership (`users` list); it
-# never reads or writes project document fields Track A owns (projectName,
-# etc. above). (The collection is still named `Households` on disk from an
-# earlier domain iteration -- see hardwareDB.PROJECTS_COLLECTION -- but every
-# field and function here is project/hardware vocabulary, not food/household.)
+# (hardwareDatabase.py), keyed by hwSetKey alone -- one shared global
+# catalog, not partitioned per project (see hardwareDatabase.py's module
+# docstring). This section reads the `Households` collection only to check
+# membership (`users` list); it never reads or writes project document
+# fields Track A owns (projectName, etc. above). (The collection is still
+# named `Households` on disk from an earlier domain iteration -- see
+# hardwareDB.PROJECTS_COLLECTION -- but every field and function here is
+# project/hardware vocabulary, not food/household.)
+#
+# Membership (assertProjectMember) is still required before every call
+# below touches hardware: a project is the lens a member acts through, even
+# though the hardware itself is shared by every project. There is no
+# createHardwareSet wrapper here any more -- per course-staff feedback, a
+# project member cannot mint new hardware for "their" project; only
+# hardwareDatabase.createHardwareSet (a seeding/admin action, never reachable
+# from a route) can add to the catalog.
 # ---------------------------------------------------------------------------
 
 
@@ -238,21 +249,13 @@ def assertProjectMember(client, projectId, userId):
 assertHouseholdMember = assertProjectMember
 
 
-def createHardwareSet(client, projectId, userId, hwSetName, capacity):
-    """Create a hardware set with a fixed starting capacity after verifying
-    project membership. Idempotent if the set already exists -- see
-    hardwareDB.createHardwareSet's docstring; capacity is never overwritten
-    by a repeat call.
-    """
-    assertProjectMember(client, projectId, userId)
-    return hardwareDB.createHardwareSet(client, projectId, hwSetName, capacity)
-
-
 def checkinHardwareSet(client, projectId, userId, hwSetName, quantity):
     """Check in units of a hardware set after verifying project membership.
 
-    Gated by what userId personally checked out (hardwareDB.checkinHardware),
-    not the project-wide total -- see hardwareDatabase.py's module docstring.
+    Gated by what userId personally checked out THROUGH THIS SAME projectId
+    (hardwareDB.checkinHardware), not the project-wide total and not this
+    same userId's holding under a different project -- see
+    hardwareDatabase.py's module docstring.
     """
     assertProjectMember(client, projectId, userId)
     return hardwareDB.checkinHardware(client, projectId, hwSetName, quantity, userId)

@@ -183,3 +183,86 @@ def test_get_project_hardware_status_reports_the_askers_own_holding(mongo, seed_
 
     assert aliceStatus[0]["myCheckedOut"] == 4
     assert bobStatus[0]["myCheckedOut"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Accountability is per (user, project), not just per user -- the hardware
+# catalog is global (shared by every project), but a checkout made through
+# one project is a loan THAT PROJECT is accountable for, not a number
+# floating free of any project. Reported bug this section pins: alice is a
+# member of both H1 and H2, checks out 5 units through H1, and should NOT
+# be able to check those same 5 back in while acting through H2 -- even
+# though it is the same person and the same global hardware set.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def alice_in_two_projects(mongo):
+    """H1 (alice, bob) comes from conftest.py's `mongo` fixture; add H2 with
+    alice as its only member so she belongs to two projects at once.
+    """
+    mongo[hardwareDB.DB_NAME][hardwareDB.PROJECTS_COLLECTION].insert_one(
+        {"householdId": "H2", "users": ["alice"]}
+    )
+    return mongo
+
+
+def test_a_checkout_made_through_one_project_cannot_be_checked_in_through_another(
+    api, seed_set, alice_in_two_projects
+):
+    seed_set("H1", "HWSet1", 10)
+    _checkout(api, "H1", "alice", "HWSet1", 5)
+
+    response = _checkin(api, "H2", "alice", "HWSet1", 5)
+
+    assert response.status_code == 409
+    body = response.get_json()
+    assert body["error"] == "checkin_exceeds_checked_out"
+    assert body["checkedOut"] == 0  # alice's holding through H2 specifically, not H1's 5
+    assert body["requested"] == 5
+
+
+def test_the_same_checkout_can_be_checked_in_through_the_project_it_was_made_through(
+    api, seed_set, alice_in_two_projects
+):
+    seed_set("H1", "HWSet1", 10)
+    _checkout(api, "H1", "alice", "HWSet1", 5)
+
+    response = _checkin(api, "H1", "alice", "HWSet1", 5)
+
+    assert response.status_code == 200
+    assert response.get_json()["hardwareSet"]["myCheckedOut"] == 0
+
+
+def test_myCheckedOut_is_scoped_to_the_project_being_viewed_through(api, seed_set, alice_in_two_projects):
+    seed_set("H1", "HWSet1", 10)
+    _checkout(api, "H1", "alice", "HWSet1", 5)
+
+    throughH1 = _fetch(api, "H1", "alice").get_json()["hardwareSets"][0]
+    throughH2 = _fetch(api, "H2", "alice").get_json()["hardwareSets"][0]
+
+    assert throughH1["myCheckedOut"] == 5
+    assert throughH2["myCheckedOut"] == 0
+    # The global pool itself is unaffected by which project is asking.
+    assert throughH1["available"] == throughH2["available"] == 5
+
+
+def test_checking_out_the_same_set_through_two_different_projects_tracks_independently(
+    api, seed_set, alice_in_two_projects
+):
+    seed_set("H1", "HWSet1", 20)
+    _checkout(api, "H1", "alice", "HWSet1", 5)
+    _checkout(api, "H2", "alice", "HWSet1", 3)
+
+    throughH1 = _fetch(api, "H1", "alice").get_json()["hardwareSets"][0]
+    throughH2 = _fetch(api, "H2", "alice").get_json()["hardwareSets"][0]
+
+    assert throughH1["myCheckedOut"] == 5
+    assert throughH2["myCheckedOut"] == 3
+    assert throughH1["available"] == throughH2["available"] == 12
+
+    # Checking in through H2 only ever touches the H2 entry.
+    checkinResponse = _checkin(api, "H2", "alice", "HWSet1", 3)
+    assert checkinResponse.status_code == 200
+    assert _fetch(api, "H1", "alice").get_json()["hardwareSets"][0]["myCheckedOut"] == 5
+    assert _fetch(api, "H2", "alice").get_json()["hardwareSets"][0]["myCheckedOut"] == 0

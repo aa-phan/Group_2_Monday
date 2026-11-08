@@ -90,9 +90,15 @@ def test_rename_collision_is_409_and_changes_nothing(api, stocked, seed_set):
     assert before == after
 
 
-def test_rename_same_name_in_other_project_is_not_collision(api, mongo, stocked, seed_set):
+def test_rename_collides_with_a_set_created_through_a_different_project(api, mongo, stocked, seed_set):
+    """Hardware sets are a single global catalog (not partitioned per
+    project), so a name taken by a set first created through H2's context
+    still collides when renaming a set accessed through H1.
+    """
     seed_set("H2", "Taken", 5)
-    assert _rename(api, "Taken").status_code == 200
+    res = _rename(api, "Taken")
+    assert res.status_code == 409
+    assert res.get_json() == {"error": "hardware_set_name_taken", "field": "newName"}
 
 
 def test_rename_missing_set_is_404(api, stocked):
@@ -140,7 +146,7 @@ def test_rename_collision_without_prior_index(mongo):
         ]
     )
     try:
-        coll.drop_index("uniq_project_hwSetKey")
+        coll.drop_index("uniq_hwSetKey")
     except Exception:
         pass
     with pytest.raises(hardwareDB.HardwareSetNameTakenError):
@@ -235,15 +241,6 @@ def test_legacy_document_without_active_behaves_as_active(api, stocked):
     _coll(stocked).update_one({"hwSetKey": "hwset1"}, {"$unset": {"active": ""}})
     hardwareDB.checkinHardware(stocked, "H1", "HWSet1", 1, "alice")
     assert _set_active(api, False).status_code == 200
-
-
-def test_create_on_existing_inactive_set_is_unchanged(api, stocked):
-    _set_active(api, False)
-    res = api.post(
-        "/api/hardware/create", json=_body(hwSetName="HWSet1", capacity=99)
-    )
-    hw = res.get_json()["hardwareSet"]
-    assert hw["active"] is False and hw["capacity"] == 10
 
 
 def test_created_document_stores_active_true(stocked):

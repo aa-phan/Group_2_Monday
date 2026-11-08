@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchHardware } from '../api/hardware.js';
-import CreateHardwareSet from './CreateHardwareSet.js';
 import HardwareSet from './HardwareSet.js';
 
 /**
@@ -9,6 +8,11 @@ import HardwareSet from './HardwareSet.js';
  * client/src/api/hardware.js, but accepts session identity as props rather
  * than reading it from any global auth state -- Track A's session/auth layer
  * wires real values in here once it lands.
+ *
+ * The hardware catalog itself is global -- shared by every project, not
+ * owned by this one -- so there is no "add a hardware set" form here; a
+ * project member can check in/out/request existing sets, never mint new
+ * ones. See server/hardwareDatabase.py's module docstring.
  *
  * Data source: fetches via client/src/api/hardware.js
  * No hard-coded fallback: this component renders nothing it was not given or told.
@@ -70,24 +74,21 @@ export default function ResourceView({ projectId, userId }) {
 
   const hardwareSets = hardware ? hardware.hardwareSets : [];
 
+  if (hardwareSets.length === 0) {
+    return <p className="muted-text">No hardware sets are available yet.</p>;
+  }
+
   return (
-    <div>
-      <CreateHardwareSet projectId={projectId} userId={userId} onCreated={loadHardware} />
-      {hardwareSets.length === 0 ? (
-        <p className="muted-text">No hardware sets in this project yet.</p>
-      ) : (
-        <div className="hw-set-list">
-          {hardwareSets.map((hwSet) => (
-            <HardwareSet
-              key={hwSet._id ?? hwSet.hwSetName}
-              projectId={projectId}
-              userId={userId}
-              hwSet={hwSet}
-              onChanged={loadHardware}
-            />
-          ))}
-        </div>
-      )}
+    <div className="hw-set-list">
+      {hardwareSets.map((hwSet) => (
+        <HardwareSet
+          key={hwSet._id ?? hwSet.hwSetName}
+          projectId={projectId}
+          userId={userId}
+          hwSet={hwSet}
+          onChanged={loadHardware}
+        />
+      ))}
     </div>
   );
 }

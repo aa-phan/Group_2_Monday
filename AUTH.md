@@ -112,8 +112,8 @@ end to end on the first try.
 **Automated (fast, no servers needed):**
 
 ```bash
-cd server && python -m pytest -v        # 288 tests
-cd client && npm test                    # 104 tests
+cd server && python -m pytest -v        # 330 tests
+cd client && npm test                    # 121 tests
 ```
 
 **Manually, via curl (useful for checking the API without a browser --
@@ -239,39 +239,49 @@ any input, so longer passwords are rejected rather than silently truncated).
 ## A note on scope
 
 `QuantityAction.js`/`CheckIn.js`/`CheckOut.js`/`HardwareSet.js`/
-`MyCheckedOut.js`/`CreateHardwareSet.js` (new) and
-`hardwareDatabase.py`/`projectsDatabase.py` belong to Track B (hardware
-resource management), not Track A. All three changes below were made at
-the user's direct request while testing this branch:
+`MyCheckedOut.js` and `hardwareDatabase.py`/`projectsDatabase.py` belong
+to Track B (hardware resource management), not Track A. The changes below
+were made at the user's direct request while testing this branch:
 
 1. Capping Check In/Check Out at real numbers instead of an unbounded field.
-2. **Per-user checkout accountability** -- found while testing: any project
-   member could check in units a *different* member checked out, because
-   `checkedOut` was only ever a project-wide aggregate with no record of
-   who personally held what. Now `hardwareDatabase.py` tracks a
-   `checkedOutBy` ledger (array of `{userId, quantity}`, one entry per
-   user) alongside the existing aggregate; checkout still draws from the
-   shared pool, but checkin is gated by what the calling user personally
-   holds. The API now returns `myCheckedOut` on each hardware set (the
-   asking user's own holding), and the UI shows it as a new "You've
-   Checked Out" cell. See `hardwareDatabase.py`'s module docstring and
-   `server/tests/test_per_user_checkout.py` for the full reasoning and
-   coverage, including the exact before/after of the reported bug.
-3. **Creating a hardware set** -- found while testing US-03: a new project
-   had no hardware sets and no way to ever get any. `hardwareDatabase.py`
-   already had a working `createHardwareSet(client, projectId, rawName,
-   capacity)` (idempotent; capacity fixed at creation and never
-   overwritten), but nothing called it -- not a route, not checkin/
-   checkout (which raise `ItemNotFoundError` for a set that doesn't exist
-   yet, they don't create one). Added `POST /api/hardware/create`
-   (`projectsDatabase.createHardwareSet` wraps it with the same
-   membership check every other hardware route uses), plus a frontend
-   form (`CreateHardwareSet.js`, rendered inside `ResourceView`/
-   `Project.js`) so a project member can actually give their project a
-   first hardware set through the UI. See `server/tests/
-   test_create_hardware_set.py` for coverage, including the idempotency
-   and non-member-rejection cases.
+2. **Per-(user, project) checkout accountability** -- found while testing:
+   any project member could check in units a *different* member checked
+   out, because `checkedOut` was only ever a project-wide aggregate with
+   no record of who personally held what. `hardwareDatabase.py` tracks a
+   `checkedOutBy` ledger (array of `{userId, projectId, quantity}`, one
+   entry per (userId, projectId) pair) alongside the existing aggregate;
+   checkout still draws from the shared global pool, but checkin is gated
+   by what the calling user personally holds *through the same project
+   they're acting through*. Originally this ledger was keyed by userId
+   alone; once hardware became a global catalog (see item 3) that let the
+   same user check in through ANY project they belonged to, regardless of
+   which project they actually checked out through -- found while testing
+   that change, and fixed by adding projectId to the ledger key. The API
+   returns `myCheckedOut` on each hardware set (the asking user's own
+   holding through the project they're currently viewing), and the UI
+   shows it as a "You've Checked Out" cell. See `hardwareDatabase.py`'s
+   module docstring and `server/tests/test_per_user_checkout.py` for the
+   full reasoning and coverage of both bugs' before/after.
+3. **Hardware sets are a single global catalog, not per-project** --
+   course-staff feedback: a project must not be able to mint its own
+   private hardware. A brief earlier version of this branch added
+   `POST /api/hardware/create` plus a frontend form so a project member
+   could give "their" project a first hardware set; both are now removed.
+   `hardwareDatabase.py`'s collection is keyed by `hwSetKey` alone (a
+   single unique index, not a `(projectId, hwSetKey)` compound one), and
+   `getHardwareStatus` returns every set in the catalog regardless of
+   which project's member is asking -- every project's members see and
+   draw from the exact same stock. `projectId` is still required on every
+   hardware route and still gates membership (`assertProjectMember`) the
+   same as before; it just no longer partitions *which hardware* exists.
+   `createHardwareSet` still exists in `hardwareDatabase.py` for one-time
+   seeding (see the main README's "Seed data" section) but is not
+   reachable from any route. See `hardwareDatabase.py`'s module docstring
+   and `server/tests/test_adversarial_hardware.py`'s
+   `test_status_lists_the_entire_global_catalog_regardless_of_which_project_asks`
+   / `test_release_works_through_any_project_the_releaser_belongs_to` for
+   the behavior this pins down.
 
-Both are real changes to Track B's data model and logic, not cosmetic --
+This is a real change to Track B's data model and logic, not cosmetic --
 worth a direct conversation with whoever owns Track B before merging, not
 just a note in this doc.

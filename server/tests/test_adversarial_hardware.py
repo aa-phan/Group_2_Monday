@@ -1,9 +1,9 @@
 """Adversarial / mutation-derived tests for the hardware inventory server.
 
 Each test pins a behavior derived from the intent (capacity is fixed,
-available = capacity - checkedOut, strict input validation, per-project
-isolation, optimistic-concurrency guards) and fails under a specific
-one-line break of the implementation.
+available = capacity - checkedOut, strict input validation, membership-
+gated access to a single global hardware catalog, optimistic-concurrency
+guards) and fails under a specific one-line break of the implementation.
 """
 
 import pytest
@@ -319,16 +319,22 @@ def test_checkin_of_exactly_everything_checked_out_succeeds(api, seed_set):
 # --- status listing: isolation and order ---------------------------------------
 
 
-def test_status_lists_only_the_requested_projects_sets(api, mongo, seed_set):
+def test_status_lists_the_entire_global_catalog_regardless_of_which_project_asks(api, mongo, seed_set):
+    """Hardware sets are one shared catalog, not partitioned per project
+    (per course-staff feedback): a member views the SAME sets no matter
+    which project they're a member of, as long as they belong to one.
+    """
     mongo[hardwareDB.DB_NAME][hardwareDB.PROJECTS_COLLECTION].insert_one(
         {"householdId": "H2", "users": ["carol"]}
     )
     seed_set("H1", "HWSet1", 10)
     seed_set("H2", "SecretSet", 99)
 
-    sets = api.get("/api/hardware?projectId=H1&userId=alice").get_json()["hardwareSets"]
+    aliceSets = api.get("/api/hardware?projectId=H1&userId=alice").get_json()["hardwareSets"]
+    carolSets = api.get("/api/hardware?projectId=H2&userId=carol").get_json()["hardwareSets"]
 
-    assert [s["hwSetName"] for s in sets] == ["HWSet1"]
+    assert [s["hwSetName"] for s in aliceSets] == ["HWSet1", "SecretSet"]
+    assert [s["hwSetName"] for s in carolSets] == ["HWSet1", "SecretSet"]
 
 
 def test_status_is_sorted_ascending_by_normalized_name(api, seed_set):
@@ -355,7 +361,14 @@ def test_membership_is_checked_against_the_requested_project(api, mongo, seed_se
     assert api.get("/api/hardware?projectId=H2&userId=alice").status_code == 403
 
 
-def test_release_is_scoped_to_the_project_named_in_the_request(api, mongo, seed_set):
+def test_release_works_through_any_project_the_releaser_belongs_to(api, mongo, seed_set):
+    """Requests live on the global hardware catalog, not inside a project,
+    so releasing one is gated on OWNERSHIP of the reservation plus
+    membership in whatever project the caller names -- not on having
+    created the request through that exact same project. alice belongs to
+    both H1 (conftest) and H2 (this test); she may release her own H2
+    request while acting through either one.
+    """
     mongo[hardwareDB.DB_NAME][hardwareDB.PROJECTS_COLLECTION].insert_one(
         {"householdId": "H2", "users": ["alice"]}
     )
@@ -369,10 +382,10 @@ def test_release_is_scoped_to_the_project_named_in_the_request(api, mongo, seed_
         json={"projectId": "H1", "userId": "alice", "requestId": reservationId},
     )
 
-    assert response.status_code == 404
+    assert response.status_code == 200
     raw = _raw(mongo, "H2", "hwset1")
-    assert raw["reservedQuantity"] == 3
-    assert len(raw["reservations"]) == 1
+    assert raw["reservedQuantity"] == 0
+    assert raw["reservations"] == []
 
 
 def test_the_largest_allowed_quantity_is_accepted_everywhere_and_never_overflows(api, mongo, seed_set):

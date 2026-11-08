@@ -6,7 +6,6 @@ vi.mock('../api/hardware.js', () => ({
   fetchHardware: vi.fn(),
   checkinHardware: vi.fn(),
   checkoutHardware: vi.fn(),
-  createHardwareSet: vi.fn(),
   renameHardwareSet: vi.fn(),
   setHardwareSetActive: vi.fn(),
 }));

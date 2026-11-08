@@ -37,10 +37,6 @@ h3 {
   gap: var(--space-xl);
 }
 
-.create-hw-set {
-  margin: 0 0 var(--space-2xl);
-}
-
 .hw-set {
   padding: var(--space-xl);
   background-color: var(--color-surface);

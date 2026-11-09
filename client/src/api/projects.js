@@ -1,3 +1,5 @@
+import { notifySignedOut } from './sessionEvents.js';
+
 async function parseErrorBody(response) {
   try {
     const body = await response.json();
@@ -8,6 +10,10 @@ async function parseErrorBody(response) {
 }
 
 async function throwForErrorResponse(response) {
+  // A 401 on a data route means the session cookie is gone or expired.
+  if (response.status === 401) {
+    notifySignedOut();
+  }
   const body = await parseErrorBody(response);
   const message = body.error ? body.error : `Request failed with status ${response.status}`;
   const error = new Error(message);

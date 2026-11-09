@@ -102,6 +102,37 @@ describe('QuantityAction', () => {
     expect(screen.getByLabelText('Do It')).toHaveAttribute('max', '5');
   });
 
+  it('omits the native max but keeps min and step when capInput is false', () => {
+    setup({ max: 5, capInput: false });
+    const input = screen.getByLabelText('Do It');
+    expect(input).not.toHaveAttribute('max');
+    expect(input).toHaveAttribute('min', '1');
+    expect(input).toHaveAttribute('step', '1');
+  });
+
+  it('submits a quantity above max when capInput is false', async () => {
+    const props = setup({ max: 2, capInput: false });
+    const input = screen.getByLabelText('Do It');
+    await userEvent.clear(input);
+    await userEvent.type(input, '9');
+    await userEvent.click(screen.getByRole('button', { name: 'Do It' }));
+
+    expect(props.action).toHaveBeenCalledWith(9);
+    expect(typeof props.action.mock.calls[0][0]).toBe('number');
+  });
+
+  it('still disables at max below 1 when capInput is false', () => {
+    setup({ max: 0, capInput: false });
+    expect(screen.getByLabelText('Do It')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Do It' })).toBeDisabled();
+  });
+
+  it('still honors disabled when capInput is false', () => {
+    setup({ max: 5, capInput: false, disabled: true });
+    expect(screen.getByLabelText('Do It')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Do It' })).toBeDisabled();
+  });
+
   it('leaves the input uncapped when no max is given', () => {
     setup();
     expect(screen.getByLabelText('Do It')).not.toHaveAttribute('max');
@@ -211,14 +242,38 @@ describe('CheckOut', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('not_a_project_member');
   });
 
-  it('caps the quantity input at the units available, not a fixed number', () => {
+  it('does not put available on the input as a native max, so an over-request reaches the server', () => {
     render(<CheckOut {...props} available={4} onChanged={vi.fn()} />);
-    expect(screen.getByLabelText('Check Out')).toHaveAttribute('max', '4');
+    expect(screen.getByLabelText('Check Out')).not.toHaveAttribute('max');
+  });
+
+  it('sends an over-available quantity to the server and shows how many are available', async () => {
+    checkoutHardware.mockRejectedValue(Object.assign(new Error('insufficient_stock'), { onHand: 2, requested: 9 }));
+    render(<CheckOut {...props} available={2} onChanged={vi.fn()} />);
+
+    await userEvent.clear(screen.getByLabelText('Check Out'));
+    await userEvent.type(screen.getByLabelText('Check Out'), '9');
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    expect(checkoutHardware).toHaveBeenCalledWith({
+      projectId: 'P1',
+      userId: 'alice',
+      hwSetName: 'HWSet1',
+      quantity: 9,
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent("Only 2 available -- can't check out 9.");
   });
 
   it('disables checkout when nothing is available', () => {
     render(<CheckOut {...props} available={0} onChanged={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeDisabled();
+    expect(screen.getByLabelText('Check Out')).toBeDisabled();
+  });
+
+  it('disables checkout while the set is deactivated even with units available', () => {
+    render(<CheckOut {...props} available={5} disabled onChanged={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeDisabled();
+    expect(screen.getByLabelText('Check Out')).toBeDisabled();
   });
 });
 
@@ -337,7 +392,7 @@ describe('HardwareSet', () => {
     render(<HardwareSet projectId="P1" userId="alice" hwSet={hwSet} onChanged={vi.fn()} />);
 
     expect(screen.getByLabelText('Check In')).toHaveAttribute('max', '3');
-    expect(screen.getByLabelText('Check Out')).toHaveAttribute('max', '2');
+    expect(screen.getByLabelText('Check Out')).not.toHaveAttribute('max');
   });
 
   it("shows a different user's own checked-out figure, not the project-wide total", () => {

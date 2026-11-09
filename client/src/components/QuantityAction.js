@@ -22,7 +22,11 @@ import { useState } from 'react';
  *   with no cap to apply (undefined), the input is left unbounded. When
  *   max is below 1, there is nothing valid to submit, so the control is
  *   disabled outright rather than left stuck between an unreachable
- *   min="1" and max.
+ *   min="1" and max. max always drives that disable, but only goes on the
+ *   input as a native constraint when capInput is true.
+ * @param {boolean} [props.capInput] - Optional, default true. False means a
+ *   quantity above max is still submitted, so the server's rejection
+ *   message is shown instead of the browser's constraint tooltip.
  * @param {boolean} [props.disabled] - Disables the input and button
  *   regardless of max (e.g. a deactivated hardware set). Omitted = no effect.
  */
@@ -33,6 +37,7 @@ export default function QuantityAction({
   describeError,
   onChanged,
   max,
+  capInput = true,
   disabled = false,
 }) {
   const [quantity, setQuantity] = useState('1');
@@ -62,7 +67,7 @@ export default function QuantityAction({
         <input
           type="number"
           min="1"
-          max={max}
+          max={capInput ? max : undefined}
           step="1"
           value={quantity}
           onChange={(event) => setQuantity(event.target.value)}

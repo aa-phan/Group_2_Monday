@@ -32,7 +32,7 @@ setup (MongoDB/Flask/React, all three processes), see the main
   - `createProject(client, projectName, projectId, description, creatorUserId)` (US-03) inserts a new project document with `creatorUserId` as its first member. A unique index on the stored `householdId` field (mirroring `hardwareDatabase.py`'s own unique-index pattern) makes this race-safe: two concurrent creates for the same `projectId` can't both succeed. Raises `ProjectAlreadyExistsError` (409) if `projectId` is taken, or `InvalidProjectInput` (400) if any field is missing or not a string.
   - `queryProject(client, projectId)` returns one project's info (name/description/members) or `None`.
   - `getUserProjects(client, userId)` (US-05) returns every project whose `users` list contains `userId`, sorted by `projectId`. The project's own `users` array stays the single source of truth for membership -- there's no separate `projects` list kept on the user document to go stale.
-- `app.py` -- `POST /add_user`, `POST /login`, `POST /join_project`, `POST /create_project`, `POST /get_user_projects_list`, `POST /get_project_info`, `GET /me`, and `POST /logout` routes wire the above to HTTP (field validation -> 400, duplicate user/project -> 409, bad credentials -> 401, non-member -> 403, success -> 200/201). `app.secret_key` signs the session cookie Flask's built-in `session` uses -- read from `SECRET_KEY` in `server/.env` (same place as `MONGODB_URI`) so it's stable across restarts; falls back to a random per-process key (with a printed warning) if unset, which still works but won't survive a restart.
+- `app.py` -- `POST /add_user`, `POST /login`, `POST /join_project`, `POST /create_project`, `POST /get_user_projects_list`, `POST /get_project_info`, `GET /me`, and `POST /logout` routes wire the above to HTTP (field validation -> 400, duplicate user/project -> 409, bad credentials -> 401, no session -> 401, session/userId mismatch -> 403, non-member -> 403, success -> 200/201). `app.secret_key` signs the session cookie Flask's built-in `session` uses -- read from `SECRET_KEY` in `server/.env` (same place as `MONGODB_URI`) so it's stable across restarts; falls back to a random per-process key (with a printed warning) if unset, which still works but won't survive a restart.
 
 **Frontend** (`client/src/`):
 - `api/auth.js` -- `signUp`/`signIn` fetch wrappers, same shape as the existing `api/hardware.js`. Plus `getCurrentSession` (`GET /me`) and `signOut` (`POST /logout`) for TD-02.
@@ -54,13 +54,23 @@ cookie); httpOnly means client-side JS -- including an XSS payload --
 can't even read it. `GET /me` reads it back; `POST /logout` clears it
 server-side, so a stale copy of the cookie stops working immediately.
 
-**What this does *not* cover:** every other route (`/api/hardware/*`)
-still takes `userId` as a plain value in the request body/query string and
-trusts it, with zero session check. So this makes *login state* tamper-
-resistant, but doesn't yet stop someone who already knows a `userId` from
-calling those other routes "as" them without a password -- that would mean
-requiring a valid session on every route, not just restoring one across a
-refresh. That's a further hardening step, not part of TD-02 itself.
+**Every project and hardware route requires a signed-in session.**
+`/join_project`, `/get_user_projects_list`, `/create_project`,
+`/get_project_info`, `GET /api/hardware`, and `/api/hardware/checkin`,
+`checkout`, `request`, `release`, `rename` and `set_active` all call
+`requireSessionUser` in `server/app.py`. The `userId` in the body or query
+string must equal the session's `userId`: no session gives 401
+`{"error": "not_signed_in"}`, and a different `userId` gives 403
+`{"error": "forbidden_user_mismatch"}`, so knowing someone's `userId` is not
+enough to act as them. The order is field checks (400), then the session
+check, then project membership (403 `not_a_project_member`); an
+unauthorized request never opens the database. `/api/hardware/request`
+records the session's username as the requester and ignores any `userName`
+in the body. `server/tests/test_session_authorization.py` has a guard test
+that fails if a new route is added without a row in its route table, so a
+future route cannot skip the check. The remaining limit: the protection is
+only as strong as `SECRET_KEY`, and without it sessions reset on every
+server restart.
 
 ## Projects are now created, joined, and listed for real
 

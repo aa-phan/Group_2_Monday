@@ -4,6 +4,7 @@ import MyLoginPage from './pages/MyLoginPage.js';
 import MyRegistrationPage from './pages/MyRegistrationPage.js';
 import MyProjectsPage from './pages/MyProjectsPage.js';
 import { getCurrentSession, signOut } from './api/auth.js';
+import { onSignedOut } from './api/sessionEvents.js';
 import './App.css';
 
 export default function App() {
@@ -41,6 +42,18 @@ export default function App() {
     };
   }, []);
 
+  function clearSignedInState() {
+    setAccount(null);
+    setAuthView('signIn');
+    setSelectedProjectId(null);
+  }
+
+  // Demo step 17 / D-08 -- a 401 from any hardware or project call means
+  // the session cookie is gone or expired, so return to the sign-in view
+  // instead of showing a raw not_signed_in error. No signOut() call: the
+  // server already has no session.
+  useEffect(() => onSignedOut(clearSignedInState), []);
+
   // Runs after both sign-in and sign-up (US-01/US-02). Lands on the
   // project picker (MyProjectsPage) rather than any one project --
   // there's no single project every account belongs to anymore.
@@ -56,9 +69,7 @@ export default function App() {
       // stuck on a network error; worst case the old session cookie
       // lingers until it's overwritten by the next sign-in.
     }
-    setAccount(null);
-    setAuthView('signIn');
-    setSelectedProjectId(null);
+    clearSignedInState();
   }
 
   if (checkingSession) {

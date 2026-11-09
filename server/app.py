@@ -54,6 +54,51 @@ def handleMissingDatabaseConfig(error):
     # when the host is live before MONGODB_URI has been filled in.
     return jsonify({"error": "database_not_configured", "detail": str(error)}), 503
 
+
+class NotSignedInError(Exception):
+    """Raised when a data route is called with no signed-in session.
+    Maps to HTTP 401 {"error": "not_signed_in"}.
+
+    Its own class (like MissingDatabaseConfig) so the error handler
+    cannot swallow unrelated exceptions.
+    """
+
+
+class SessionUserMismatchError(Exception):
+    """Raised when the userId a request claims differs from the session's
+    userId. Maps to HTTP 403 {"error": "forbidden_user_mismatch"}.
+
+    Its own class so the error handler cannot swallow unrelated exceptions.
+    """
+
+
+@app.errorhandler(NotSignedInError)
+def handleNotSignedIn(error):
+    # Same body GET /me already uses for "no session".
+    return jsonify({"error": "not_signed_in"}), 401
+
+
+@app.errorhandler(SessionUserMismatchError)
+def handleSessionUserMismatch(error):
+    return jsonify({"error": "forbidden_user_mismatch"}), 403
+
+
+# The userId in a request body or query string is caller-controlled, so
+# anyone who knows a member's userId could act as that member. The session
+# cookie is signed with SECRET_KEY, so it is the only identity a route can
+# trust. Routes call this AFTER their field checks (missing fields stay a
+# 400) and BEFORE getMongoClient() (so an unauthorized request never opens
+# the database), then use the returned value, not the claimed one. Order:
+# field checks, then this session check, then project membership.
+def requireSessionUser(claimedUserId):
+    sessionUserId = session.get('userId')
+    sessionUsername = session.get('username')
+    if not sessionUserId or not sessionUsername:
+        raise NotSignedInError()
+    if sessionUserId != claimedUserId:
+        raise SessionUserMismatchError()
+    return sessionUserId
+
 # SECRET_KEY signs the session cookie (TD-02) -- Flask's session is a
 # signed cookie, not an opaque token, so without a key no one could trust
 # it. Read from the environment (server/.env, same place as MONGODB_URI)
@@ -165,6 +210,8 @@ def join_project():
     if not projectId:
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
 
+    userId = requireSessionUser(userId)
+
     # Connect to MongoDB
     client = getMongoClient()
 
@@ -229,6 +276,8 @@ def get_user_projects_list():
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
+    userId = requireSessionUser(userId)
+
     # Connect to MongoDB
     client = getMongoClient()
 
@@ -261,6 +310,8 @@ def create_project():
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
+    userId = requireSessionUser(userId)
+
     # Connect to MongoDB
     client = getMongoClient()
 
@@ -290,6 +341,8 @@ def get_project_info():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -321,6 +374,8 @@ def get_hardware_status():
         return jsonify({"error": "missing_parameter", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "missing_parameter", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -355,6 +410,8 @@ def checkin_hardware():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -398,6 +455,8 @@ def checkout_hardware():
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
+    userId = requireSessionUser(userId)
+
     # Connect to MongoDB
     client = getMongoClient()
 
@@ -434,7 +493,6 @@ def request_hardware():
     body = request.get_json(silent=True) or {}
     projectId = body.get('projectId')
     userId = body.get('userId')
-    userName = body.get('userName')
     hwSetName = body.get('hwSetName')
     quantity = body.get('quantity')
 
@@ -442,6 +500,11 @@ def request_hardware():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
+    # The display name comes from the signed-in account, so a caller cannot
+    # record a request under another name.
+    userName = session['username']
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -483,6 +546,8 @@ def release_hardware():
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
+    userId = requireSessionUser(userId)
+
     # Connect to MongoDB
     client = getMongoClient()
 
@@ -516,6 +581,8 @@ def rename_hardware():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -551,6 +618,8 @@ def set_hardware_active():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()

@@ -112,7 +112,7 @@ end to end on the first try.
 **Automated (fast, no servers needed):**
 
 ```bash
-cd server && python -m pytest -v        # 330 tests
+cd server && python -m pytest -v        # 404 tests (+ 17 pre-existing xfails)
 cd client && npm test                    # 121 tests
 ```
 
@@ -244,24 +244,31 @@ to Track B (hardware resource management), not Track A. The changes below
 were made at the user's direct request while testing this branch:
 
 1. Capping Check In/Check Out at real numbers instead of an unbounded field.
-2. **Per-(user, project) checkout accountability** -- found while testing:
-   any project member could check in units a *different* member checked
-   out, because `checkedOut` was only ever a project-wide aggregate with
-   no record of who personally held what. `hardwareDatabase.py` tracks a
-   `checkedOutBy` ledger (array of `{userId, projectId, quantity}`, one
-   entry per (userId, projectId) pair) alongside the existing aggregate;
-   checkout still draws from the shared global pool, but checkin is gated
-   by what the calling user personally holds *through the same project
-   they're acting through*. Originally this ledger was keyed by userId
-   alone; once hardware became a global catalog (see item 3) that let the
-   same user check in through ANY project they belonged to, regardless of
-   which project they actually checked out through -- found while testing
-   that change, and fixed by adding projectId to the ledger key. The API
-   returns `myCheckedOut` on each hardware set (the asking user's own
-   holding through the project they're currently viewing), and the UI
-   shows it as a "You've Checked Out" cell. See `hardwareDatabase.py`'s
-   module docstring and `server/tests/test_per_user_checkout.py` for the
-   full reasoning and coverage of both bugs' before/after.
+2. **Per-PROJECT checkout accountability** -- went through three designs
+   while testing, each one found by testing the previous:
+   - *Per-user only*: any project member could check in units a
+     *different* member checked out, because `checkedOut` was only ever a
+     project-wide aggregate with no record of who personally held what.
+     Fixed with a `checkedOutBy` ledger keyed by `userId`.
+   - *Per-(user, project)*: once hardware became a global catalog (see
+     item 3), the per-user ledger let the same user check in through ANY
+     project they belonged to, regardless of which project they actually
+     checked out through. Fixed by adding `projectId` to the ledger key --
+     but that also stopped TEAMMATES on the same project from checking in
+     for each other, which was itself reported as wrong.
+   - *Per-project (final)*: `checkedOutBy` is now keyed by `projectId`
+     alone (array of `{projectId, quantity}`, one entry per project).
+     Checkout still draws from the shared global pool (gated by
+     `checkedOut` against `capacity`), but checkin is gated by what THE
+     PROJECT being acted through collectively holds -- any member of that
+     project may check in units a teammate on the SAME project checked
+     out, but a checkout made through a different project still can't be
+     checked in through this one. The API's `myCheckedOut` field (UI
+     label: "Checked Out") is now this shared per-project figure, not a
+     per-person one.
+   See `hardwareDatabase.py`'s module docstring and
+   `server/tests/test_per_user_checkout.py` for the full reasoning and
+   coverage of all three.
 3. **Hardware sets are a single global catalog, not per-project** --
    course-staff feedback: a project must not be able to mint its own
    private hardware. A brief earlier version of this branch added

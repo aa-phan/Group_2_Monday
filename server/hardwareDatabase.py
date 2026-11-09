@@ -33,12 +33,11 @@ HardwareSet = {
     'checkedOut': int,                  # units currently checked out, project-wide (0..capacity)
     'checkedOutBy': [
         {
-            'userId': userId,
             'projectId': projectId,     # the project the checkout was made THROUGH
-            'quantity': int,            # this (userId, projectId) pair's running total
+            'quantity': int,            # this project's running total currently checked out
         },
         ...
-    ],                                   # at most one entry per (userId, projectId) pair
+    ],                                   # at most one entry per projectId
     'reservations': [
         {
             'reservationId': str,       # uuid4 hex
@@ -69,36 +68,43 @@ reservationId, so it is safe at any time.
 `available` (capacity - checkedOut) is derived on read and never stored.
 Requests (reservations) are a coordination signal only and never reduce it.
 
-`checkedOutBy` is a per-(user, project) accountability ledger: Checkout is
-still drawn from one global shared pool (gated by `checkedOut` against
+`checkedOutBy` is a per-PROJECT accountability ledger: Checkout is still
+drawn from one global shared pool (gated by `checkedOut` against
 `capacity`, same as before -- the catalog has no per-project allocation),
-but Checkin is gated by what the CALLING user personally holds THROUGH THE
-SAME PROJECT they're acting through, not the project-wide `checkedOut`
-total and not even that same user's holding under a *different* project.
-Checking out 5 units while acting through project A, then trying to check
-them in while acting through project B, fails exactly like checking in
-units you never personally checked out at all -- project is part of who
-"owns" a checkout, not just an access-control lens on top of it. Without
-this granularity, either any project member could check in units a
-completely different member checked out (the bug per-user-only tracking
-originally fixed), or the SAME member could check in through a project
-they never checked anything out through (a bug this adds projectId to the
-ledger entries to fix). An array of records (not a dynamic object keyed by
-userId) on purpose: userId is arbitrary user input, and a `.` or a leading
-`$` in a Mongo field key has special meaning -- exactly the kind of
-value-vs-key injection risk `reservations` above and `assertProjectMember`
-elsewhere in this codebase already avoid by storing userId as a field
-*value*, never as a key.
+but Checkin is gated by what THE PROJECT being acted through currently
+holds, not the project-wide-across-every-project `checkedOut` total and
+not some OTHER project's holding. Any member of a project may check in
+units a teammate on the SAME project checked out -- that accountability is
+shared at the project level, by design -- but checking out 5 units while
+acting through project A, then trying to check them in while acting
+through project B, still fails, exactly as if nothing had ever been
+checked out through B at all. This has gone through two iterations: a
+per-user-only ledger (any project member could check in units a
+*different* member checked out, from any project -- too loose), then a
+per-(user, project) ledger (the SAME member couldn't check in through a
+different project they also belonged to, but neither could their
+teammates on the SAME project -- too strict), landing here on
+per-project: project membership is the right-sized boundary for
+accountability, not individual identity within that project. An array of
+records (not a dynamic object keyed by projectId) on purpose: projectId is
+arbitrary user input, and a `.` or a leading `$` in a Mongo field key has
+special meaning -- exactly the kind of value-vs-key injection risk
+`reservations` above and `assertProjectMember` elsewhere in this codebase
+already avoid by storing an id as a field *value*, never as a key.
 
 This module holds ONLY the hardware-set store. Project membership lives in
 the separate `Projects` collection (Track A owns writes to it); this module
 reads nothing from it directly -- that is projectsDatabase's job via
 assertProjectMember. Every function below still accepts a `projectId`
 argument: it plays no part in WHICH hardware set is looked up (that's
-hwSetKey alone, globally), but it IS part of the `checkedOutBy` ledger key
-(see above) -- access to the catalog is membership-based
-(assertProjectMember), never hardware-ownership-based, but a checkout's
-accountability still remembers which project it was made through.
+hwSetKey alone, globally), but it IS the `checkedOutBy` ledger's key (see
+above) -- access to the catalog is membership-based (assertProjectMember),
+never hardware-ownership-based, but a checkout's accountability still
+remembers which project it was made through, shared by every member of
+that project. `userId` is still accepted and validated on every call
+(callers already pass it; it still matters for reservations, which stay
+per-user via `addReservation`/`removeReservation`), but it no longer
+determines which `checkedOutBy` entry a checkin/checkout touches.
 '''
 
 DB_NAME = os.environ.get("MONGODB_DB", "HaaSResourceManager")
@@ -312,15 +318,15 @@ def _resolveExistingHwSetKey(collection, rawName):
 def _adjustCheckedOut(client, projectId, rawName, quantity, userId, direction):
     """Shared checkin/checkout write. direction=+1 checks out, -1 checks in.
 
-    `capacity` is never touched. Checkout is still gated by the project-wide
+    `capacity` is never touched. Checkout is still gated by the global
     `checkedOut` against `capacity`, as before -- anyone can draw from the
-    shared pool. Checkin is gated by what userId personally holds THROUGH
-    projectId specifically (the (userId, projectId) pair in `checkedOutBy`),
-    NOT the project-wide total and NOT that same user's holding under a
-    different project -- checking in more than you personally checked out
-    THROUGH THIS PROJECT raises CheckinExceedsCheckedOutError even if the
-    project-wide total would allow it, or even if you hold plenty under a
-    different project.
+    shared pool. Checkin is gated by what PROJECT projectId currently
+    holds (its own entry in `checkedOutBy`), NOT the catalog-wide total
+    across every project and NOT a different project's holding -- any
+    member of projectId may check in units a teammate on that SAME project
+    checked out, but checking in more than projectId collectively holds
+    raises CheckinExceedsCheckedOutError even if the catalog-wide total
+    would allow it, or a different project holds plenty.
 
     Every guard is re-applied inside the atomic find_one_and_update's filter
     itself, evaluated against the live document at write time -- not just
@@ -339,9 +345,11 @@ def _adjustCheckedOut(client, projectId, rawName, quantity, userId, direction):
     if not _isValidQuantity(quantity):
         raise InvalidInventoryInput("quantity")
     if not isinstance(userId, str):
-        # Same injection-safety reasoning as assertProjectMember/
-        # removeReservation: userId lands in a Mongo filter below, and
-        # request.get_json() can hand this function anything JSON allows.
+        # userId no longer determines which checkedOutBy entry is touched
+        # (that's projectId alone now -- see this module's docstring), but
+        # every caller still sends one and it's still a required field at
+        # the API boundary, so it's still validated like any other field
+        # request.get_json() could hand this function anything JSON allows.
         raise InvalidInventoryInput("userId")
 
     collection = client[DB_NAME][HARDWARE_SETS_COLLECTION]
@@ -360,11 +368,7 @@ def _adjustCheckedOut(client, projectId, rawName, quantity, userId, direction):
         checkedOut = doc.get("checkedOut", 0)
         currentCheckedOutBy = doc.get("checkedOutBy", [])
         myEntry = next(
-            (
-                entry
-                for entry in currentCheckedOutBy
-                if entry.get("userId") == userId and entry.get("projectId") == projectId
-            ),
+            (entry for entry in currentCheckedOutBy if entry.get("projectId") == projectId),
             None,
         )
         myHolding = myEntry.get("quantity", 0) if myEntry is not None else 0
@@ -373,20 +377,18 @@ def _adjustCheckedOut(client, projectId, rawName, quantity, userId, direction):
             if quantity > capacity - checkedOut:
                 raise InsufficientStockError(onHand=capacity - checkedOut, requested=quantity)
         else:
-            # Gated by what THIS (user, project) pair holds -- not the
-            # project-wide total, and not this same user's holding under a
-            # different project.
+            # Gated by what THIS PROJECT holds -- not the catalog-wide
+            # total, and not a different project's holding. Shared by
+            # every member of projectId; not userId-specific.
             if quantity > myHolding:
                 raise CheckinExceedsCheckedOutError(checkedOut=myHolding, requested=quantity)
 
         # Recompute the whole array in Python rather than updating one
-        # element with a positional "$" operator. More than one entry can
-        # now share a userId (one per project it was checked out through),
-        # and resolving positional "$" against an $elemMatch condition that
-        # only disambiguates entries by a NESTED field (projectId) is not
-        # reliable under the mongomock version this project tests against
-        # -- it can silently update the wrong array element (same class of
-        # issue as the arrayFilters bug noted elsewhere in this module).
+        # element with a positional "$" operator -- more robust than
+        # relying on "$" to resolve the right element when more than one
+        # entry exists (see the arrayFilters note elsewhere in this
+        # module for the same class of issue under this project's
+        # mongomock version).
         if myEntry is not None:
             newCheckedOutBy = [
                 dict(entry, quantity=entry["quantity"] + direction * quantity)
@@ -398,9 +400,7 @@ def _adjustCheckedOut(client, projectId, rawName, quantity, userId, direction):
             # Only reachable for direction > 0 (checkout): a checkin with
             # myHolding == 0 already raised above, since quantity is
             # always >= 1.
-            newCheckedOutBy = currentCheckedOutBy + [
-                {"userId": userId, "projectId": projectId, "quantity": quantity}
-            ]
+            newCheckedOutBy = currentCheckedOutBy + [{"projectId": projectId, "quantity": quantity}]
 
         # Pin the write on the EXACT array value just read (deep equality)
         # instead of a per-element filter -- the atomic optimistic-
@@ -509,22 +509,22 @@ def setHardwareSetActive(client, projectId, rawName, active, userId=None):
 
 
 def checkinHardware(client, projectId, rawName, quantity, userId):
-    """Check in (return) `quantity` units userId personally checked out
-    THROUGH projectId specifically, raising availability. Raises
-    CheckinExceedsCheckedOutError if this (userId, projectId) pair doesn't
-    personally hold that many units -- even if the project-wide total
-    checked out would otherwise allow it, or this same userId holds plenty
-    under a different projectId.
+    """Check in (return) `quantity` units projectId currently holds,
+    raising availability. Any member of projectId may check in units a
+    teammate on that same project checked out. Raises
+    CheckinExceedsCheckedOutError if projectId doesn't collectively hold
+    that many units -- even if the catalog-wide total checked out would
+    otherwise allow it, or a different project holds plenty.
     """
     return _adjustCheckedOut(client, projectId, rawName, quantity, userId, -1)
 
 
 def checkoutHardware(client, projectId, rawName, quantity, userId):
     """Check out `quantity` units, lowering availability and crediting them
-    to the (userId, projectId) pair's own `checkedOutBy` entry -- so they
-    can only be checked back in through this same projectId. Raises
-    InsufficientStockError (onHand = current availability) if more than
-    are available. Outstanding requests never gate checkout.
+    to projectId's own `checkedOutBy` entry -- shared by every member of
+    that project, and checked back in only through that same projectId.
+    Raises InsufficientStockError (onHand = current availability) if more
+    than are available. Outstanding requests never gate checkout.
     """
     return _adjustCheckedOut(client, projectId, rawName, quantity, userId, +1)
 
@@ -654,14 +654,14 @@ def getHardwareStatus(client, projectId, userId=None):
 
     projectId plays no part in which SETS come back -- every project's
     members see the exact same shared catalog, no per-project partition.
-    It IS used, together with userId, to resolve each set's `myCheckedOut`
-    figure to this (userId, projectId) pair's own holding -- see
-    _serializeHardwareSet -- since a checkout made through a different
-    project does not show up here.
+    It IS used to resolve each set's `myCheckedOut` figure to projectId's
+    own holding -- see _serializeHardwareSet -- since a checkout made
+    through a different project does not show up here.
 
-    userId, when given, is whose personal `myCheckedOut` figure to include
-    in each dict -- see _serializeHardwareSet. None (e.g. no acting user in
-    context) simply omits it.
+    userId is accepted for signature consistency with other callers but no
+    longer affects the result -- `myCheckedOut` is project-scoped, not
+    user-scoped (see this module's docstring). A None projectId (e.g. no
+    acting project in context) simply omits `myCheckedOut` from the result.
     """
     db = client[DB_NAME]
     collection = db[HARDWARE_SETS_COLLECTION]
@@ -683,12 +683,14 @@ def _serializeHardwareSet(doc, userId=None, projectId=None):
     translation, so client and server agree on the wire format without a
     repo-wide rename of the underlying reservation machinery.
 
-    `myCheckedOut` is the (userId, projectId) pair's own entry in
-    `checkedOutBy` (0 if either is None, or there's no matching entry) --
-    the number the client should actually cap a Check In control at for
-    the project it's currently viewing, not the project-wide `available`/
-    `checkedOut` figures (which say nothing about who personally holds
-    what) and not this same user's holding under a *different* project.
+    `myCheckedOut` is projectId's own entry in `checkedOutBy` (0 if
+    projectId is None, or there's no matching entry) -- the number the
+    client should actually cap a Check In control at for the project
+    it's currently viewing, not the catalog-wide `available`/`checkedOut`
+    figures (which say nothing about any one project's holding) and not
+    a *different* project's holding. Shared by every member of that
+    project; `userId` plays no part in it (kept in the signature only
+    because every caller already passes one).
     """
     capacity = doc.get("capacity", 0)
     checkedOut = doc.get("checkedOut", 0)
@@ -704,11 +706,7 @@ def _serializeHardwareSet(doc, userId=None, projectId=None):
         for reservation in doc.get("reservations", [])
     ]
     myEntry = next(
-        (
-            entry
-            for entry in doc.get("checkedOutBy", [])
-            if entry.get("userId") == userId and entry.get("projectId") == projectId
-        ),
+        (entry for entry in doc.get("checkedOutBy", []) if entry.get("projectId") == projectId),
         None,
     )
 

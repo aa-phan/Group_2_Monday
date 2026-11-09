@@ -39,7 +39,7 @@ describe('Availability, Capacity, and MyCheckedOut', () => {
 
   it('MyCheckedOut shows its label and value, including zero', () => {
     render(<MyCheckedOut myCheckedOut={0} />);
-    expect(screen.getByText("You've Checked Out")).toBeInTheDocument();
+    expect(screen.getByText('Checked Out')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
   });
 });
@@ -304,7 +304,7 @@ describe('HardwareSet', () => {
     const labels = Array.from(region.querySelectorAll('.hw-cell__label')).map((node) =>
       node.textContent.replace(/\d+$/, '').trim()
     );
-    expect(labels).toEqual(['Available', 'Capacity', "You've Checked Out", 'Check In', 'Check Out']);
+    expect(labels).toEqual(['Available', 'Capacity', 'Checked Out', 'Check In', 'Check Out']);
     expect(region).toHaveTextContent('6');
     expect(region).toHaveTextContent('10');
     expect(region).toHaveTextContent('4');

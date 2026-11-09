@@ -21,11 +21,12 @@ function describeCheckinError(error) {
  * @param {string} props.projectId - The project the set belongs to.
  * @param {string} props.userId - The acting member's id.
  * @param {string} props.hwSetName - The hardware set to check in.
- * @param {number} props.checkedOut - Units of this set THIS user
- *   personally has checked out (server-tracked per user, not derived
- *   from capacity/available) -- the most they can check back in right
- *   now. Checking in more than this is rejected even if the project-wide
- *   total checked out would otherwise allow it. No fallback/default.
+ * @param {number} props.checkedOut - Units of this set THIS PROJECT
+ *   currently has checked out (server-tracked per project, shared by
+ *   every member, not derived from capacity/available) -- the most
+ *   anyone on this project can check back in right now. Checking in more
+ *   than this is rejected even if the catalog-wide total checked out
+ *   would otherwise allow it. No fallback/default.
  * @param {Function} props.onChanged - Async reload callback.
  */
 export default function CheckIn({ projectId, userId, hwSetName, checkedOut, onChanged }) {

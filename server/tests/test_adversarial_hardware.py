@@ -151,14 +151,14 @@ def test_checkout_is_retried_when_units_are_freed_after_the_guard_rejected_it(mo
     assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 3
 
 
-def test_checkin_is_unaffected_by_a_competitor_changing_the_project_wide_aggregate(mongo, seed_set):
-    """A checkin is gated by what the CALLING user personally holds, not
-    the project-wide `checkedOut` total -- so a competing write that only
-    touches the aggregate (never this user's own checkedOutBy entry) must
-    not block or corrupt this user's legitimate checkin. This replaces a
-    prior version of this test that asserted the opposite (an aggregate-
-    only race blocking checkin) -- that was pinning the exact bug being
-    fixed here: anyone could check in units someone else checked out.
+def test_checkin_is_unaffected_by_a_competitor_changing_the_catalog_wide_aggregate(mongo, seed_set):
+    """A checkin is gated by what H1 (the project) holds, not the
+    catalog-wide `checkedOut` total -- so a competing write that only
+    touches the aggregate (never H1's own checkedOutBy entry) must not
+    block or corrupt H1's legitimate checkin. This replaces a prior
+    version of this test that asserted the opposite (an aggregate-only
+    race blocking checkin) -- that was pinning the exact bug being fixed
+    here: anyone could check in units a different PROJECT checked out.
     """
     seed_set("H1", "HWSet1", 10)
     hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 6, "alice")
@@ -166,12 +166,12 @@ def test_checkin_is_unaffected_by_a_competitor_changing_the_project_wide_aggrega
 
     result = hardwareDB.checkinHardware(racing, "H1", "HWSet1", 3, "alice")
 
-    assert result["myCheckedOut"] == 3  # alice: 6 checked out, 3 checked back in
+    assert result["myCheckedOut"] == 3  # H1: 6 checked out, 3 checked back in
     raw = _raw(mongo, "H1", "hwset1")
-    # aggregate: 6 (alice's checkout) - 5 (competitor's phantom bump,
-    # unrelated to any real checkedOutBy entry) - 3 (alice's real checkin)
+    # aggregate: 6 (H1's checkout) - 5 (competitor's phantom bump,
+    # unrelated to any real checkedOutBy entry) - 3 (H1's real checkin)
     assert raw["checkedOut"] == -2
-    assert next(e for e in raw["checkedOutBy"] if e["userId"] == "alice")["quantity"] == 3
+    assert next(e for e in raw["checkedOutBy"] if e["projectId"] == "H1")["quantity"] == 3
 
 
 def test_checkin_write_is_pinned_to_the_count_it_read(mongo, seed_set):
@@ -190,31 +190,39 @@ def test_checkin_write_is_pinned_to_the_count_it_read(mongo, seed_set):
     assert _raw(mongo, "H1", "hwset1")["checkedOut"] == 3
 
 
-def test_two_concurrent_checkins_by_the_same_user_cannot_drive_their_holding_negative(mongo, seed_set):
+def test_two_concurrent_checkins_on_the_same_project_cannot_drive_its_holding_negative(mongo, seed_set):
     """The race this module's own docstring calls out: two concurrent
-    checkins by the SAME user, both reading the same stale `myHolding`,
-    must not both apply -- only one may succeed; the other must see the
-    live (already-reduced) holding and fail with CheckinExceedsCheckedOutError,
-    not silently push this user's entry below zero.
+    checkins against the SAME project's entry (whether by the same member
+    or two teammates on that project), both reading the same stale
+    `myHolding`, must not both apply -- only one may succeed; the other
+    must see the live (already-reduced) holding and fail with
+    CheckinExceedsCheckedOutError, not silently push this project's entry
+    below zero.
     """
     seed_set("H1", "HWSet1", 10)
     hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 5, "alice")
 
     def concurrent_checkin_lands_first(collection):
-        # Simulates a second request for the SAME user's checkin-5 winning
-        # the race, landing right before this call's own write attempt.
+        # Simulates a second, concurrent checkin-5 against H1 (by alice,
+        # bob, or anyone else on the project -- it's the same project
+        # entry either way) winning the race, landing right before this
+        # call's own write attempt. hwset1 has exactly one checkedOutBy
+        # entry here, so the positional "$" is unambiguous in this
+        # hand-written test fixture (production code avoids relying on
+        # that once more than one entry can exist -- see
+        # hardwareDatabase.py's _adjustCheckedOut).
         collection.update_one(
-            {"projectId": "H1", "hwSetKey": "hwset1", "checkedOutBy.userId": "alice"},
+            {"hwSetKey": "hwset1", "checkedOutBy.projectId": "H1"},
             {"$inc": {"checkedOut": -5, "checkedOutBy.$.quantity": -5}},
         )
 
     racing = RacingClient(mongo, concurrent_checkin_lands_first)
     with pytest.raises(hardwareDB.CheckinExceedsCheckedOutError) as caught:
-        hardwareDB.checkinHardware(racing, "H1", "HWSet1", 5, "alice")
+        hardwareDB.checkinHardware(racing, "H1", "HWSet1", 5, "bob")
 
     assert (caught.value.checkedOut, caught.value.requested) == (0, 5)
     raw = _raw(mongo, "H1", "hwset1")
-    assert next(e for e in raw["checkedOutBy"] if e["userId"] == "alice")["quantity"] == 0
+    assert next(e for e in raw["checkedOutBy"] if e["projectId"] == "H1")["quantity"] == 0
     assert raw["checkedOut"] == 0
 
 

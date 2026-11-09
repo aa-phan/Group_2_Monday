@@ -17,9 +17,10 @@ import HardwareSetAdmin from './HardwareSetAdmin.js';
  * @param {string} props.userId - The acting member's id.
  * @param {Object} props.hwSet - `{ hwSetName, capacity, available,
  *   myCheckedOut, active }`. active === false means deactivated (a missing
- *   value reads as active). myCheckedOut is this user's own holding (server-
- *   tracked per user), not derived from capacity/available -- those are
- *   project-wide and say nothing about who personally holds what.
+ *   value reads as active). myCheckedOut is this PROJECT's own holding
+ *   (server-tracked per project, shared by every member), not derived
+ *   from capacity/available -- those are catalog-wide across every
+ *   project and say nothing about any one project's holding.
  * @param {Function} props.onChanged - Async reload callback.
  */
 export default function HardwareSet({ projectId, userId, hwSet, onChanged }) {

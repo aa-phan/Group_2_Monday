@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-28)
 Phase: 1 — Account & Project Management
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-11-02 - Completed quick tasks 261102-150 (US-14 hardware-set rename/deactivate) and 261102-1tl (TD-05 cleanup, PR #7 tests ported and dead stubs removed)
+Last activity: 2026-11-09 - Completed quick task 261109-gee (demo step 10 over-checkout message)
 
 Progress: [█████░░░░░] 25% (1/4 tracks complete)
 
@@ -106,6 +106,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 | 261005-q3t | 2026-10-05 | Per-hardware-set Availability/Capacity/Check In/Check Out components; capacity fixed, over-checkout/over-checkin rejected | `.planning/quick/261005-q3t-per-hwset-checkout-components-and-fix-ca/261005-q3t-SUMMARY.md` |
 | 261102-150 | 2026-11-02 | US-14 / STRETCH-02 (Track C): hardware-set rename, deactivate and reactivate, server + client + tests (346 backend, 126 client passing) | `.planning/quick/261102-150-us-14-finish-hardware-set-rename-and-dea/261102-150-SUMMARY.md` |
 | 261102-1tl | 2026-11-02 | TD-05 cleanup (Track C): ported PR #7's project tests onto main, removed `/main` and three dead stubs; 361 passed, 17 strict xfails record five open bugs (B1-B5) | `.planning/quick/261102-1tl-td-05-cleanup-salvage-pr-7-tests-and-rem/261102-1tl-SUMMARY.md` |
+| 261109-gee | 2026-11-09 | Demo step 10: over-available Check Out now reaches the server and shows the app's insufficient-stock message instead of the browser max tooltip (128 client passing) | `.planning/quick/261109-gee-demo-step-10-over-available-check-out-sh/261109-gee-SUMMARY.md` |
 
 ## Session Continuity
 

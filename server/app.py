@@ -276,6 +276,8 @@ def get_user_projects_list():
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
+    userId = requireSessionUser(userId)
+
     # Connect to MongoDB
     client = getMongoClient()
 
@@ -308,6 +310,8 @@ def create_project():
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
+    userId = requireSessionUser(userId)
+
     # Connect to MongoDB
     client = getMongoClient()
 
@@ -337,6 +341,8 @@ def get_project_info():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -368,6 +374,8 @@ def get_hardware_status():
         return jsonify({"error": "missing_parameter", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "missing_parameter", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -402,6 +410,8 @@ def checkin_hardware():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -445,6 +455,8 @@ def checkout_hardware():
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
+    userId = requireSessionUser(userId)
+
     # Connect to MongoDB
     client = getMongoClient()
 
@@ -481,7 +493,6 @@ def request_hardware():
     body = request.get_json(silent=True) or {}
     projectId = body.get('projectId')
     userId = body.get('userId')
-    userName = body.get('userName')
     hwSetName = body.get('hwSetName')
     quantity = body.get('quantity')
 
@@ -489,6 +500,11 @@ def request_hardware():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
+    # The display name comes from the signed-in account, so a caller cannot
+    # record a request under another name.
+    userName = session['username']
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -530,6 +546,8 @@ def release_hardware():
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
 
+    userId = requireSessionUser(userId)
+
     # Connect to MongoDB
     client = getMongoClient()
 
@@ -563,6 +581,8 @@ def rename_hardware():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()
@@ -598,6 +618,8 @@ def set_hardware_active():
         return jsonify({"error": "invalid_input", "field": "projectId"}), 400
     if not userId:
         return jsonify({"error": "invalid_input", "field": "userId"}), 400
+
+    userId = requireSessionUser(userId)
 
     # Connect to MongoDB
     client = getMongoClient()

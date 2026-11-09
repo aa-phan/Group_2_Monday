@@ -45,6 +45,72 @@ ROUTES = [
         lambda ctx, uid: {"userId": uid, "projectId": "H1"},
         200, "invalid_input", False,
     ),
+    Route(
+        "POST", "/get_user_projects_list",
+        lambda ctx, uid: {"userId": uid},
+        200, "invalid_input", False,
+    ),
+    Route(
+        "POST", "/create_project",
+        lambda ctx, uid: {
+            "userId": uid, "projectId": "P9", "projectName": "Nine",
+            "description": "desc",
+        },
+        201, "invalid_input", False,
+    ),
+    Route(
+        "POST", "/get_project_info",
+        lambda ctx, uid: {"userId": uid, "projectId": "H1"},
+        200, "invalid_input", True,
+    ),
+    Route(
+        "GET", "/api/hardware",
+        lambda ctx, uid: {"userId": uid, "projectId": "H1"},
+        200, "missing_parameter", True,
+    ),
+    Route(
+        "POST", "/api/hardware/checkin",
+        lambda ctx, uid: {
+            "userId": uid, "projectId": "H1", "hwSetName": "HWSet1", "quantity": 1,
+        },
+        200, "invalid_input", True,
+    ),
+    Route(
+        "POST", "/api/hardware/checkout",
+        lambda ctx, uid: {
+            "userId": uid, "projectId": "H1", "hwSetName": "HWSet1", "quantity": 1,
+        },
+        200, "invalid_input", True,
+    ),
+    Route(
+        "POST", "/api/hardware/request",
+        lambda ctx, uid: {
+            "userId": uid, "projectId": "H1", "hwSetName": "HWSet1", "quantity": 1,
+        },
+        201, "invalid_input", True,
+    ),
+    Route(
+        "POST", "/api/hardware/release",
+        lambda ctx, uid: {
+            "userId": uid, "projectId": "H1", "requestId": ctx["requestId"],
+        },
+        200, "invalid_input", True,
+    ),
+    Route(
+        "POST", "/api/hardware/rename",
+        lambda ctx, uid: {
+            "userId": uid, "projectId": "H1", "hwSetName": "HWSet1",
+            "newName": "HWSetRenamed",
+        },
+        200, "invalid_input", True,
+    ),
+    Route(
+        "POST", "/api/hardware/set_active",
+        lambda ctx, uid: {
+            "userId": uid, "projectId": "H1", "hwSetName": "HWSet1", "active": True,
+        },
+        200, "invalid_input", True,
+    ),
 ]
 
 
@@ -54,11 +120,17 @@ def _rowId(route):
 
 @pytest.fixture
 def seeded(mongo):
-    """Users alice/bob exist (H1 already lists them); returns the context
-    handed to the payload builders."""
+    """Users alice/bob exist (H1 already lists them), HWSet1 in H1 has units
+    checked out and one request; returns the context handed to the payload
+    builders (the seeded requestId)."""
     usersDB.addUser(mongo, "Alice", "alice", PASSWORD)
     usersDB.addUser(mongo, "Bob", "bob", PASSWORD)
-    return {}
+    hardwareDB.createHardwareSet(mongo, "H1", "HWSet1", 10)
+    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 3, "alice")
+    reservationId, _ = hardwareDB.addReservation(
+        mongo, "H1", "HWSet1", 1, "alice", "Alice"
+    )
+    return {"requestId": reservationId}
 
 
 @pytest.fixture
@@ -134,6 +206,59 @@ def test_missing_userId_is_still_a_400_before_the_session_check(
     assert resp.status_code == 400
     assert resp.get_json()["error"] == route.missingError
     assert forbid_db == []
+
+
+MEMBER_GATED = [r for r in ROUTES if r.memberGated]
+
+
+@pytest.mark.parametrize("route", MEMBER_GATED, ids=_rowId)
+def test_signed_in_non_member_is_403_not_a_project_member(
+    route, bare_api, mongo, seeded, sign_in
+):
+    sign_in(bare_api, "mallory", "Mallory")
+    before = _snapshot(mongo)
+    resp = _call(bare_api, route, route.payload(seeded, "mallory"))
+    assert resp.status_code == 403
+    assert resp.get_json() == {"error": "not_a_project_member"}
+    assert _snapshot(mongo) == before
+
+
+def test_request_records_the_session_username_not_the_body_userName(
+    bare_api, mongo, seeded, sign_in
+):
+    sign_in(bare_api, "alice", "Alice")
+    resp = bare_api.post(
+        "/api/hardware/request",
+        json={
+            "userId": "alice", "userName": "Mallory", "projectId": "H1",
+            "hwSetName": "HWSet1", "quantity": 1,
+        },
+    )
+    assert resp.status_code == 201
+    raw = mongo[hardwareDB.DB_NAME][hardwareDB.HARDWARE_SETS_COLLECTION].find_one(
+        {"hwSetName": "HWSet1"}
+    )
+    reservation = [
+        r for r in raw["reservations"] if r["reservationId"] == resp.get_json()["requestId"]
+    ][0]
+    assert reservation["userName"] == "Alice"
+    assert "Mallory" not in repr(raw["reservations"])
+
+
+def test_every_route_is_in_the_table():
+    actual = set()
+    for rule in flask_app_module.app.url_map.iter_rules():
+        if rule.endpoint in EXEMPT_ENDPOINTS:
+            continue
+        for method in rule.methods & {"GET", "POST"}:
+            actual.add((method, rule.rule))
+    listed = {(r.method, r.path) for r in ROUTES}
+    assert actual == listed, (
+        "Routes in app.py and ROUTES differ (unlisted: "
+        f"{sorted(actual - listed)}, stale: {sorted(listed - actual)}). Add a "
+        "ROUTES row, which brings the route under the 401/403 coverage, or "
+        "justify an EXEMPT_ENDPOINTS entry."
+    )
 
 
 # --- demo step 17, through the real /login cookie -------------------------

@@ -165,14 +165,19 @@ def test_connection_string_comes_only_from_the_environment(monkeypatch):
 
 
 @pytest.mark.parametrize("method,path,payload,missingCode", ROUTES, ids=ROUTE_IDS)
-def test_database_not_configured_is_a_json_503(monkeypatch, method, path, payload, missingCode):
+def test_database_not_configured_is_a_json_503(
+    monkeypatch, sign_in, method, path, payload, missingCode
+):
     """With no MONGODB_URI (a fresh deploy before the secret is set), every
     data route must answer with actionable JSON instead of a stack trace.
     Uses the real getMongoClient, unlike every other test in the suite.
+    Signs in first: the session check now runs before getMongoClient, so an
+    unsigned request would get 401 instead of reaching the 503 path.
     """
     monkeypatch.delenv("MONGODB_URI", raising=False)
     flask_app_module.app.testing = True
     client = flask_app_module.app.test_client()
+    sign_in(client, payload["userId"])
 
     response = _call(client, method, path, payload)
 

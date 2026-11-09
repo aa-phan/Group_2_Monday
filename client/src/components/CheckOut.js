@@ -26,8 +26,10 @@ function describeCheckoutError(error) {
  * @param {string} props.userId - The acting member's id.
  * @param {string} props.hwSetName - The hardware set to check out.
  * @param {number} props.available - Units of this set currently
- *   available -- the most that can be checked out right now. No
- *   fallback/default.
+ *   available. No fallback/default. It disables Check Out at 0, but it is
+ *   deliberately not a native input cap: an over-request goes to the
+ *   server, which answers 409 insufficient_stock, and that answer is shown
+ *   as "Only N available -- can't check out M." (demo step 10, RES-04).
  * @param {Function} props.onChanged - Async reload callback.
  * @param {boolean} [props.disabled] - True while the set is deactivated.
  */
@@ -40,6 +42,7 @@ export default function CheckOut({ projectId, userId, hwSetName, available, onCh
       describeError={describeCheckoutError}
       onChanged={onChanged}
       max={available}
+      capInput={false}
       disabled={disabled}
     />
   );

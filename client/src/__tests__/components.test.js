@@ -211,9 +211,9 @@ describe('CheckOut', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('not_a_project_member');
   });
 
-  it('caps the quantity input at the units available, not a fixed number', () => {
+  it('does not put available on the input as a native max, so an over-request reaches the server', () => {
     render(<CheckOut {...props} available={4} onChanged={vi.fn()} />);
-    expect(screen.getByLabelText('Check Out')).toHaveAttribute('max', '4');
+    expect(screen.getByLabelText('Check Out')).not.toHaveAttribute('max');
   });
 
   it('disables checkout when nothing is available', () => {
@@ -337,7 +337,7 @@ describe('HardwareSet', () => {
     render(<HardwareSet projectId="P1" userId="alice" hwSet={hwSet} onChanged={vi.fn()} />);
 
     expect(screen.getByLabelText('Check In')).toHaveAttribute('max', '3');
-    expect(screen.getByLabelText('Check Out')).toHaveAttribute('max', '2');
+    expect(screen.getByLabelText('Check Out')).not.toHaveAttribute('max');
   });
 
   it("shows a different user's own checked-out figure, not the project-wide total", () => {

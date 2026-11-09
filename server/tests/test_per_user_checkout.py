@@ -1,10 +1,18 @@
-"""Tests for per-user checkout accountability.
+"""Tests for per-PROJECT checkout accountability.
 
-Reproduces the exact bug report this feature fixes: alice checks out 5
-units of a hardware set, then bob -- who never checked out anything --
-could check those same 5 back in. Checkin must be gated by what the
-calling user personally holds (hardwareDatabase.py's `checkedOutBy`), not
-the project-wide `checkedOut` total.
+This went through two earlier designs before landing here (see
+hardwareDatabase.py's module docstring for the full history):
+
+1. Per-user only: any project member could check in units a *different*
+   member checked out, even from a different project entirely -- too
+   loose, and the original reported bug.
+2. Per-(user, project): fixed the cross-project leak, but also stopped
+   teammates on the SAME project from checking in for each other -- too
+   strict, and itself reported as a bug.
+3. Per-project (this file): any member of a project may check in units a
+   teammate on that SAME project checked out -- accountability is shared
+   at the project level -- but checking in through a DIFFERENT project
+   (even one the same person also belongs to) is still rejected.
 """
 
 import pytest
@@ -41,30 +49,22 @@ def bob_in_project(mongo):
 
 
 # ---------------------------------------------------------------------------
-# The exact reported bug: user2 checking in what user1 checked out
+# Teammates on the SAME project share one accountability total
 # ---------------------------------------------------------------------------
 
 
-def test_a_user_cannot_check_in_units_a_different_user_checked_out(api, seed_set, bob_in_project):
+def test_a_teammate_can_check_in_units_a_different_member_of_the_same_project_checked_out(
+    api, seed_set, bob_in_project
+):
     seed_set("H1", "HWSet1", 10)
     _checkout(api, "H1", "alice", "HWSet1", 5)
 
     response = _checkin(api, "H1", "bob", "HWSet1", 5)
 
-    assert response.status_code == 409
-    body = response.get_json()
-    assert body["error"] == "checkin_exceeds_checked_out"
-    assert body["checkedOut"] == 0  # bob's own holding, not alice's or the project total
-    assert body["requested"] == 5
-
-
-def test_a_user_cannot_check_in_even_one_unit_of_what_someone_else_checked_out(api, seed_set, bob_in_project):
-    seed_set("H1", "HWSet1", 10)
-    _checkout(api, "H1", "alice", "HWSet1", 5)
-
-    response = _checkin(api, "H1", "bob", "HWSet1", 1)
-
-    assert response.status_code == 409
+    assert response.status_code == 200
+    hwSet = response.get_json()["hardwareSet"]
+    assert hwSet["available"] == 10
+    assert hwSet["myCheckedOut"] == 0
 
 
 def test_the_user_who_checked_it_out_can_check_it_back_in(api, seed_set):
@@ -79,28 +79,41 @@ def test_the_user_who_checked_it_out_can_check_it_back_in(api, seed_set):
     assert hwSet["myCheckedOut"] == 0
 
 
-def test_a_user_cannot_check_in_more_than_their_own_share_even_if_the_aggregate_covers_it(
-    api, seed_set, bob_in_project
-):
-    """alice holds 5, bob holds 3 -- aggregate checked-out is 8. bob
-    personally holds only 3, so bob checking in 5 must fail even though
-    8 >= 5 project-wide. This is the crux of the fix."""
+def test_a_teammate_can_check_in_up_to_the_projects_full_pooled_total(api, seed_set, bob_in_project):
+    """alice checks out 5, bob checks out 3 -- H1's pooled total is 8. bob
+    may check in all 8 himself, even though he personally only checked out
+    3 -- accountability is shared at the project level, not per person.
+    """
     seed_set("H1", "HWSet1", 20)
     _checkout(api, "H1", "alice", "HWSet1", 5)
     _checkout(api, "H1", "bob", "HWSet1", 3)
 
-    response = _checkin(api, "H1", "bob", "HWSet1", 5)
+    response = _checkin(api, "H1", "bob", "HWSet1", 8)
+
+    assert response.status_code == 200
+    assert response.get_json()["hardwareSet"]["myCheckedOut"] == 0
+
+
+def test_checking_in_more_than_the_projects_pooled_total_is_still_rejected(api, seed_set, bob_in_project):
+    seed_set("H1", "HWSet1", 20)
+    _checkout(api, "H1", "alice", "HWSet1", 5)
+    _checkout(api, "H1", "bob", "HWSet1", 3)
+
+    response = _checkin(api, "H1", "bob", "HWSet1", 9)
 
     assert response.status_code == 409
-    assert response.get_json()["checkedOut"] == 3  # bob's real share
+    body = response.get_json()
+    assert body["error"] == "checkin_exceeds_checked_out"
+    assert body["checkedOut"] == 8  # the project's pooled total, not either user's individual share
+    assert body["requested"] == 9
 
 
 # ---------------------------------------------------------------------------
-# Each user's holding is tracked independently
+# The shared total is visible to, and shared by, every member of the project
 # ---------------------------------------------------------------------------
 
 
-def test_two_users_checking_out_the_same_set_are_tracked_independently(api, seed_set, bob_in_project):
+def test_two_members_of_the_same_project_see_the_same_pooled_total(api, seed_set, bob_in_project):
     seed_set("H1", "HWSet1", 20)
     _checkout(api, "H1", "alice", "HWSet1", 5)
     _checkout(api, "H1", "bob", "HWSet1", 3)
@@ -108,12 +121,11 @@ def test_two_users_checking_out_the_same_set_are_tracked_independently(api, seed
     aliceView = _fetch(api, "H1", "alice").get_json()["hardwareSets"][0]
     bobView = _fetch(api, "H1", "bob").get_json()["hardwareSets"][0]
 
-    # Shared, project-wide figures agree for both viewers...
     assert aliceView["available"] == bobView["available"] == 12
     assert aliceView["capacity"] == bobView["capacity"] == 20
-    # ...but each viewer's personal figure reflects only their own share.
-    assert aliceView["myCheckedOut"] == 5
-    assert bobView["myCheckedOut"] == 3
+    # Both teammates see the SAME pooled figure -- it belongs to the
+    # project, not to either one of them individually.
+    assert aliceView["myCheckedOut"] == bobView["myCheckedOut"] == 8
 
 
 def test_checking_out_more_after_already_holding_some_adds_to_the_running_total(api, seed_set):
@@ -124,7 +136,7 @@ def test_checking_out_more_after_already_holding_some_adds_to_the_running_total(
     assert response.get_json()["hardwareSet"]["myCheckedOut"] == 5
 
 
-def test_partial_checkin_reduces_only_that_users_own_holding(api, seed_set, bob_in_project):
+def test_either_teammates_checkin_reduces_the_one_shared_total(api, seed_set, bob_in_project):
     seed_set("H1", "HWSet1", 20)
     _checkout(api, "H1", "alice", "HWSet1", 5)
     _checkout(api, "H1", "bob", "HWSet1", 3)
@@ -132,23 +144,20 @@ def test_partial_checkin_reduces_only_that_users_own_holding(api, seed_set, bob_
     response = _checkin(api, "H1", "alice", "HWSet1", 2)
 
     assert response.status_code == 200
-    assert response.get_json()["hardwareSet"]["myCheckedOut"] == 3  # alice: 5 - 2
+    assert response.get_json()["hardwareSet"]["myCheckedOut"] == 6  # 8 - 2, the shared total
 
     bobView = _fetch(api, "H1", "bob").get_json()["hardwareSets"][0]
-    assert bobView["myCheckedOut"] == 3  # untouched by alice's checkin
+    assert bobView["myCheckedOut"] == 6  # bob sees alice's checkin too
 
 
-# ---------------------------------------------------------------------------
-# A brand-new user viewing a set they've never touched
-# ---------------------------------------------------------------------------
-
-
-def test_a_user_who_never_checked_anything_out_sees_zero(api, seed_set, bob_in_project):
+def test_a_teammate_who_never_personally_checked_anything_out_still_sees_the_full_shared_total(
+    api, seed_set, bob_in_project
+):
     seed_set("H1", "HWSet1", 10)
     _checkout(api, "H1", "alice", "HWSet1", 4)
 
     bobView = _fetch(api, "H1", "bob").get_json()["hardwareSets"][0]
-    assert bobView["myCheckedOut"] == 0
+    assert bobView["myCheckedOut"] == 4
 
 
 # ---------------------------------------------------------------------------
@@ -156,15 +165,25 @@ def test_a_user_who_never_checked_anything_out_sees_zero(api, seed_set, bob_in_p
 # ---------------------------------------------------------------------------
 
 
-def test_checkin_exceeds_checked_out_error_carries_the_callers_own_holding(mongo, seed_set):
+def test_checkin_by_a_teammate_on_the_same_project_succeeds_at_the_db_level(mongo, seed_set):
+    seed_set("H1", "HWSet1", 10)
+    hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 5, "alice")
+
+    result = hardwareDB.checkinHardware(mongo, "H1", "HWSet1", 5, "bob")
+
+    assert result["myCheckedOut"] == 0
+    assert result["available"] == 10
+
+
+def test_checkin_exceeds_checked_out_error_carries_the_projects_pooled_holding(mongo, seed_set):
     seed_set("H1", "HWSet1", 10)
     hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 5, "alice")
 
     with pytest.raises(hardwareDB.CheckinExceedsCheckedOutError) as caught:
-        hardwareDB.checkinHardware(mongo, "H1", "HWSet1", 1, "bob")
+        hardwareDB.checkinHardware(mongo, "H1", "HWSet1", 6, "bob")
 
-    assert caught.value.checkedOut == 0
-    assert caught.value.requested == 1
+    assert caught.value.checkedOut == 5
+    assert caught.value.requested == 6
 
 
 def test_checkedOutBy_rejects_a_non_string_userId(mongo, seed_set):
@@ -174,7 +193,9 @@ def test_checkedOutBy_rejects_a_non_string_userId(mongo, seed_set):
     assert str(caught.value) == "userId"
 
 
-def test_get_project_hardware_status_reports_the_askers_own_holding(mongo, seed_set, bob_in_project):
+def test_get_project_hardware_status_reports_the_shared_project_total_to_every_member(
+    mongo, seed_set, bob_in_project
+):
     seed_set("H1", "HWSet1", 10)
     hardwareDB.checkoutHardware(mongo, "H1", "HWSet1", 4, "alice")
 
@@ -182,17 +203,17 @@ def test_get_project_hardware_status_reports_the_askers_own_holding(mongo, seed_
     bobStatus = projectsDB.getProjectHardwareStatus(mongo, "H1", "bob")
 
     assert aliceStatus[0]["myCheckedOut"] == 4
-    assert bobStatus[0]["myCheckedOut"] == 0
+    assert bobStatus[0]["myCheckedOut"] == 4
 
 
 # ---------------------------------------------------------------------------
-# Accountability is per (user, project), not just per user -- the hardware
-# catalog is global (shared by every project), but a checkout made through
-# one project is a loan THAT PROJECT is accountable for, not a number
-# floating free of any project. Reported bug this section pins: alice is a
-# member of both H1 and H2, checks out 5 units through H1, and should NOT
-# be able to check those same 5 back in while acting through H2 -- even
-# though it is the same person and the same global hardware set.
+# Accountability is per PROJECT, not just per user -- the hardware catalog
+# is global (shared by every project), but a checkout made through one
+# project is a loan THAT PROJECT is accountable for, not a number floating
+# free of any project or shared catalog-wide. Reported bug this section
+# pins: alice is a member of both H1 and H2, checks out 5 units through H1,
+# and should NOT be able to check those same 5 back in while acting through
+# H2 -- even though it is the same person and the same global hardware set.
 # ---------------------------------------------------------------------------
 
 
@@ -218,7 +239,7 @@ def test_a_checkout_made_through_one_project_cannot_be_checked_in_through_anothe
     assert response.status_code == 409
     body = response.get_json()
     assert body["error"] == "checkin_exceeds_checked_out"
-    assert body["checkedOut"] == 0  # alice's holding through H2 specifically, not H1's 5
+    assert body["checkedOut"] == 0  # H2's own holding, not H1's 5
     assert body["requested"] == 5
 
 

@@ -237,10 +237,10 @@ assertHouseholdMember = assertProjectMember
 def checkinHardwareSet(client, projectId, userId, hwSetName, quantity):
     """Check in units of a hardware set after verifying project membership.
 
-    Gated by what userId personally checked out THROUGH THIS SAME projectId
-    (hardwareDB.checkinHardware), not the project-wide total and not this
-    same userId's holding under a different project -- see
-    hardwareDatabase.py's module docstring.
+    Gated by what projectId collectively holds (hardwareDB.checkinHardware),
+    not the catalog-wide total and not a different project's holding -- any
+    member of projectId may check in units a teammate on that same project
+    checked out. See hardwareDatabase.py's module docstring.
     """
     assertProjectMember(client, projectId, userId)
     return hardwareDB.checkinHardware(client, projectId, hwSetName, quantity, userId)

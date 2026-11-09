@@ -6,16 +6,16 @@ vi.mock('../api/hardware.js', () => ({
   fetchHardware: vi.fn(),
   checkinHardware: vi.fn(),
   checkoutHardware: vi.fn(),
-  createHardwareSet: vi.fn(),
+  renameHardwareSet: vi.fn(),
+  setHardwareSetActive: vi.fn(),
 }));
 
-import { checkinHardware, checkoutHardware, createHardwareSet, fetchHardware } from '../api/hardware.js';
+import { checkinHardware, checkoutHardware, fetchHardware } from '../api/hardware.js';
 import Availability from '../components/Availability.js';
 import Capacity from '../components/Capacity.js';
 import MyCheckedOut from '../components/MyCheckedOut.js';
 import CheckIn from '../components/CheckIn.js';
 import CheckOut from '../components/CheckOut.js';
-import CreateHardwareSet from '../components/CreateHardwareSet.js';
 import HardwareSet from '../components/HardwareSet.js';
 import QuantityAction from '../components/QuantityAction.js';
 import ResourceView from '../components/Project.js';
@@ -351,78 +351,6 @@ describe('HardwareSet', () => {
   });
 });
 
-describe('CreateHardwareSet', () => {
-  it('submits the name and starting capacity, scoped to this project and user', async () => {
-    createHardwareSet.mockResolvedValue({ hardwareSet: { hwSetName: 'NewSet', capacity: 10 } });
-    const onCreated = vi.fn().mockResolvedValue();
-    render(<CreateHardwareSet projectId="P1" userId="alice" onCreated={onCreated} />);
-
-    await userEvent.type(screen.getByLabelText('Name'), 'NewSet');
-    await userEvent.type(screen.getByLabelText('Starting capacity'), '10');
-    await userEvent.click(screen.getByRole('button', { name: 'Add hardware set' }));
-
-    expect(createHardwareSet).toHaveBeenCalledWith({
-      projectId: 'P1',
-      userId: 'alice',
-      hwSetName: 'NewSet',
-      capacity: 10,
-    });
-    expect(onCreated).toHaveBeenCalledTimes(1);
-  });
-
-  it('clears the form after a successful create', async () => {
-    createHardwareSet.mockResolvedValue({ hardwareSet: { hwSetName: 'NewSet', capacity: 10 } });
-    render(<CreateHardwareSet projectId="P1" userId="alice" onCreated={vi.fn().mockResolvedValue()} />);
-
-    await userEvent.type(screen.getByLabelText('Name'), 'NewSet');
-    await userEvent.type(screen.getByLabelText('Starting capacity'), '10');
-    await userEvent.click(screen.getByRole('button', { name: 'Add hardware set' }));
-
-    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue(''));
-    expect(screen.getByLabelText('Starting capacity')).toHaveValue(null);
-  });
-
-  it('shows a friendly message and does not clear the form when the server rejects the capacity', async () => {
-    // A value that passes the input's own min="1" constraint (so the
-    // native submit isn't blocked before this component's handler runs)
-    // but that the server rejects anyway -- e.g. a second tab racing a
-    // capacity that's since been invalidated some other way.
-    const error = new Error('invalid_input');
-    error.field = 'capacity';
-    createHardwareSet.mockRejectedValue(error);
-    const onCreated = vi.fn();
-    render(<CreateHardwareSet projectId="P1" userId="alice" onCreated={onCreated} />);
-
-    await userEvent.type(screen.getByLabelText('Name'), 'NewSet');
-    await userEvent.type(screen.getByLabelText('Starting capacity'), '5');
-    await userEvent.click(screen.getByRole('button', { name: 'Add hardware set' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Starting capacity must be a whole number of 1 or more.'
-    );
-    expect(onCreated).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Name')).toHaveValue('NewSet');
-  });
-
-  it('disables the submit button while the request is in flight', async () => {
-    let resolveCreate;
-    createHardwareSet.mockReturnValue(
-      new Promise((resolve) => {
-        resolveCreate = resolve;
-      })
-    );
-    render(<CreateHardwareSet projectId="P1" userId="alice" onCreated={vi.fn().mockResolvedValue()} />);
-
-    await userEvent.type(screen.getByLabelText('Name'), 'NewSet');
-    await userEvent.type(screen.getByLabelText('Starting capacity'), '10');
-    await userEvent.click(screen.getByRole('button', { name: 'Add hardware set' }));
-
-    expect(screen.getByRole('button', { name: 'Adding...' })).toBeDisabled();
-    resolveCreate({ hardwareSet: { hwSetName: 'NewSet', capacity: 10 } });
-    await screen.findByRole('button', { name: 'Add hardware set' });
-  });
-});
-
 describe('ResourceView', () => {
   const sets = [
     { hwSetName: 'HWSet1', capacity: 10, available: 10 },
@@ -439,40 +367,18 @@ describe('ResourceView', () => {
     expect(fetchHardware).toHaveBeenCalledWith('P1', 'alice');
   });
 
-  it('says so when the project has no hardware sets, but still offers the create form', async () => {
+  it('says so when the global catalog has no hardware sets yet', async () => {
     fetchHardware.mockResolvedValue({ hardwareSets: [] });
     render(<ResourceView projectId="P1" userId="alice" />);
 
-    expect(await screen.findByText('No hardware sets in this project yet.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Add a hardware set' })).toBeInTheDocument();
-  });
-
-  it('creating a hardware set reloads the list', async () => {
-    fetchHardware
-      .mockResolvedValueOnce({ hardwareSets: [] })
-      .mockResolvedValueOnce({ hardwareSets: [{ hwSetName: 'NewSet', capacity: 10, available: 10 }] });
-    createHardwareSet.mockResolvedValue({ hardwareSet: { hwSetName: 'NewSet', capacity: 10 } });
-    render(<ResourceView projectId="P1" userId="alice" />);
-    await screen.findByText('No hardware sets in this project yet.');
-
-    await userEvent.type(screen.getByLabelText('Name'), 'NewSet');
-    await userEvent.type(screen.getByLabelText('Starting capacity'), '10');
-    await userEvent.click(screen.getByRole('button', { name: 'Add hardware set' }));
-
-    expect(await screen.findByRole('region', { name: 'NewSet' })).toBeInTheDocument();
-    expect(createHardwareSet).toHaveBeenCalledWith({
-      projectId: 'P1',
-      userId: 'alice',
-      hwSetName: 'NewSet',
-      capacity: 10,
-    });
+    expect(await screen.findByText('No hardware sets are available yet.')).toBeInTheDocument();
   });
 
   it('treats a response without hardwareSets as empty', async () => {
     fetchHardware.mockResolvedValue(null);
     render(<ResourceView projectId="P1" userId="alice" />);
 
-    expect(await screen.findByText('No hardware sets in this project yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No hardware sets are available yet.')).toBeInTheDocument();
   });
 
   it('shows the error with a Retry button that refetches', async () => {
@@ -515,5 +421,63 @@ describe('ResourceView', () => {
 
     rerender(<ResourceView projectId="P2" userId="bob" />);
     await waitFor(() => expect(fetchHardware).toHaveBeenCalledWith('P2', 'bob'));
+  });
+});
+
+describe('inactive hardware set state', () => {
+  const activeSet = { hwSetName: 'HWSet1', capacity: 10, available: 5, myCheckedOut: 2 };
+
+  it('QuantityAction with disabled disables input and button even when max is above 0', () => {
+    render(
+      <QuantityAction
+        label="Check Out"
+        busyLabel="Checking out..."
+        action={vi.fn()}
+        describeError={(error) => error.message}
+        onChanged={vi.fn()}
+        max={5}
+        disabled
+      />,
+    );
+    expect(screen.getByRole('spinbutton')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeDisabled();
+  });
+
+  it('CheckOut explains a hardware_set_inactive rejection', async () => {
+    checkoutHardware.mockRejectedValue(new Error('hardware_set_inactive'));
+    render(
+      <CheckOut projectId="P1" userId="alice" hwSetName="HWSet1" available={5} onChanged={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "This hardware set is deactivated, so it can't be checked out.",
+    );
+  });
+
+  it('HardwareSet with active false shows the badge and note, disables Check Out, keeps Check In', () => {
+    render(
+      <HardwareSet
+        projectId="P1"
+        userId="alice"
+        hwSet={{ ...activeSet, active: false }}
+        onChanged={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Inactive')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Deactivated -- no new check-outs. Units already out can still be checked in.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Check In' })).toBeEnabled();
+  });
+
+  it.each([[{ active: true }], [{}]])('HardwareSet with %o shows no badge and enables Check Out', (extra) => {
+    render(
+      <HardwareSet projectId="P1" userId="alice" hwSet={{ ...activeSet, ...extra }} onChanged={vi.fn()} />,
+    );
+    expect(screen.queryByText('Inactive')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
   });
 });

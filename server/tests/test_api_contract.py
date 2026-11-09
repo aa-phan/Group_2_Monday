@@ -21,12 +21,6 @@ ROUTES = [
     ("GET", "/api/hardware", {"projectId": "H1", "userId": "alice"}, "missing_parameter"),
     (
         "POST",
-        "/api/hardware/create",
-        {"projectId": "H1", "userId": "alice", "hwSetName": "NewSet", "capacity": 10},
-        "invalid_input",
-    ),
-    (
-        "POST",
         "/api/hardware/checkin",
         {"projectId": "H1", "userId": "alice", "hwSetName": "HWSet1", "quantity": 1},
         "invalid_input",
@@ -47,6 +41,18 @@ ROUTES = [
         "POST",
         "/api/hardware/release",
         {"projectId": "H1", "userId": "alice", "requestId": "no-such-request"},
+        "invalid_input",
+    ),
+    (
+        "POST",
+        "/api/hardware/rename",
+        {"projectId": "H1", "userId": "alice", "hwSetName": "HWSet1", "newName": "Renamed"},
+        "invalid_input",
+    ),
+    (
+        "POST",
+        "/api/hardware/set_active",
+        {"projectId": "H1", "userId": "alice", "hwSetName": "HWSet1", "active": True},
         "invalid_input",
     ),
 ]

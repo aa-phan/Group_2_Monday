@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-28)
 Phase: 1 — Account & Project Management
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-11-09 - Completed quick task 261109-gee (demo step 10 over-checkout message)
+Last activity: 2026-11-09 - Completed quick tasks 261109-gee (demo step 10) and 261109-gfz (demo step 17 session-bound authorization)
 
 Progress: [█████░░░░░] 25% (1/4 tracks complete)
 
@@ -107,6 +107,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 | 261102-150 | 2026-11-02 | US-14 / STRETCH-02 (Track C): hardware-set rename, deactivate and reactivate, server + client + tests (346 backend, 126 client passing) | `.planning/quick/261102-150-us-14-finish-hardware-set-rename-and-dea/261102-150-SUMMARY.md` |
 | 261102-1tl | 2026-11-02 | TD-05 cleanup (Track C): ported PR #7's project tests onto main, removed `/main` and three dead stubs; 361 passed, 17 strict xfails record five open bugs (B1-B5) | `.planning/quick/261102-1tl-td-05-cleanup-salvage-pr-7-tests-and-rem/261102-1tl-SUMMARY.md` |
 | 261109-gee | 2026-11-09 | Demo step 10: over-available Check Out now reaches the server and shows the app's insufficient-stock message instead of the browser max tooltip (128 client passing) | `.planning/quick/261109-gee-demo-step-10-over-available-check-out-sh/261109-gee-SUMMARY.md` |
+| 261109-gfz | 2026-11-09 | Demo step 17: all 11 project/hardware routes take the acting user from the signed session (401 not_signed_in, 403 forbidden_user_mismatch); client returns to sign-in on 401 (460 backend, 137 client passing) | `.planning/quick/261109-gfz-demo-step-17-bind-api-routes-to-the-sess/261109-gfz-SUMMARY.md` |
 
 ## Session Continuity
 

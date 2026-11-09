@@ -152,20 +152,6 @@ def logout():
     session.clear()
     return jsonify({}), 200
 
-# Route for the main page (Work in progress)
-@app.route('/main')
-def mainPage():
-    # Extract data from request
-
-    # Connect to MongoDB
-
-    # Fetch user projects using the usersDB module
-
-    # Close the MongoDB connection
-
-    # Return a JSON response
-    return jsonify({})
-
 # Route for joining a project
 @app.route('/join_project', methods=['POST'])
 def join_project():

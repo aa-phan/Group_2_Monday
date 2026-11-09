@@ -170,21 +170,6 @@ def addUser(client, projectId, userId):
     if result.matched_count == 0:
         raise ProjectNotFoundError(projectId)
 
-# Function to update hardware usage in a project
-def updateUsage(client, projectId, hwSetName):
-    # Update the usage of a hardware set in the specified project
-    pass
-
-# Function to check out hardware for a project
-def checkOutHW(client, projectId, hwSetName, qty, userId):
-    # Check out hardware for the specified project and update availability
-    pass
-
-# Function to check in hardware for a project
-def checkInHW(client, projectId, hwSetName, qty, userId):
-    # Check in hardware for the specified project and update availability
-    pass
-
 
 # ---------------------------------------------------------------------------
 # Track B — hardware resource management (generic HaaS domain)

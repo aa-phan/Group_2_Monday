@@ -52,7 +52,6 @@ This file is the main entry point of the application. It sets up the Flask web s
 
 - **Routes:**
   - `/login`: Handles user login.
-  - `/main`: Handles requests to the main user portal.
   - `/join_project`: Allows a user to join a project.
   - `/add_user`: Adds a new user to the database.
   - `/get_user_projects_list`: Retrieves the list of projects a user is part of.
@@ -84,9 +83,6 @@ This file contains functions for managing projects in the database.
   - `queryProject`: Queries a project by its ID.
   - `createProject`: Creates a new project.
   - `addUser`: Adds a user to a project.
-  - `updateUsage`: Updates the usage of a hardware set in a project.
-  - `checkOutHW`: Handles hardware checkout for a project.
-  - `checkInHW`: Handles hardware check-in for a project.
 
 ## 4. `usersDB.py`
 
@@ -109,7 +105,7 @@ This file contains functions for managing users in the database.
 2. **Project Management (`projectsDB.py`):**
    - `createProject` function in `projectsDB.py` is called through the `/create_project` route in `app.py` to create new projects.
    - `addUser` function in `projectsDB.py` adds users to projects, updating the project's user list.
-   - `checkOutHW` and `checkInHW` functions in `projectsDB.py` handle hardware check-out and check-in for projects, respectively, interacting with `hardwareDB.py` to update hardware availability.
+   - `checkoutHardwareSet` and `checkinHardwareSet` functions in `projectsDB.py` handle hardware check-out and check-in for projects, respectively, interacting with `hardwareDB.py` to update hardware availability.
 
 3. **Hardware Management (`hardwareDB.py`):**
    - `createHardwareSet` function in `hardwareDB.py` is used to create new hardware sets through the `/create_hardware_set` route in `app.py`.

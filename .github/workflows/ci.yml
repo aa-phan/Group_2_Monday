@@ -119,9 +119,21 @@ jobs:
           page=$(curl --silent --fail http://localhost:8000/)
           [[ "$page" == *'<div id="root">'* ]] || { echo "GET / did not serve the React client"; exit 1; }
 
+          # Data routes check the signed-in session before anything else
+          # (demo step 17), so a signed-out request is refused with a 401
+          # before the database is ever touched.
           status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
             'http://localhost:8000/api/hardware?projectId=P1&userId=alice')
-          echo "GET /api/hardware with no database -> $status"
+          echo "GET /api/hardware while signed out -> $status"
+          [[ "$status" == "401" ]]
+
+          # Sign-in does reach the database, so with no MONGODB_URI it must
+          # answer with the actionable JSON 503, not a crash.
+          status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --header 'Content-Type: application/json' \
+            --data '{"username":"ci","userId":"ci","password":"ci"}' \
+            http://localhost:8000/login)
+          echo "POST /login with no database -> $status"
           [[ "$status" == "503" ]]
 
       - name: Container logs

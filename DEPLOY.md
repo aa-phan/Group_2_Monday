@@ -58,6 +58,51 @@ off the live URL, and the last good version keeps serving.
 If the service was created by hand rather than from the blueprint, set its
 **Auto-Deploy** option to **After CI Checks Pass** in the service settings.
 
+## Alternative: deploy on Heroku
+
+`heroku.yml` tells Heroku to build the same `Dockerfile`, so the Heroku app
+runs the exact image Render does. It can run alongside Render; neither file
+affects the other.
+
+Heroku has no free tier. The cheapest dyno (Eco) is billed monthly; check
+the GitHub Student Developer Pack for Heroku credits first.
+
+1. Install the Heroku CLI and sign in with `heroku login`.
+2. Create the app and put it on the container stack. Without this step
+   Heroku ignores `heroku.yml` and tries buildpacks instead:
+
+   ```bash
+   heroku create <app-name>
+   heroku stack:set container -a <app-name>
+   ```
+
+3. Set the environment variables (see the table below):
+
+   ```bash
+   heroku config:set -a <app-name> MONGODB_URI="<atlas connection string>" MONGODB_DB=HaaSResourceManager
+   heroku config:set -a <app-name> SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+   ```
+
+   `SECRET_KEY` must be set by hand. Heroku does not generate one the way
+   Render's blueprint does, and without it the two gunicorn workers sign
+   users out at random.
+4. In Atlas, under **Network Access**, allow `0.0.0.0/0`. Heroku dynos have
+   no fixed outbound IP either.
+5. Deploy from `main`:
+
+   ```bash
+   git push heroku main
+   ```
+
+6. Open `https://<app-name>.herokuapp.com/healthz` and expect
+   `{"status":"ok","clientBuilt":true}`, the same check as on Render.
+
+For continuous deployment, open the app in the Heroku dashboard, go to
+**Deploy**, connect the GitHub repository, enable **Automatic Deploys** from
+`main`, and tick **Wait for CI to pass before deploy**. A commit that fails
+`.github/workflows/ci.yml` then stays off the live URL, the same rule
+`autoDeployTrigger: checksPass` enforces on Render.
+
 ## Environment variables
 
 | Name | Required | Purpose |
@@ -106,5 +151,5 @@ and proxies `/api` to Flask on port 5050.
 ## Moving to another host
 
 The image is standard, so the same `Dockerfile` runs on Fly.io, Railway,
-Cloud Run, or anything else that takes a container. Only `render.yaml` is
-provider-specific. Set the same environment variables and deploy.
+Cloud Run, or anything else that takes a container. Only `render.yaml` and
+`heroku.yml` are provider-specific. Set the same environment variables and deploy.

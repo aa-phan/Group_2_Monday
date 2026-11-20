@@ -1,0 +1,9 @@
+# Heroku container-stack manifest. Builds the same two-stage Dockerfile that
+# Render uses, so both hosts ship an identical image. The Dockerfile's CMD
+# (gunicorn bound to $PORT) is the web process, so no run section is needed.
+# Requires the app to be on the container stack:
+#   heroku stack:set container -a <app-name>
+# See DEPLOY.md, "Alternative: deploy on Heroku".
+build:
+  docker:
+    web: Dockerfile
